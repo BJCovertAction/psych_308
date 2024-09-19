@@ -15,9 +15,9 @@ options(repos="https://cran.rstudio.com")
 ```
 
 ```{r}
-install.packages("jmv")
-install.packages("psych")
-install.packages("ggplot2")
-install.packages("tidyverse")
-install.packages("car")
+renv::install("jmv")
+renv::install("psych")
+renv::install("ggplot2")
+renv::install("tidyverse")
+renv::install("car")
 ```
