@@ -1,0 +1,23 @@
+---
+title: "R You Ready Script"
+author: "Brady C. Jackson"
+date: '2024/09/18'
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(repos="https://cran.rstudio.com")
+```
+
+```{r}
+install.packages("jmv")
+install.packages("psych")
+install.packages("ggplot2")
+install.packages("tidyverse")
+install.packages("car")
+```
