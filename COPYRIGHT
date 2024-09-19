@@ -1,8 +1,13 @@
-Copyright 2024 - Cosmic Dawn LLC - Torrance, CA - USA
+Copyright 2024 - Brady C. Jackson - Torrance, CA - USA
 
 APPLIES TO:
  - All code and files found in the psych_308 git repo at the following URL:
-   https://github.com/BJCovertAction/psych_308 
+   https://github.com/BJCovertAction/psych_308 except EXCEPTIONS:
+ - EXCEPTIONS:
+   - The ./Assignments/R You Ready Script.Rmd file was forked from that of
+     the same name developed by Dr. Jessica Diaz and TAs at Claremont
+     Graduate University. As such, Brady does not hold copyright on that
+     file. 
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
