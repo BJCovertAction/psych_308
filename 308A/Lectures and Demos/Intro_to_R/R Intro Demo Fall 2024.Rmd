@@ -1,14 +1,17 @@
 ---
-title: "R You Ready"
-author: "Jessica Diaz"
+title: "R You Ready - Modified"
+author: "Brady C. Jackson"
 output:
-  word_document: default
   html_document: default
+  word_document: default
   pdf_document: 
     latex_engine: xelatex
 ---
 
-A researcher was interested in the amount of reading done by graduate students. She recruits forty students and measures their degree program (Group), Gender, and the number of pages read per week. All students in the sample identified as either male or female, thus the gender variable only has two levels.  
+A researcher was interested in the amount of reading done by graduate students.\ 
+She recruits forty students and measures their degree program (Group), Gender, \
+and the number of pages read per week. All students in the sample identified as \
+either male or female, thus the gender variable only has two levels.
 
 ```{r setup, include=FALSE}
 #this chunk will always be here when you open an RMD file. Leave it - it allows you to knit the document effectively
@@ -56,8 +59,10 @@ desc <- descriptives(dat, vars = c('Pages','Degree'), hist = TRUE, sd = TRUE, se
 desc
 
 #another descriptives function from the package summary tool
-descriptives <- descr(dat)
-descriptives
+# Error: This is a package that is not installed. Commenting out for now.
+# Refs: https://rdocumentation.org/packages/summarytools/versions/1.0.1/topics/descr
+# descriptives <- descr(dat)
+# descriptives
 ```
 
 ```{r}
@@ -99,4 +104,5 @@ dat2 <- dat %>% mutate(hours2 = daily*30) %>% rename(monthly = hours2)
 #sometimes we want to create a new data frame that contains only a portion of our original frame. There are a LOT of ways to do this, but regardless, it's called subsetting. Here we're going to use my favorite way, which is filtering the data using dplyr again. Another go at calmly interpreting an error :) 
 
 datmasters <- dat2 %>% filter(degree == 1)
+datphd <- dat2 %>% filter(degree != 1)
 ```
