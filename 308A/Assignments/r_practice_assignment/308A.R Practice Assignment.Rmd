@@ -1,7 +1,7 @@
 ---
-title: "308B R Practice Assignment F22"
-author: "Byfield"
-date: "8/22/2022"
+title: "308A R Practice Assignment"
+author: "Brady C. Jackson"
+date: "2024/09/26"
 output: html_document
 ---
 
@@ -9,14 +9,20 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-For this assignment, you will be practicing the skills you learned in the workshop that are important for completing analyses in the remainder of the 308 sequence. Use the dataset labeled '308A.R Practice Assignment.HomeworkData' from canvas. Write all code below the following tasks:
+For this assignment, you will be practicing the skills you learned in the\
+workshop that are important for completing analyses in the remainder of the 308\
+sequence. Use the dataset labeled '308A.R Practice Assignment.HomeworkData' from\
+canvas. Write all code below the following tasks:\
 
-- begin every chunk with a comment explaining what that chunk is going to do (these are notes for you, so make them something you will understand looking at it later) 
+- begin every chunk with a comment explaining what that chunk is going to do (these are notes for you, so make them something you will understand looking at it later)
 - load the following libraries: psych, jmv, summarytools, dplyr
 - find the library that contains the function 'pivot_wider', install and load the appropriate library
+   - tidyr Refs: https://www.rdocumentation.org/packages/tidyr/versions/1.3.1/topics/pivot_wider
 - read in the data, name it dat2
 - check the data type of the columns in the data set
 - run descriptives for the variable 'Test' by using the following code:
+
+```
 desc <- descriptives(
   data =dat, 
   vars = c(
@@ -26,7 +32,8 @@ desc <- descriptives(
   se = TRUE, 
   skew = TRUE, 
   kurt = TRUE) 
-  
+```
+
 - an error has occured. Interpret and fix the error from the code above.
 - make the variable 'Gender' a factor
 - run descriptives for the variable 'Test,' splitting the participants into groups based on 'Gender'
