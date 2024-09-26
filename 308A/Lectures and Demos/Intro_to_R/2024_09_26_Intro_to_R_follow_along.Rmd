@@ -1,0 +1,10 @@
+```{r}
+
+print("This is some R Code")
+
+```
+
+This is a paragraph. Let's see what it looks like. We're going to print\
+The sum of 6 and 19:
+
+6+19 = `r 6+19`
