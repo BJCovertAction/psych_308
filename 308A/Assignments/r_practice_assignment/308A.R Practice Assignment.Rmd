@@ -55,9 +55,6 @@ library('cli')
 renv::install('tidyr', prompt=FALSE)
 library('tidyr')
 
-# I include a renv::snapshot call here so that the tidyr dependency gets saved
-# to my project's lockfile.
-renv::snapshot()
 ```
 
 - read in the data, name it dat2 [/]
