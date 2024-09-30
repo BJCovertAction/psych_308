@@ -1,7 +1,7 @@
 ---
 title: "308A R Practice Assignment"
 author: "Brady C. Jackson"
-date: "2024/09/26"
+date: "2024/09/29"
 output: html_document
 ---
 
@@ -45,8 +45,8 @@ library('cli')
 # NOTE: This package is already installed in your R environment for this project,
 # but code is included here for assignment credit. 
 #
-# NOTE: I'm using renv::instal rather than install.packages deliberatley as I 
-#       develop my R-code in an R environment usintg the renv package.
+# NOTE: I'm using renv::install rather than install.packages deliberatley as I 
+#       develop my R-code in an R environment using the renv package.
 #       This is because I use R professionally on other projects and I need
 #       to avoid dependency collisions between projects. So I can't have one
 #       library for my system that I use for every project. That said, I promise,
@@ -175,7 +175,7 @@ run_fixed = !(run_bugged)
 # This switch runs the bugged code. To run it and generate the error code set 
 # "run_bugged" above to 1
 if(run_bugged){
-      desc <- descriptives(
+  desc <- descriptives(
       data = dat, 
       vars = c('Test'), 
       hist = TRUE, 
@@ -283,18 +283,39 @@ cat("\n\n")
 
 ```
 
-- enter, and run the following code into its own chunk: dat <- rename(dat2, Group = gender)   [O]
+- enter, and run the following code into its own chunk: dat <- rename(dat2, Group = gender)   [/]
+- interpret and fix the error from the code given above   [/]
 
 ```{r}
+# The code below is copied from the assignment requirements and will throw an 
+# error. Wrap it in a "run_bugged_2" flag so we can turn it off
+# to run the whole Rmd file later
+run_bugged_2 = 0   # set to 0 to run the fixed code. Set to 1 to throw the error
+run_fixed_2 = !(run_bugged_2)
+if(run_bugged_2){
+    dat <- rename(dat2, Group = gender) 
+}
 
-```
+# run_fixed_2 is NOT run_bugged_2 so it runs the fixed code when we don't
+# run the buggy code
+if(run_fixed_2){
+    # The bug in the original code was the it was looking for 'gender' with
+    # a lowercase spelling but our column names still have the first letter
+    # capitalized. Code below fixes this.
+    dat <- rename(dat2, Group = Gender) 
+    
+    # Print the colnames to prove it got renamed
+    cat(paste(colnames(dat), collapse = "\n") )
+    cat("\n\n")
+}
 
-- interpret and fix the error from the code given above   [O]
 
-```{r}
+
 
 ```
 
 - knit the markdown file to word or pdf and submit on canvas   [/]
+
+## Aye, Aye, Captain!
 
 
