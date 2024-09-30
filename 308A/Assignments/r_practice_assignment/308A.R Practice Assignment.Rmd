@@ -9,18 +9,150 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Assignment goals and statement:
+
 For this assignment, you will be practicing the skills you learned in the\
 workshop that are important for completing analyses in the remainder of the 308\
 sequence. Use the dataset labeled '308A.R Practice Assignment.HomeworkData' from\
 canvas. Write all code below the following tasks:\
 
-- begin every chunk with a comment explaining what that chunk is going to do (these are notes for you, so make them something you will understand looking at it later)
-- load the following libraries: psych, jmv, summarytools, dplyr
-- find the library that contains the function 'pivot_wider', install and load the appropriate library
+- begin every chunk with a comment explaining what that chunk is going to do (these are notes for you, so make them something you will understand looking at it later) [/]
+
+
+- load the following libraries: psych, jmv, summarytools, dplyr [/]
+
+```{r}
+# We start our code by loading the necessary dependencies into our environment.
+# This is expected to generate masking warnings as some functions in these
+# libraries will overload the standard packages versions of these functions.
+library('psych')
+library('jmv')
+library('summarytools')
+library('dplyr')
+
+# Loading some additional libraries so I can be a bit extra in this assignment:
+renv::install("cli", prompt=FALSE)
+library('cli')
+```
+
+- find the library that contains the function 'pivot_wider', install and load the appropriate library [/]
    - tidyr Refs: https://www.rdocumentation.org/packages/tidyr/versions/1.3.1/topics/pivot_wider
-- read in the data, name it dat2
-- check the data type of the columns in the data set
-- run descriptives for the variable 'Test' by using the following code:
+   
+```{r}
+
+# The pivot_wider function is part of the tidyr package. Refs:
+#  https://www.rdocumentation.org/packages/tidyr/versions/1.3.1/topics/pivot_wider
+# NOTE: This package is already installed in your R environment for this project,
+# but code is included here for assignment credit. 
+#
+# NOTE: I'm using renv::instal rather than install.packages deliberatley as I 
+#       develop my R-code in an R environment usintg the renv package.
+#       This is because I use R professionally on other projects and I need
+#       to avoid dependency collisions between projects. So I can't have one
+#       library for my system that I use for every project. That said, I promise,
+#       renv::install does the same thing as install.packages() in the context
+#       of this projec (308A).
+renv::install('tidyr', prompt=FALSE)
+library('tidyr')
+
+# I include a renv::snapshot call here so that the tidyr dependency gets saved
+# to my project's lockfile.
+renv::snapshot()
+```
+
+- read in the data, name it dat2 [/]
+
+```{r}
+# The data for this HW project is stored in a file collocated with this Rmd file
+# named: 308A.R Practice Assignment.HomeworkData.csv
+# Since it's collocated we just load from the current working directory with
+# "./" but for good measure we reconstruct the filename, full path, and extension
+# once we load the file in case we need it again later.
+
+# Building up the filename bits and pieces
+this_dir = "."
+here = getwd()
+dat_filename = "308A.R Practice Assignment.HomeworkData"
+dat_ext = ".csv"
+dat_filename_full = paste(dat_filename, dat_ext, sep = '')
+
+# Note we use .Platform$file.sep here so that this code will run regardless of 
+# OS it's executed on. Since I'm developing in WSL this should still enable
+# it to run in Windows despite being dev'ed in a linux-like environment
+fullfile = paste(here, dat_filename_full, sep=.Platform$file.sep)
+local_file = paste(this_dir, dat_filename_full, sep=.Platform$file.sep)
+
+# Before we load the file, let's check if it exists and print an error if 
+# there's a problem.
+if( !(file.exists(local_file)) ){
+    err_msg = paste(
+        "The following file does not exist at the location specified: \n",
+        "    ", local_file, " \n", 
+        "Please check your filename and path inputs and try again. \n",
+        sep = ""
+    )
+    cat(col_red(err_msg))
+} else {
+    # If we threw no error load the file and print a success message
+    dat2 = read.csv(local_file, header=TRUE)
+    
+    succ_msg = paste(
+        "The following file loaded successfully: \n",
+        "    ", local_file, " \n", 
+        "Congratulations! \n",
+        sep = ""
+    )
+    cat( col_green( succ_msg) )
+}
+
+```
+
+- check the data type of the columns in the data set  [/]
+
+```{r}
+# We can use the class function to check the variable type of data stored in any
+# given column in dat2. First we need to know how many columns there are so we
+# can loop through them and print a report of the type of each column.
+cnames = colnames(dat2)
+ncols = length(cnames)
+
+# We're going to define an empty string that we can concatenate output text onto
+# as we loop through each column. This isn't super memory efficient as the 
+# space for the character string has to get dynamically allocated with each pass
+# of the loop, but oh well.
+out_str = ''
+
+# We could loop through each column name directly but then we'd lose control
+# of any index into the cnames vector so we'll loop through an appropriately
+# sized index instead
+for(iii in c(1:ncols)){
+    # Unpack our column names data. Note that we store the data itself from the
+    # column in this_col
+    this_cname = cnames[iii]
+    this_col = dat2[, this_cname]
+    this_type = class( this_col )
+    
+    # Now we can format the report string for this column and append it to our 
+    # output string. NOTE: Color formatting only works for command line (CLI) 
+    # output. Need to add a dedicated function to use span or latex wrappers
+    # for colored output in knit output files
+    this_str = paste(
+        "The data stored in the dat2 column named: ", col_blue(this_cname), " \n",
+        "...is of datatype: ", col_blue(this_type), "\n\n",
+        sep = ""
+    )
+    
+    out_str = paste(out_str, this_str, sep="")
+}
+
+# Print the output string using "cat" instead of "print" so newline characters
+# are appropriately handled
+cat(out_str)
+
+```
+
+- run descriptives for the variable 'Test' by using the following code:  [/]
+- an error has occured. Interpret and fix the error from the code above.   [/]
 
 ```
 desc <- descriptives(
@@ -34,14 +166,138 @@ desc <- descriptives(
   kurt = TRUE) 
 ```
 
-- an error has occured. Interpret and fix the error from the code above.
-- make the variable 'Gender' a factor
-- run descriptives for the variable 'Test,' splitting the participants into groups based on 'Gender'
-- Use pipes to rename the variable 'Test' to 'Score' and then create a new variable by multiplying 'Score' and 'Stress', call the new variable 'TestxStress'
-- enter, and run the following code into its own chunk: dat <- rename(dat2, Group = gender)
-- interpret and fix the error from the code given above
-- knit the markdown file to word or pdf and submit on canvas
+```{r}
+# This code is going to fail because the data input is misnamed (uses 'dat'
+# instead of 'dat2')
+#
+# Wrap it in an error catch flag set manually so you can toggle between throwing
+# the error and running the fixed code. 
+run_bugged = 0
+run_fixed = !(run_bugged)
+
+# This switch runs the bugged code. To run it and generate the error code set 
+# "run_bugged" above to 1
+if(run_bugged){
+      desc <- descriptives(
+      data = dat, 
+      vars = c('Test'), 
+      hist = TRUE, 
+      sd = TRUE, 
+      se = TRUE, 
+      skew = TRUE, 
+      kurt = TRUE
+  ) 
+
+}
+
+# Fix for second part of question is contained here.
+if(run_fixed){
+  desc <- descriptives(
+      data =dat2, 
+      vars = c('Test'), 
+      hist = TRUE, 
+      sd = TRUE, 
+      se = TRUE, 
+      skew = TRUE, 
+      kurt = TRUE
+  ) 
+  
+  out_str = paste(
+      "Congratulations! You ran your fixed code correctly. Revel in your\n",
+      "glorious output! \n\n"
+  )
+  cat(col_green(out_str))
+    
+  desc
+  
+}
+
+```
 
 
+- make the variable 'Gender' a factor   [/]
+
+```{r}
+# Print the class type of the Gender column before the conversion and after the
+# conversion as proof.
+cat("The original datatype of the 'Gender' column is:", col_blue(class(dat2$Gender)), '\n' )
+
+# Now do the Gender swap. Recall 'factor' is strictly-allowed-values array datatype
+dat2$Gender <- as.factor(dat2$Gender)
+
+# Print the new Gender type
+cat("The new datatype of the 'Gender' column is:", col_blue(class(dat2$Gender)), '\n\n' )
+
+```
+
+- run descriptives for the variable 'Test,' splitting the participants into groups based on 'Gender'   [/]
+
+```{r}
+# Nothing really fancy to do here. The splitBy argument in the descriptives function
+# does all the heavy lifting here.
+#
+# What this is doing is creating an object, test_desc, using the descriptives
+# function from the jmv package that first sorts the data based on the 
+# value of gender (only two genders are modeled), and then describes the 
+# data associated with the "Test" column as separated by those two Gender values
+#
+# Note, I include the package name in the descriptives call to help future-Brady
+# and others reading this code understand where the descriptives function is loaded
+# from
+test_desc <- jmv::descriptives(
+    dat2, 
+    vars = c('Test'), 
+    splitBy = 'Gender', 
+    hist = TRUE, 
+    sd = TRUE, 
+    se = TRUE, 
+    skew = TRUE, 
+    kurt = TRUE
+)
+
+# Print the new descriptives object / dump it to output
+test_desc
+```
+
+- Use pipes to rename the variable 'Test' to 'Score' and then create a new variable by multiplying 'Score' and  'Stress', call the new variable 'TestxStress'   [/]
+
+```{r}
+# Would've been better to do this at the top with the other library
+# loads but we need magrittr for fancy-piping
+library(magrittr)
+
+# Before we try to force a rename in-place on an existing object, we'll
+# check if the column we want to rename is actually in the data. If it is,
+# proceed with the rename. Assuming we've run all chunks above, the column
+# names should still be named in cnames:
+if( any( grepl('Test', cnames) ) ){
+    dat2 %<>% rename(Score = Test)
+    cat(paste(colnames(dat2), collapse = "\n") )
+    cat("\n\n")
+}
+
+# Finally, let's create a column for the product of the newly named
+# "Score" column and "Stress". This time we save the new column
+# names as new_cnames for potential future use.
+dat2$TestxStress <- dat2$Score * dat2$Stress
+new_cnames = colnames(dat2)
+cat(paste(new_cnames, collapse = "\n"))
+cat("\n\n")
+
+```
+
+- enter, and run the following code into its own chunk: dat <- rename(dat2, Group = gender)   [O]
+
+```{r}
+
+```
+
+- interpret and fix the error from the code given above   [O]
+
+```{r}
+
+```
+
+- knit the markdown file to word or pdf and submit on canvas   [/]
 
 
