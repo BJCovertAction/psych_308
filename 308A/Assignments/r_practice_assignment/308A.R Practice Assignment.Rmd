@@ -2,7 +2,9 @@
 title: "308A R Practice Assignment"
 author: "Brady C. Jackson"
 date: "2024/09/29"
-output: html_document
+output:
+  pdf_document:
+    latex_engine: xelatex
 ---
 
 ```{r setup, include=FALSE}
@@ -16,10 +18,10 @@ workshop that are important for completing analyses in the remainder of the 308\
 sequence. Use the dataset labeled '308A.R Practice Assignment.HomeworkData' from\
 canvas. Write all code below the following tasks:\
 
-- begin every chunk with a comment explaining what that chunk is going to do (these are notes for you, so make them something you will understand looking at it later) [/]
+- begin every chunk with a comment explaining what that chunk is going to do (these are notes for you, so make them something you will understand looking at it later) 
 
 
-- load the following libraries: psych, jmv, summarytools, dplyr [/]
+- load the following libraries: psych, jmv, summarytools, dplyr 
 
 ```{r}
 # We start our code by loading the necessary dependencies into our environment.
@@ -35,7 +37,7 @@ renv::install("cli", prompt=FALSE)
 library('cli')
 ```
 
-- find the library that contains the function 'pivot_wider', install and load the appropriate library [/]
+- find the library that contains the function 'pivot_wider', install and load the appropriate library 
    - tidyr Refs: https://www.rdocumentation.org/packages/tidyr/versions/1.3.1/topics/pivot_wider
    
 ```{r}
@@ -57,7 +59,7 @@ library('tidyr')
 
 ```
 
-- read in the data, name it dat2 [/]
+- read in the data, name it dat2 
 
 ```{r}
 # The data for this HW project is stored in a file collocated with this Rmd file
@@ -104,7 +106,7 @@ if( !(file.exists(local_file)) ){
 
 ```
 
-- check the data type of the columns in the data set  [/]
+- check the data type of the columns in the data set  
 
 ```{r}
 # We can use the class function to check the variable type of data stored in any
@@ -148,8 +150,8 @@ cat(out_str)
 
 ```
 
-- run descriptives for the variable 'Test' by using the following code:  [/]
-- an error has occured. Interpret and fix the error from the code above.   [/]
+- run descriptives for the variable 'Test' by using the following code:  
+- an error has occured. Interpret and fix the error from the code above.   
 
 ```
 desc <- descriptives(
@@ -212,7 +214,7 @@ if(run_fixed){
 ```
 
 
-- make the variable 'Gender' a factor   [/]
+- make the variable 'Gender' a factor   
 
 ```{r}
 # Print the class type of the Gender column before the conversion and after the
@@ -227,7 +229,7 @@ cat("The new datatype of the 'Gender' column is:", col_blue(class(dat2$Gender)),
 
 ```
 
-- run descriptives for the variable 'Test,' splitting the participants into groups based on 'Gender'   [/]
+- run descriptives for the variable 'Test,' splitting the participants into groups based on 'Gender'   
 
 ```{r}
 # Nothing really fancy to do here. The splitBy argument in the descriptives function
@@ -256,7 +258,7 @@ test_desc <- jmv::descriptives(
 test_desc
 ```
 
-- Use pipes to rename the variable 'Test' to 'Score' and then create a new variable by multiplying 'Score' and  'Stress', call the new variable 'TestxStress'   [/]
+- Use pipes to rename the variable 'Test' to 'Score' and then create a new variable by multiplying 'Score' and  'Stress', call the new variable 'TestxStress'   
 
 ```{r}
 # Would've been better to do this at the top with the other library
@@ -283,8 +285,8 @@ cat("\n\n")
 
 ```
 
-- enter, and run the following code into its own chunk: dat <- rename(dat2, Group = gender)   [/]
-- interpret and fix the error from the code given above   [/]
+- enter, and run the following code into its own chunk: dat <- rename(dat2, Group = gender)   
+- interpret and fix the error from the code given above   
 
 ```{r}
 # The code below is copied from the assignment requirements and will throw an 
@@ -314,7 +316,7 @@ if(run_fixed_2){
 
 ```
 
-- knit the markdown file to word or pdf and submit on canvas   [/]
+- knit the markdown file to word or pdf and submit on canvas   
 
 ## Aye, Aye, Captain!
 
