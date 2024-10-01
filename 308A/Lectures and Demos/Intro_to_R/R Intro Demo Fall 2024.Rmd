@@ -1,0 +1,109 @@
+---
+title: "R You Ready - Modified"
+author: "Brady C. Jackson"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: 
+    latex_engine: xelatex
+---
+
+A researcher was interested in the amount of reading done by graduate students.\ 
+She recruits forty students and measures their degree program (Group), Gender, \
+and the number of pages read per week. All students in the sample identified as \
+either male or female, thus the gender variable only has two levels.
+
+```{r setup, include=FALSE}
+#this chunk will always be here when you open an RMD file. Leave it - it allows you to knit the document effectively
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#always be sure your libraries are loaded. This chunk is pulling the right packages out of my library. FYI that you will need to periodically update packages, as well as R Studio AND R. 
+library(knitr)
+library(psych)
+library(jmv)
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+library(summarytools)
+#if I want to run one line, command (control for windows) and enter
+```
+
+```{r, echo = FALSE}
+#Reading in data and assigning (naming). Your data file must be in the same folder as your script in order to use this simple code. 
+dat <- read.csv("intro_R_data.csv") #make sure it's named whatever the file is named and don't forget to add the .csv at the end
+```
+
+```{r}
+#Rename a Column
+dat <- rename(dat, Degree = Group) #format is new name = old name
+
+#every once in awhile, you have a lot of packages loaded that contain functions with the same name. To specify which package you want R to pull from, just put the name of the package in front of the function with a double colon
+dat <- dplyr::rename(dat, Pages = Number)
+
+```
+
+```{r}
+#Checking the classification of a variable. Since this isn't something you need to do every time, you can just run class(dat$Gender) in your console. Alternatively, you can take a quick look at the features of your variable using the glimpse function from the dplyr package. 
+
+#Changing the classification of a vector. Generally, when you write variables, it needs to be in the format dataframe$variablename. If we wanted to change this back to a number, we'd use the function as.numeric
+dat$Degree <- as.factor(dat$Degree)
+```
+
+```{r}
+#running a line of code and assigning it to an object (and calmly interpreting an error)
+desc <- descriptives(dat, vars = c('Pages','Degree'), hist = TRUE, sd = TRUE, se = TRUE, freq = TRUE, skew = TRUE, kurt = TRUE)
+
+#calling an object
+desc
+
+#another descriptives function from the package summary tool
+# Fixed-Error: This is a package that is not installed. Commenting out for now.
+# Refs: https://rdocumentation.org/packages/summarytools/versions/1.0.1/topics/descr
+new_descriptives <- summarytools::descr(dat)
+new_descriptives
+```
+
+```{r}
+#we can also specify the columns using bracket and column numbers. Note I added the argument freq = TRUE so I can see the frequency of gender since the mean and SD are useless information for categorical variables
+desc2 <- descriptives(dat[2:4],  hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE, freq = TRUE)
+
+#calling an object
+desc2
+
+```
+
+```{r}
+#how to specify columns that aren't sequential. Inside the subsetting bracket, you need to put a c for column, and then the numbers of your columns separated by a comma. If you have some in range and some single, you can combine this dataframe[c(X,X,X:X)]
+desc3 <- descriptives(dat,  hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE, freq = TRUE)
+
+#calling an object
+desc3
+```
+
+```{r}
+#running descriptive statistics on a data set by group 
+groupdesc <- descriptives(dat, vars = c('Pages'), splitBy = 'Degree', hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+groupdesc
+
+#lets just make all our variable names lower so we don't have to worry about capital letters. Here we can practice using the pipe function from magrittr, which means AND THEN
+colnames(dat) %<>% tolower()
+```
+
+```{r}
+#Creating a new variable. Let's say we want to create a variable estimating the number of pages per day. 
+dat$daily <- dat$pages/7
+
+#alternatively, use the mutate function from dplyr. Here I am using the pipe function again to run more than one thing at a time. This code says take the data set dat AND THEN create a new variable called hours2 which is the number of pages in a day multiplied by 30 AND then rename it monthly
+
+dat2 <- dat %>% mutate(hours2 = daily*30) %>% rename(monthly = hours2)
+```
+
+```{r}
+#sometimes we want to create a new data frame that contains only a portion of our original frame. There are a LOT of ways to do this, but regardless, it's called subsetting. Here we're going to use my favorite way, which is filtering the data using dplyr again. Another go at calmly interpreting an error :) 
+
+datmasters <- dat2 %>% filter(degree == 1)
+datphd <- dat2 %>% filter(degree != 1)
+```
