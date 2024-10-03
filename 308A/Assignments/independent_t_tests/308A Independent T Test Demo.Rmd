@@ -1,0 +1,176 @@
+---
+title: "Independent T-Test Demo Fall 2024"
+author: "Brady C. Jackson"
+date: "2024/10/01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(psych)
+library(jmv)
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+```
+
+*Intependent T Test Example 1*
+Alarafi & Song (2024) conducted a reent study comparing online distance learning and traditional in-person education at King Saud University in Saudi Arabia, with a focus on understanding how different educational modalities affect student achievement. By analyzing the final test scores of freshman students in five core courses over the 2020 (in-person) and 2021 (online) academic years, the research provides empirical insights into the efficacy of online versus traditional education.
+
+RQ: Does learning modality differentially impact achievement?
+
+Model
+Learning Modality (Online v. InPerson) --> Achievement
+
+Statistical Mode
+Achievement = Modality + Error
+
+**SET UP**
+```{r}
+#read in the data
+dat_ach <- read.csv("independent ttest demo.ach.csv")
+colnames(dat_ach) <- tolower(colnames(dat_ach))
+```
+
+```{r}
+# The "Modality" variable was entered as a character so we need to convert it to a factor
+dat_ach$modality <- as.factor(dat_ach$modality)
+```
+
+**DESCRIPTIVES**
+```{r}
+# Get descriptive statistics for the entire sample
+desc_ach <- descriptives(dat_ach, vars = c('modality', 'ach'), hist = TRUE, freq = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+
+desc_ach
+```
+
+```{r}
+# Get descriptive statistics for each group
+groupdesc_ach <- descriptives(dat_ach, vars = c('ach'), splitBy='modality', hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+
+groupdesc_ach
+```
+
+**VISUALIZE YOUR DATA**
+```{r}
+#creating a bar graph
+achbar <- ggplot(dat_ach, aes(modality, ach))
+
+achbar + stat_summary(fun = mean, geom = "bar", position = "dodge", fill="maroon3") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Learning Modality", y = "Freshman Year Achievement") + ggtitle('Effect of Learning Modality on Freshman Year Achievement')
+```
+
+**T TEST**
+```{r}
+#vars = outcome variable
+jmv::ttestIS(data = dat_ach, vars = 'ach', group = 'modality', effectSize = TRUE, ci = TRUE, meanDiff = TRUE, desc = TRUE)
+```
+
+*APA WRITE UP*
+An independent t-test confirmed that students who took their Freshman year courses in-person (*M* = 39.49) had significantly higher levels of achievement than those in the online cohort (*M* = 35.53), *t*(5189) = 16.67, *p* < .001, *d* = 0.46, 95% CI [3.49,4.42]. Learning modality had a moderate effect on achievement, the mean performance scores for in-person students were just under a half a standard deviation above those of online students.  
+
+______________________________________
+
+*Independent T Test Example 2*
+Music performance anxiety has been known to impact musicians abilities to perform and find success in their industry. Martin-Gagnon and Creech (2019) sought to determine if the setting in which a jazz musician was playing, solo or in an ensemble, made a difference in the anxiety they experienced prior to performing.They collected data from 76 performers who played primarily solo or primarily in ensembles, and collected data regarding their music performance anxiety. 
+
+RQ: Does the setting a musician plays music in predict anxiety before performing? 
+
+Model: Setting (solo, ensemble) --> music performance anxiety
+Stats model
+anxiety = setting + error
+
+**SET UP**
+```{r}
+#read in the data
+dat_jazz <- read.csv("independent ttest demo.jazz.csv")
+
+# The "Group" variable was entered as an integer so we need to convert it to a factor
+dat_jazz$setting <- as.factor(dat_jazz$setting)
+```
+
+**DESCRIPTIVES**
+```{r}
+# Get descriptive statistics for the entire sample
+desc_jazz <- descriptives(dat_jazz, vars = c('anxiety'), hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+desc_jazz
+```
+
+```{r}
+# Get descriptive statistics for each group
+groupdesc_jazz <- descriptives(dat_jazz, vars = c('anxiety'), splitBy='setting', hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+groupdesc_jazz
+```
+
+**VISUALIZE YOUR DATA**
+```{r}
+#creating a bar graph (you can forget the really complicated code you used in One Way ANOVA, it i simplified for you below. 
+jazzbar <- ggplot(dat_jazz, aes(setting, anxiety))
+
+jazzbar + stat_summary(fun = mean, geom = "bar", position = "dodge", fill="steelblue") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Setting", y = "Anxiety") + ggtitle('Effect of Performance Setting on Music Performance Anxiety')
+```
+
+**T TEST**
+```{r}
+ttestIS(data = dat_jazz, vars = 'anxiety', group = 'setting', effectSize = TRUE, ci = TRUE, meanDiff = TRUE, ciES =, desc = TRUE)
+```
+
+*APA WRITE UP*
+An independent t-test confirmed that musicians who play solo (*M* = 111.15) do not have significantly different anxiety than those who play in ensembles (*M* = 117.92), *t*(74) = 1.07, *p* = .288, *d* = 0.25, 95% CI[-5.822,19.36]. There was a small effect, with the mean anxiety of ensemble musicians only .25 of a standard deviation above solo musicians. 
+
+
+*Intependent T Test Example 3*
+Leadership qualities were explored in 362 college seniors who were surveyed regarding several variables, including their leader self-efficacy (confidence in leader abilities). You, the researcher, are wondering if taking the Intro to Leadership course, which over half of the students in the sample were enrolled in, has any impact on their leader self-efficacy.
+
+RQ: Does taking the Intro to Leadership class predict higher Leader Self-Efficacy scores at the end of college? 
+
+Model
+Class Enrollment --> Leader Self-Efficacy
+
+Statistical Mode
+Leader Self-Efficacy = Class Enrollment + Error
+
+**SET UP**
+```{r}
+#read in the data
+dat_lead <- read.csv("independent ttest demo.lead.csv")
+
+# The "Group" variable was entered as an integer so we need to convert it to a factor
+dat_lead$Class <- as.factor(dat_lead$Class)
+```
+
+**DESCRIPTIVES**
+```{r}
+# Get descriptive statistics for the entire sample
+desc_lead <- descriptives(dat_lead, vars = c('Class', 'LeaderSE'), hist = TRUE, freq = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+
+desc_lead
+```
+
+```{r}
+# Get descriptive statistics for each group
+groupdesc_lead <- descriptives(dat_lead, vars = c('LeaderSE'), splitBy='Class', hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+
+groupdesc_lead
+```
+
+**VISUALIZE YOUR DATA**
+```{r}
+#creating a bar graph
+leadbar <- ggplot(dat_lead, aes(Class, LeaderSE))
+
+leadbar + stat_summary(fun = mean, geom = "bar", position = "dodge", fill="steelblue") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Intro to Lead Class", y = "Leader Self-Efficacy") + ggtitle('Effect of Class Taken on Leader Self-Efficacy')
+```
+
+**T TEST**
+```{r}
+#vars = outcome variable
+jmv::ttestIS(data = dat_lead, vars = 'LeaderSE', group = 'Class', effectSize = TRUE, ci = TRUE, meanDiff = TRUE, desc = TRUE)
+```
+
+*APA WRITE UP*
+An independent t-test confirmed that students who took the Intro to Leadership class (*M* = 75.06) had significantly higher leader self-efficacy than students who did not (*M* = 70.45), *t*(360) = 37.38, *p* < .001, *d* = 4.31, 95% CI [4.37,4.85]. There was a large effect of taking the intro class, the mean self-efficacy of the students in the class was over 4 standard deviations higher than that of those who did not. 
+
