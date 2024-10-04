@@ -17,8 +17,14 @@ library(dplyr)
 library(magrittr)
 ```
 
-*Intependent T Test Example 1*
-Alarafi & Song (2024) conducted a reent study comparing online distance learning and traditional in-person education at King Saud University in Saudi Arabia, with a focus on understanding how different educational modalities affect student achievement. By analyzing the final test scores of freshman students in five core courses over the 2020 (in-person) and 2021 (online) academic years, the research provides empirical insights into the efficacy of online versus traditional education.
+*Independent T Test Example 1*
+Alarafi & Song (2024) conducted a recent study comparing online distance learning
+and traditional in-person education at King Saud University in Saudi Arabia, 
+with a focus on understanding how different educational modalities affect 
+student achievement. By analyzing the final test scores of freshman students in 
+five core courses over the 2020 (in-person) and 2021 (online) academic years, 
+the research provides empirical insights into the efficacy of online versus 
+traditional education.
 
 RQ: Does learning modality differentially impact achievement?
 
@@ -36,21 +42,37 @@ colnames(dat_ach) <- tolower(colnames(dat_ach))
 ```
 
 ```{r}
-# The "Modality" variable was entered as a character so we need to convert it to a factor
+# The "Modality" variable was entered as a character so we need to convert it to 
+# a factor
 dat_ach$modality <- as.factor(dat_ach$modality)
 ```
 
 **DESCRIPTIVES**
 ```{r}
 # Get descriptive statistics for the entire sample
-desc_ach <- descriptives(dat_ach, vars = c('modality', 'ach'), hist = TRUE, freq = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+desc_ach <- jmv::descriptives(
+                                dat_ach, vars = c('modality', 'ach'), 
+                                hist = TRUE, 
+                                freq = TRUE, 
+                                sd = TRUE, 
+                                se = TRUE, 
+                                skew = TRUE, 
+                                kurt = TRUE
+                             )
 
 desc_ach
 ```
 
 ```{r}
-# Get descriptive statistics for each group
-groupdesc_ach <- descriptives(dat_ach, vars = c('ach'), splitBy='modality', hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+# Get descriptive statistics for eachmac or pc group
+groupdesc_ach <- jmv::descriptives(
+                                    dat_ach, vars = c('ach'), splitBy='modality', 
+                                    hist = TRUE, 
+                                    sd = TRUE, 
+                                    se = TRUE, 
+                                    skew = TRUE, 
+                                    kurt = TRUE
+                                   )
 
 groupdesc_ach
 ```
@@ -58,19 +80,48 @@ groupdesc_ach
 **VISUALIZE YOUR DATA**
 ```{r}
 #creating a bar graph
-achbar <- ggplot(dat_ach, aes(modality, ach))
+# Creates bar graph object
+achbar <- ggplot2::ggplot(dat_ach, aes(modality, ach))
 
-achbar + stat_summary(fun = mean, geom = "bar", position = "dodge", fill="maroon3") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Learning Modality", y = "Freshman Year Achievement") + ggtitle('Effect of Learning Modality on Freshman Year Achievement')
+# Annotates bar graph figure. Read ggplot2 docs to understand why the + syntax
+# is the preferred syntax here (or maybe it's not, who knows.)
+achbar + 
+    stat_summary(fun = mean, geom = "bar", position = "dodge", fill="maroon3") + 
+    stat_summary(
+                  fun.data = mean_cl_normal, 
+                  geom = "errorbar", 
+                  position = position_dodge(width = 0.90), 
+                  width = 0.2
+                 ) + 
+    labs(x = "Learning Modality", y = "Freshman Year Achievement") + 
+    ggtitle('Effect of Learning Modality on Freshman Year Achievement')
 ```
 
 **T TEST**
 ```{r}
 #vars = outcome variable
-jmv::ttestIS(data = dat_ach, vars = 'ach', group = 'modality', effectSize = TRUE, ci = TRUE, meanDiff = TRUE, desc = TRUE)
+# While this makes it easy to run independent sample T-tests, you need to know
+# that you can explain (conceptually) EVERY number in the output.
+# i.e. test questions will ask you to explain weird numbers in output
+jmv::ttestIS(
+                data = dat_ach,           # Dataframe to analyze
+                vars = 'ach',             # Outcome variable
+                group = 'modality',       # Dependent variable to group by
+                effectSize = TRUE, 
+                ci = TRUE, 
+                meanDiff = TRUE, 
+                desc = TRUE               # Reprint descriptives because we're too lazy to scroll up
+             )
 ```
 
 *APA WRITE UP*
-An independent t-test confirmed that students who took their Freshman year courses in-person (*M* = 39.49) had significantly higher levels of achievement than those in the online cohort (*M* = 35.53), *t*(5189) = 16.67, *p* < .001, *d* = 0.46, 95% CI [3.49,4.42]. Learning modality had a moderate effect on achievement, the mean performance scores for in-person students were just under a half a standard deviation above those of online students.  
+An independent t-test confirmed that students who took their Freshman year
+courses in-person (*M* = 39.49) had significantly higher levels of achievement
+than those in the online cohort (*M* = 35.53),
+    *t*(5189) = 16.67, *p* < .001, *d* = 0.46, 95% CI [3.49,4.42].   
+Learning modality had a moderate effect on achievement, the mean performance  
+scores for in-person students were just under a half a standard deviation above  
+those of online students.  
 
 ______________________________________
 
