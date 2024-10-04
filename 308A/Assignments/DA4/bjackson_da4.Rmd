@@ -1,0 +1,165 @@
+---
+title: "PSYCH308A - Data Analysis 4 (DA4)"
+author: "Brady C. Jackson"
+date: "2024/10/04"
+output: 
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+
+# Question 01 (Q01):
+
+01. Interpret a p-value of .042. (This question is **not** asking for the  
+    decision this p-value results in, rather what does this value mean?)
+
+## Answer to Q01: 
+This is my answer
+
+---
+
+# Question 02 (Q02):
+
+2. ***In no more than two sentences,*** what is the relationship between sample  
+   size, effect size, and power?
+
+## Answer to Q02: 
+This is my answer
+
+---
+
+# Question 03 (Q03):
+
+03. A researcher records the number of words recalled by students presented with  
+    a list of words for 1 minute. In one group, students were presented with the  
+    list of words in color; in a second group, the same words were presented in  
+    black and white. An equal number of students were in each group. The  
+    researcher reports the following: Participants recalled significantly more  
+    words when the words were presented in color (M = 12.4 words) versus black  
+    and white (M = 10.9 words), t(48) = 2.01, p = .035, d = 0.18. Based on the  
+    previous statement, what is the sample size in each group?
+
+## Answer to Q03: 
+This is my answer
+
+---
+
+# Question 04 (Q04):
+
+04. Visualize your data for this research question. Include your visualization  
+    here.
+
+## Answer to Q04: 
+This is my answer
+
+---
+
+# Question 05 (Q05):
+
+05. Did student test scores improve significantly from the midterm to the final?  
+    Using RStudio to analyze, conduct a hypothesis test to evaluate this  
+    question. Organize your answer according to the 4 steps of hypothesis  
+    testing.
+
+## Answer to Q05: 
+This is my answer
+
+---
+
+# Question 06 (Q06):
+
+06. Report your findings in APA format. (Hint: make sure to answer the research  
+    question!)
+
+## Answer to Q06: 
+This is my answer
+
+---
+
+# Question 07 (Q07):
+
+07. Visualize your data for this research question. Include your visualization  
+    here.
+
+## Answer to Q07: 
+This is my answer
+
+---
+
+# Question 08 (Q08):
+
+08. Does the study technique used predict scores on the final exam? Using  
+    RStudio to analyze, conduct a hypothesis test to evaluate this question.  
+    Organize your answer according to the 4 steps of hypothesis testing.
+
+## Answer to Q08: 
+This is my answer
+
+---
+
+# Question 09 (Q09):
+
+09. ...
+
+    a. Report your findings in APA format. (Hint: make sure to answer the  
+       research question!)
+    
+    b. The Dean of the university was also interested in your results, as this  
+       may help to raise scores in other departments. Unfortunately, she does  
+       not understand statistical language. Please interpret your findings for  
+       the Dean. Did scores improve? Which technique is better?
+
+## Answer to Q09: 
+This is my answer
+
+---
+
+# Question 10 (Q10):
+
+10. A developmental psychologist is interested in the effect of a positive  
+    psychology intervention on the well-being of aging adults. She administers  
+    the intervention, collects well-being scores from a sample of 100  
+    participants, and tests whether their well-being differs significantly from  
+    the national average. Using G*Power, she determines the power for her test  
+    is .80. 
+
+    a. Interpret this value 
+    
+    b. What suggestion would you give her if she wants a higher probability of  
+       detecting a true effect?
+
+## Answer to Q10: 
+This is my answer
+
+---
+
+# Question 11 (Q11):
+
+11. What would it mean if your analysis returned the following values? Consider   
+    the meaning of t - not the decision associated with it.
+
+    a. *t(24) = 0.35*
+    
+    b. *t(24) = 1.00*
+    
+    c. *t(24) = 3.2*
+
+## Answer to Q11: 
+This is my answer
+
+---
+
+# Question 12 (Q12):
+
+12. Draw and annotate all the properties of the null and alternative curves:   
+    power, beta, alpha, type 1 error, type 2 error. 
+
+## Answer to Q12: 
+This is my answer
+
+
