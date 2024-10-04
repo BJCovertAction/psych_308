@@ -58,13 +58,33 @@ power can be achieved by increasing the other (e.g. effect size).
     a list of words for 1 minute. In one group, students were presented with the  
     list of words in color; in a second group, the same words were presented in  
     black and white. An equal number of students were in each group. The  
-    researcher reports the following: Participants recalled significantly more  
+    researcher reports the following: *Participants recalled significantly more  
     words when the words were presented in color (M = 12.4 words) versus black  
-    and white (M = 10.9 words), t(48) = 2.01, p = .035, d = 0.18. Based on the  
+    and white (M = 10.9 words), t(48) = 2.01, p = .035, d = 0.18.* Based on the  
     previous statement, what is the sample size in each group?
 
 ## Answer to Q03: 
-This is my answer
+Given the wording of the prompt, I'm assuming this test was conducted as an  
+independent sample t-test ("In one group ... in a second group" instead of  
+phrasing like, "...the group of students looked at colored words and then  
+later looked at black and white words...").  
+
+The degrees of freedom for the t-test ran is given as 48 ( *t(48)* ).  
+As this is an indepdendent t-test, two parameters had to be estimated, the  
+mean of the population from which group 1 was drawn, and the mean of the  
+population from which group 2 was drawn. Therefore, we have the relationship  
+$$
+\begin{aligned}
+& df\ =\ [Things\ we\ know\ (n_{total}) ] - [Estimated\ Parameters\ (n_{P,est})] \\  
+& df\ =\ n_{total}\ -\ n_{P,est} \\
+& 48\ =\ n_{total}\ -\ 2 \\
+& 48\ +\ 2\ =\ n_{total} \\
+& 50 =\ n_{total} 
+\end{aligned}
+$$
+
+Therefore, there were a total of 50 students in the study, with 25 in each group  
+given that the prompt states the same number of students were in each group.
 
 ---
 
