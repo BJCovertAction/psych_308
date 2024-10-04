@@ -29,7 +29,11 @@ knitr::opts_chunk$set(echo = TRUE)
     decision this p-value results in, rather what does this value mean?)
 
 ## Answer to Q01: 
-This is my answer
+
+A p-value of .042 implies that the finding of some statistical test (z-test,  
+t-test, etc.) that the probability of obtaining the test statistic found or  
+something more extreme was .042 (a.k.a. 4.2%) assuming the null hypothesis was  
+true
 
 ---
 
@@ -39,7 +43,12 @@ This is my answer
    size, effect size, and power?
 
 ## Answer to Q02: 
-This is my answer
+
+Power is positively correlated with both sample size and effect size in a  
+manner that convolutes the two (sample and effect). That is to say, the power  
+of a finding will increase if either sample size increases or effect size  
+increases, and if one (e.g. sample size) is necessarily small, a higher  
+power can be achieved by increasing the other (e.g. effect size).
 
 ---
 
