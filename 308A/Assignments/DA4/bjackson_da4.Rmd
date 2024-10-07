@@ -23,6 +23,19 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ---
 
+```{r package_loading, message=FALSE, warning=FALSE}
+
+# Load packages. Set messages and warnings to FALSE so I don't have to see the
+# masking messages in the output.
+library(psych)
+library(jmv)
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+```
+
+---
+
 # Question 01 (Q01):
 
 01. Interpret a p-value of .042. (This question is **not** asking for the  
@@ -88,60 +101,133 @@ given that the prompt states the same number of students were in each group.
 
 ---
 
-# Question 04 (Q04):
+# Research Prompt for Q04 through Q09:
+
+You are teaching your first Intro to Psychology course! After the midterm, you  
+are disappointed with your students’ overall test scores. You decide to   
+implement two different required study techniques. There are 100 students in   
+the class; 50 of them will be required to meet in groups to study right before   
+the final (Group A) and the other 50 will be required to create flashcards to   
+aid in memorization (Group B). You are interested in two primary research   
+questions:
+
+---
+
+## Research Question 1 (RQ1): Q04 - Q06:
+
+**Did student test scores improve significantly from the midterm to the final?**  
+**Data:** *308A.RQ1 Data.DA4.csv*
+
+---
+
+### Question 04 (Q04):
 
 04. Visualize your data for this research question. Include your visualization  
     here.
 
-## Answer to Q04: 
-This is my answer
+#### Answer to Q04:
+
+##### Loading Data for Q04
+
+The first step to visualizing the data is to load it. See code below:  
+
+```{r, q04_data_load}
+
+# In order to visualize the data we must first load it. To do so we lool
+# in the present working directory for CSV files, and take the one that
+# has RQ1 in its filename. Append it to the current working directory
+# to create the fullpath for loading
+here <- getwd()
+rq1_name <- list.files(here, pattern = ".*RQ1.*csv")
+
+# Use the file.path function to create a platform appropriate fullpath / filename
+# to the Research Question 1 data.
+rq1_file = file.path(here, rq1_name)
+
+# Read the CSV data in as rq1_dat
+rq1_dat = read.csv(rq1_file, header = TRUE)
+
+# Lower-case all column names for convenience
+colnames(rq1_dat) <- tolower(colnames(rq1_dat))
+
+```
+
+##### Data Prep Q04
+
+Ultimately we're going to answer Research Question 1 as a dependent T-test   
+since we're evaluating change in student test scores over time (regardless)   
+of study method. So we're going to prepare the data further with some math.  
+See code below:  
+
+```{r, q04_data_prep}
+
+# Need to delta the final and midterm exam scores
+```
+
+##### Visualize Prepared Data Q04
+
+See the histograms below for visualization of the data pertinent to this  
+research question.
+
+```{r, q04_answer_and_visualization_outputs}
+
+# Use descriptives here
+
+```
 
 ---
 
-# Question 05 (Q05):
+### Question 05 (Q05):
 
 05. Did student test scores improve significantly from the midterm to the final?  
     Using RStudio to analyze, conduct a hypothesis test to evaluate this  
     question. Organize your answer according to the 4 steps of hypothesis  
     testing.
 
-## Answer to Q05: 
+#### Answer to Q05: 
 This is my answer
 
 ---
 
-# Question 06 (Q06):
+### Question 06 (Q06):
 
 06. Report your findings in APA format. (Hint: make sure to answer the research  
     question!)
 
-## Answer to Q06: 
+#### Answer to Q06: 
 This is my answer
 
 ---
 
-# Question 07 (Q07):
+## Research Question 2 (RQ2): Q07 - Q09:
+
+**Does the study technique used predict scores on the final exam? **  
+**Data:** *308A.RQ2 Data.DA4.csv*
+
+---
+
+### Question 07 (Q07):
 
 07. Visualize your data for this research question. Include your visualization  
     here.
 
-## Answer to Q07: 
+#### Answer to Q07: 
 This is my answer
 
 ---
 
-# Question 08 (Q08):
+### Question 08 (Q08):
 
 08. Does the study technique used predict scores on the final exam? Using  
     RStudio to analyze, conduct a hypothesis test to evaluate this question.  
     Organize your answer according to the 4 steps of hypothesis testing.
 
-## Answer to Q08: 
+#### Answer to Q08: 
 This is my answer
 
 ---
 
-# Question 09 (Q09):
+### Question 09 (Q09):
 
 09. ...
 
@@ -153,7 +239,7 @@ This is my answer
        not understand statistical language. Please interpret your findings for  
        the Dean. Did scores improve? Which technique is better?
 
-## Answer to Q09: 
+#### Answer to Q09: 
 This is my answer
 
 ---

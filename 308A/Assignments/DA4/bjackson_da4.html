@@ -375,41 +375,29 @@ Q02:</a></li>
 <li><a href="#answer-to-q03" id="toc-answer-to-q03">Answer to
 Q03:</a></li>
 </ul></li>
+<li><a href="#research-prompt-for-q04-through-q09" id="toc-research-prompt-for-q04-through-q09">Research Prompt for Q04
+through Q09:</a>
+<ul>
+<li><a href="#research-question-1-rq1-q04---q06" id="toc-research-question-1-rq1-q04---q06">Research Question 1 (RQ1):
+Q04 - Q06:</a>
+<ul>
 <li><a href="#question-04-q04" id="toc-question-04-q04">Question 04
-(Q04):</a>
-<ul>
-<li><a href="#answer-to-q04" id="toc-answer-to-q04">Answer to
-Q04:</a></li>
-</ul></li>
+(Q04):</a></li>
 <li><a href="#question-05-q05" id="toc-question-05-q05">Question 05
-(Q05):</a>
-<ul>
-<li><a href="#answer-to-q05" id="toc-answer-to-q05">Answer to
-Q05:</a></li>
-</ul></li>
+(Q05):</a></li>
 <li><a href="#question-06-q06" id="toc-question-06-q06">Question 06
-(Q06):</a>
-<ul>
-<li><a href="#answer-to-q06" id="toc-answer-to-q06">Answer to
-Q06:</a></li>
+(Q06):</a></li>
 </ul></li>
+<li><a href="#research-question-2-rq2-q07---q09" id="toc-research-question-2-rq2-q07---q09">Research Question 2 (RQ2):
+Q07 - Q09:</a>
+<ul>
 <li><a href="#question-07-q07" id="toc-question-07-q07">Question 07
-(Q07):</a>
-<ul>
-<li><a href="#answer-to-q07" id="toc-answer-to-q07">Answer to
-Q07:</a></li>
-</ul></li>
+(Q07):</a></li>
 <li><a href="#question-08-q08" id="toc-question-08-q08">Question 08
-(Q08):</a>
-<ul>
-<li><a href="#answer-to-q08" id="toc-answer-to-q08">Answer to
-Q08:</a></li>
-</ul></li>
+(Q08):</a></li>
 <li><a href="#question-09-q09" id="toc-question-09-q09">Question 09
-(Q09):</a>
-<ul>
-<li><a href="#answer-to-q09" id="toc-answer-to-q09">Answer to
-Q09:</a></li>
+(Q09):</a></li>
+</ul></li>
 </ul></li>
 <li><a href="#question-10-q10" id="toc-question-10-q10">Question 10
 (Q10):</a>
@@ -432,6 +420,14 @@ Q12:</a></li>
 </ul>
 </div>
 
+<hr />
+<pre class="r"><code># Load packages. Set messages and warnings to FALSE so I don&#39;t have to see the
+# masking messages in the output.
+library(psych)
+library(jmv)
+library(ggplot2)
+library(dplyr)
+library(magrittr)</code></pre>
 <hr />
 <div id="question-01-q01" class="section level1">
 <h1>Question 01 (Q01):</h1>
@@ -527,21 +523,81 @@ group.</p>
 <hr />
 </div>
 </div>
-<div id="question-04-q04" class="section level1">
-<h1>Question 04 (Q04):</h1>
+<div id="research-prompt-for-q04-through-q09" class="section level1">
+<h1>Research Prompt for Q04 through Q09:</h1>
+<p>You are teaching your first Intro to Psychology course! After the
+midterm, you<br />
+are disappointed with your students’ overall test scores. You decide
+to<br />
+implement two different required study techniques. There are 100
+students in<br />
+the class; 50 of them will be required to meet in groups to study right
+before<br />
+the final (Group A) and the other 50 will be required to create
+flashcards to<br />
+aid in memorization (Group B). You are interested in two primary
+research<br />
+questions:</p>
+<hr />
+<div id="research-question-1-rq1-q04---q06" class="section level2">
+<h2>Research Question 1 (RQ1): Q04 - Q06:</h2>
+<p><strong>Did student test scores improve significantly from the
+midterm to the final?</strong><br />
+<strong>Data:</strong> <em>308A.RQ1 Data.DA4.csv</em></p>
+<hr />
+<div id="question-04-q04" class="section level3">
+<h3>Question 04 (Q04):</h3>
 <ol start="4" style="list-style-type: decimal">
 <li>Visualize your data for this research question. Include your
 visualization<br />
 here.</li>
 </ol>
-<div id="answer-to-q04" class="section level2">
-<h2>Answer to Q04:</h2>
-<p>This is my answer</p>
+<div id="answer-to-q04" class="section level4">
+<h4>Answer to Q04:</h4>
+<div id="loading-data-for-q04" class="section level5">
+<h5>Loading Data for Q04</h5>
+<p>The first step to visualizing the data is to load it. See code
+below:</p>
+<pre class="r"><code># In order to visualize the data we must first load it. To do so we lool
+# in the present working directory for CSV files, and take the one that
+# has RQ1 in its filename. Append it to the current working directory
+# to create the fullpath for loading
+here &lt;- getwd()
+rq1_name &lt;- list.files(here, pattern = &quot;.*RQ1.*csv&quot;)
+
+# Use the file.path function to create a platform appropriate fullpath / filename
+# to the Research Question 1 data.
+rq1_file = file.path(here, rq1_name)
+
+# Read the CSV data in as rq1_dat
+rq1_dat = read.csv(rq1_file, header = TRUE)
+
+# Lower-case all column names for convenience
+colnames(rq1_dat) &lt;- tolower(colnames(rq1_dat))</code></pre>
+</div>
+<div id="data-prep-q04" class="section level5">
+<h5>Data Prep Q04</h5>
+<p>Ultimately we’re going to answer Research Question 1 as a dependent
+T-test<br />
+since we’re evaluating change in student test scores over time
+(regardless)<br />
+of study method. So we’re going to prepare the data further with some
+math.<br />
+See code below:</p>
+<pre class="r"><code># Need to delta the final and midterm exam scores</code></pre>
+</div>
+<div id="visualize-prepared-data-q04" class="section level5">
+<h5>Visualize Prepared Data Q04</h5>
+<p>See the histograms below for visualization of the data pertinent to
+this<br />
+research question.</p>
+<pre class="r"><code># Use descriptives here</code></pre>
 <hr />
 </div>
 </div>
-<div id="question-05-q05" class="section level1">
-<h1>Question 05 (Q05):</h1>
+</div>
+<div id="question-05-q05" class="section level3">
+<h3>Question 05 (Q05):</h3>
 <ol start="5" style="list-style-type: decimal">
 <li>Did student test scores improve significantly from the midterm to
 the final?<br />
@@ -551,40 +607,47 @@ question. Organize your answer according to the 4 steps of
 hypothesis<br />
 testing.</li>
 </ol>
-<div id="answer-to-q05" class="section level2">
-<h2>Answer to Q05:</h2>
+<div id="answer-to-q05" class="section level4">
+<h4>Answer to Q05:</h4>
 <p>This is my answer</p>
 <hr />
 </div>
 </div>
-<div id="question-06-q06" class="section level1">
-<h1>Question 06 (Q06):</h1>
+<div id="question-06-q06" class="section level3">
+<h3>Question 06 (Q06):</h3>
 <ol start="6" style="list-style-type: decimal">
 <li>Report your findings in APA format. (Hint: make sure to answer the
 research<br />
 question!)</li>
 </ol>
-<div id="answer-to-q06" class="section level2">
-<h2>Answer to Q06:</h2>
+<div id="answer-to-q06" class="section level4">
+<h4>Answer to Q06:</h4>
 <p>This is my answer</p>
 <hr />
 </div>
 </div>
-<div id="question-07-q07" class="section level1">
-<h1>Question 07 (Q07):</h1>
+</div>
+<div id="research-question-2-rq2-q07---q09" class="section level2">
+<h2>Research Question 2 (RQ2): Q07 - Q09:</h2>
+<p><strong>Does the study technique used predict scores on the final
+exam? </strong><br />
+<strong>Data:</strong> <em>308A.RQ2 Data.DA4.csv</em></p>
+<hr />
+<div id="question-07-q07" class="section level3">
+<h3>Question 07 (Q07):</h3>
 <ol start="7" style="list-style-type: decimal">
 <li>Visualize your data for this research question. Include your
 visualization<br />
 here.</li>
 </ol>
-<div id="answer-to-q07" class="section level2">
-<h2>Answer to Q07:</h2>
+<div id="answer-to-q07" class="section level4">
+<h4>Answer to Q07:</h4>
 <p>This is my answer</p>
 <hr />
 </div>
 </div>
-<div id="question-08-q08" class="section level1">
-<h1>Question 08 (Q08):</h1>
+<div id="question-08-q08" class="section level3">
+<h3>Question 08 (Q08):</h3>
 <ol start="8" style="list-style-type: decimal">
 <li>Does the study technique used predict scores on the final exam?
 Using<br />
@@ -593,14 +656,14 @@ question.<br />
 Organize your answer according to the 4 steps of hypothesis
 testing.</li>
 </ol>
-<div id="answer-to-q08" class="section level2">
-<h2>Answer to Q08:</h2>
+<div id="answer-to-q08" class="section level4">
+<h4>Answer to Q08:</h4>
 <p>This is my answer</p>
 <hr />
 </div>
 </div>
-<div id="question-09-q09" class="section level1">
-<h1>Question 09 (Q09):</h1>
+<div id="question-09-q09" class="section level3">
+<h3>Question 09 (Q09):</h3>
 <ol start="9" style="list-style-type: decimal">
 <li><p>…</p>
 <ol style="list-style-type: lower-alpha">
@@ -616,10 +679,12 @@ for<br />
 the Dean. Did scores improve? Which technique is better?</p></li>
 </ol></li>
 </ol>
-<div id="answer-to-q09" class="section level2">
-<h2>Answer to Q09:</h2>
+<div id="answer-to-q09" class="section level4">
+<h4>Answer to Q09:</h4>
 <p>This is my answer</p>
 <hr />
+</div>
+</div>
 </div>
 </div>
 <div id="question-10-q10" class="section level1">
