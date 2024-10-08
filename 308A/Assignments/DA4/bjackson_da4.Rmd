@@ -10,6 +10,7 @@ output:
     toc: true
   pdf_document:
     toc: true
+    latex_engine: xelatex
 
 # This option here enables output to both HTML and PDF formats
 knit: (function(inputFile, encoding) {
@@ -28,10 +29,11 @@ knitr::opts_chunk$set(echo = TRUE)
 # Load packages. Set messages and warnings to FALSE so I don't have to see the
 # masking messages in the output.
 library(psych)
-library(jmv)
+library(jmv)       # for descriptive
 library(ggplot2)
 library(dplyr)
 library(magrittr)
+library(tidyr)     # for pivot_longer
 ```
 
 ---
@@ -171,11 +173,11 @@ See code below:
 rq1_dat$fin_mid_diff <- rq1_dat$final - rq1_dat$midterm
 ```
 
-##### Visualize Prepared Data Q04 - Descriptives
+##### Visualize Prepared Data Q04 - Descriptives and Bar Chart
 
 See the histograms below for visualization of the data pertinent to this  
-research question. Bar graphs of the midterm scores, the final scores, and 
-the diff of final - midterm are also shown for better understanding
+research question. Bar graphs of the midterm scores, the final scores, and   
+the diff of final - midterm are also shown for better understanding  
 
 ```{r, q04_answer_and_visualization_outputs}
 
@@ -199,29 +201,45 @@ rq1_desc
 # and diffs .. though the diffs data willbe oddly scaled (much smaller) than the
 # raw scores
 
+# In order to plot the scores as bar charts, we need to permute the data so all 
+# scores are in one vector and there's n indy axis vector of the same size that
+# defines whether the score is a midterm score, final score, or difference.
+# We use pivot_longer to concatenate the three dcore vectors to each other 
+# (interleaved), with the column names saved in the new "name" vector.
+rq1_long <- rq1_dat[2:4] %>% 
+            pivot_longer(cols = c(midterm, final, fin_mid_diff) )
+
 # We're going to lay all three datasets out on a single bar graph 
 # even though that may jackup the scaling to be bad for the diff.
-bar_rq1 <- ggplot(rq1_dat, aes(colnames(rq1_dat)[2:4], rq1_dat[2:4]))
+bar_rq1 <- ggplot( rq1_long, aes(name, value) )
 
 
 
 #make a bar graph of relationship between fieldtrip and hard tangrams
 # START HERE FIX BUGGY CODE BELOW
-# bar_rq1 + stat_summary( fun = mean, 
-#                         geom = "bar", 
-#                         position = "dodge", 
-#                         fill="slateblue1"
-#                       ) + 
-#           stat_summary( fun.data = mean_cl_normal, 
-#                         geom = "errorbar", 
-#                         position = position_dodge(width = 0.90), 
-#                         width = 0.2
-#                       ) + 
-#           labs(x = "Test Type", y = "Score (pts))") + 
-#           ggtitle('Test Scores and Difference')
+bar_rq1 + stat_summary( fun = mean,
+                        geom = "bar",
+                        position = "dodge",
+                        fill="slateblue1"
+                      ) +
+          stat_summary( fun.data = mean_cl_normal,
+                        geom = "errorbar",
+                        position = position_dodge(width = 0.90),
+                        width = 0.2
+                      ) +
+          labs(x = "Test Type", y = "Score (pts))") +
+          ggtitle('Test Scores and Difference')
 
 ```
 
+##### Discussion of Visualization for RQ1
+
+It is notable that the error bar on the final scores is so much tighter than  
+that of the midterm scores. This is reflected in the final scores histogram  
+which looks less "spread out" (smaller variance) than the same of the midterm  
+scores. The larger spread in the differences of scores is also accounted for  
+by the larger spread in the midterms as the tighter final scores minus the   
+more spread out midterm scores will result in more spread out differences.  
 
 
 ---
