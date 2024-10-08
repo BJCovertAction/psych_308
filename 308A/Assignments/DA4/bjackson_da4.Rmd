@@ -142,10 +142,10 @@ rq1_name <- list.files(here, pattern = ".*RQ1.*csv")
 
 # Use the file.path function to create a platform appropriate fullpath / filename
 # to the Research Question 1 data.
-rq1_file = file.path(here, rq1_name)
+rq1_file <- file.path(here, rq1_name)
 
 # Read the CSV data in as rq1_dat
-rq1_dat = read.csv(rq1_file, header = TRUE)
+rq1_dat <- read.csv(rq1_file, header = TRUE)
 
 # Lower-case all column names for convenience
 colnames(rq1_dat) <- tolower(colnames(rq1_dat))
@@ -160,20 +160,69 @@ of study method. So we're going to prepare the data further with some math.
 See code below:  
 
 ```{r, q04_data_prep}
-
-# Need to delta the final and midterm exam scores
+# Since we want to know if scores improved between the midterm and final we'll
+# look at midterm scores, final scores, and the delta between the two. 
+# To do this, we need to add one more column to our math, the difference
+# between the two. We need to maintain chirality (direction) as it will
+# be informative if scores rise or decrease so we will do final - midterm
+# without taking the absolute value. If scores decreased, we should see a 
+# positive mean of the diff. If they decreased we'll see a negative mean
+# of the diff.
+rq1_dat$fin_mid_diff <- rq1_dat$final - rq1_dat$midterm
 ```
 
-##### Visualize Prepared Data Q04
+##### Visualize Prepared Data Q04 - Descriptives
 
 See the histograms below for visualization of the data pertinent to this  
-research question.
+research question. Bar graphs of the midterm scores, the final scores, and 
+the diff of final - midterm are also shown for better understanding
 
 ```{r, q04_answer_and_visualization_outputs}
 
-# Use descriptives here
+# We're going to create a descriptives object so we can checkout the histogram
+# and descriptive stats of the midterm scores, the final scores, and the
+# diff of both.
+rq1_desc <- jmv::descriptives( rq1_dat[2:4], 
+                               hist = TRUE,
+                               dens = TRUE,
+                               sd = TRUE,
+                               variance = TRUE,
+                               se = TRUE, 
+                               skew = TRUE, 
+                               kurt = TRUE
+                             )
+
+# Render the rq1 descriptives object as output.
+rq1_desc
+
+# Now we're going to create a bar chart of the midterm scores, final scores,
+# and diffs .. though the diffs data willbe oddly scaled (much smaller) than the
+# raw scores
+
+# We're going to lay all three datasets out on a single bar graph 
+# even though that may jackup the scaling to be bad for the diff.
+bar_rq1 <- ggplot(rq1_dat, aes(colnames(rq1_dat)[2:4], rq1_dat[2:4]))
+
+
+
+#make a bar graph of relationship between fieldtrip and hard tangrams
+# START HERE FIX BUGGY CODE BELOW
+# bar_rq1 + stat_summary( fun = mean, 
+#                         geom = "bar", 
+#                         position = "dodge", 
+#                         fill="slateblue1"
+#                       ) + 
+#           stat_summary( fun.data = mean_cl_normal, 
+#                         geom = "errorbar", 
+#                         position = position_dodge(width = 0.90), 
+#                         width = 0.2
+#                       ) + 
+#           labs(x = "Test Type", y = "Score (pts))") + 
+#           ggtitle('Test Scores and Difference')
 
 ```
+
+
 
 ---
 
