@@ -39,12 +39,12 @@ library(stringr)   # for sub_str
 
 ---
 
-# Question 01 (Q01):
+# Question 01 (Q01):  
 
 01. Interpret a p-value of .042. (This question is **not** asking for the  
     decision this p-value results in, rather what does this value mean?)
 
-## Answer to Q01: 
+## Answer to Q01:  
 
 A p-value of .042 implies that the finding of some statistical test (z-test,  
 t-test, etc.) that the probability of obtaining the test statistic found or  
@@ -53,12 +53,12 @@ true
 
 ---
 
-# Question 02 (Q02):
+# Question 02 (Q02):  
 
 2. ***In no more than two sentences,*** what is the relationship between sample  
    size, effect size, and power?
 
-## Answer to Q02: 
+## Answer to Q02:   
 
 Power is positively correlated with both sample size and effect size in a  
 manner that convolutes the two (sample and effect). That is to say, the power  
@@ -68,7 +68,7 @@ power can be achieved by increasing the other (e.g. effect size).
 
 ---
 
-# Question 03 (Q03):
+# Question 03 (Q03):  
 
 03. A researcher records the number of words recalled by students presented with  
     a list of words for 1 minute. In one group, students were presented with the  
@@ -79,7 +79,7 @@ power can be achieved by increasing the other (e.g. effect size).
     and white (M = 10.9 words), t(48) = 2.01, p = .035, d = 0.18.* Based on the  
     previous statement, what is the sample size in each group?
 
-## Answer to Q03: 
+## Answer to Q03:   
 Given the wording of the prompt, I'm assuming this test was conducted as an  
 independent sample t-test ("In one group ... in a second group" instead of  
 phrasing like, "...the group of students looked at colored words and then  
@@ -104,7 +104,7 @@ given that the prompt states the same number of students were in each group.
 
 ---
 
-# Research Prompt for Q04 through Q09:
+# Research Prompt for Q04 through Q09:  
 
 You are teaching your first Intro to Psychology course! After the midterm, you  
 are disappointed with your students’ overall test scores. You decide to   
@@ -116,21 +116,21 @@ questions:
 
 ---
 
-## Research Question 1 (RQ1): Q04 - Q06:
+## Research Question 1 (RQ1): Q04 - Q06:  
 
 **Did student test scores improve significantly from the midterm to the final?**  
 **Data:** *308A.RQ1 Data.DA4.csv*
 
 ---
 
-### Question 04 (Q04):
+### Question 04 (Q04):  
 
 04. Visualize your data for this research question. Include your visualization  
     here.
 
-#### Answer to Q04:
-
-##### Loading Data for Q04:
+#### Answer to Q04:  
+  
+##### Loading Data for Q04:  
 
 The first step to visualizing the data is to load it. See code below:  
 
@@ -155,7 +155,7 @@ colnames(rq1_dat) <- tolower(colnames(rq1_dat))
 
 ```
 
-##### Data Prep Q04
+##### Data Prep Q04  
 
 Ultimately we're going to answer Research Question 1 as a dependent T-test   
 since we're evaluating change in student test scores over time (regardless)   
@@ -174,7 +174,7 @@ See code below:
 rq1_dat$fin_mid_diff <- rq1_dat$final - rq1_dat$midterm
 ```
 
-##### Visualize Prepared Data Q04 - Descriptives and Bar Chart
+##### Visualize Prepared Data Q04 - Descriptives and Bar Chart  
 
 See the histograms below for visualization of the data pertinent to this  
 research question. Bar graphs of the midterm scores, the final scores, and   
@@ -232,8 +232,8 @@ bar_rq1 + stat_summary( fun = mean,
 
 ```
 
-##### Discussion of Visualization for RQ1
-
+##### Discussion of Visualization for RQ1    
+  
 It is notable that the error bar on the final scores is so much tighter than  
 that of the midterm scores. This is reflected in the final scores histogram  
 which looks less "spread out" (smaller variance) than the same of the midterm  
@@ -244,16 +244,16 @@ more spread out midterm scores will result in more spread out differences.
 
 ---
 
-### Question 05 (Q05):
+### Question 05 (Q05):  
 
 05. Did student test scores improve significantly from the midterm to the final?  
     Using RStudio to analyze, conduct a hypothesis test to evaluate this  
     question. Organize your answer according to the 4 steps of hypothesis  
     testing.
 
-#### Answer to Q05: 
-
-##### Question 05 T-Test Code:
+#### Answer to Q05:   
+   
+##### Question 05 T-Test Code:  
 
 The code below runs the t-test by feeding the final and midterm scores, not the   
 manually written diff above, to the t-test algorithm for paired samples. The  
@@ -282,7 +282,7 @@ rq1_test_results
 rq1_test_df <- rq1_test_results$ttest$asDF
 ```
 
-##### Question 05 Discussion
+##### Question 05 Discussion  
 
 To perform the significance test we use the SCEC acronym to remember our steps:  
 Specify, Criteria, Estimate, Conclude:  
@@ -343,12 +343,12 @@ Specify, Criteria, Estimate, Conclude:
     
 ---
 
-### Question 06 (Q06):
+### Question 06 (Q06):  
 
 06. Report your findings in APA format. (Hint: make sure to answer the research  
     question!)
 
-#### Answer to Q06: 
+#### Answer to Q06:   
 
 We conducted a dependent t-test to examine whether test scores improved between  
 the midterm and final tests for a class of 100 students given required study  
@@ -361,21 +361,21 @@ of variance in the test score differences.
 
 ---
 
-## Research Question 2 (RQ2): Q07 - Q09:
+## Research Question 2 (RQ2): Q07 - Q09:  
 
 **Does the study technique used predict scores on the final exam? **  
 **Data:** *308A.RQ2 Data.DA4.csv*
 
 ---
 
-### Question 07 (Q07):
+### Question 07 (Q07):  
 
 07. Visualize your data for this research question. Include your visualization  
     here.
 
-#### Answer to Q07: 
+#### Answer to Q07:   
 
-##### Loading Data for Q07:
+##### Loading Data for Q07:  
 
 The first step to visualizing the data is to load it. See code below:  
 
@@ -400,7 +400,7 @@ colnames(rq2_dat) <- tolower(colnames(rq2_dat))
 
 ```
 
-##### Data Prep Q07
+##### Data Prep Q07  
 
 Ultimately we're going to answer Research Question 2 as an independent t-test   
 since we're evaluating differences in test scores between the study technique   
@@ -420,7 +420,7 @@ levels(rq2_dat$group) <- sub("A", "A_group_study", levels(rq2_dat$group))
 levels(rq2_dat$group) <- sub("B", "B_flashcards", levels(rq2_dat$group))
 ```
 
-##### Visualize Prepared Data Q07 - Descriptives and Bar Chart
+##### Visualize Prepared Data Q07 - Descriptives and Bar Chart  
 
 See the histograms below for visualization of the data pertinent to this  
 research question (RQ2). Bar graphs of the final scores for Group A and Group B  
@@ -471,7 +471,7 @@ bar_rq2 + stat_summary( fun = mean,
 
 ```
 
-##### Discussion of Visualization for RQ2
+##### Discussion of Visualization for RQ2  
 
 The study technique employed by Group B, using flashcards for memorization,  
 produced less spread in test scores for that group, however, the mean final test   
@@ -482,15 +482,15 @@ be surprised if the difference in means between these two groups is significant.
 
 ---
 
-### Question 08 (Q08):
-
+### Question 08 (Q08):  
+  
 08. Does the study technique used predict scores on the final exam? Using  
     RStudio to analyze, conduct a hypothesis test to evaluate this question.  
     Organize your answer according to the 4 steps of hypothesis testing.
 
-#### Answer to Q08: 
+#### Answer to Q08:   
 
-##### Question 08 T-Test Code:
+##### Question 08 T-Test Code:  
 
 The code below runs the t-test by feeding the final test scores to the t-test  
 algorithm for independent samples. The organization of the results of this   
@@ -516,7 +516,7 @@ rq2_test_results
 rq2_test_df <- rq2_test_results$ttest$asDF
 ```
 
-##### Question 08 Discussion
+##### Question 08 Discussion  
 
 To perform the significance test we use the SCEC acronym to remember our steps:  
 Specify, Criteria, Estimate, Conclude:  
@@ -578,10 +578,10 @@ Specify, Criteria, Estimate, Conclude:
     
 ---
 
-### Question 09 (Q09):
+### Question 09 (Q09):  
 
 09. ...
-
+  
     a. Report your findings in APA format. (Hint: make sure to answer the  
        research question!)  
 
@@ -617,7 +617,7 @@ Specify, Criteria, Estimate, Conclude:
 
 ---
 
-# Question 10 (Q10):
+# Question 10 (Q10):  
 
 10. A developmental psychologist is interested in the effect of a positive  
     psychology intervention on the well-being of aging adults. She administers  
@@ -631,9 +631,9 @@ Specify, Criteria, Estimate, Conclude:
     b. What suggestion would you give her if she wants a higher probability of  
        detecting a true effect?
 
-## Answer to Q10: 
+## Answer to Q10:   
 
-### 10.a Answer:
+### 10.a Answer:  
 
 It's difficult to determine exactly what to make if the power value given  
 by the researcher as the manner in which G\*Power was used to calculate power  
@@ -645,7 +645,7 @@ assumption, conclude that the developmental psychology did find a large effect
 of the intervention on the well-being of aging adults. We can't say much   
 more without knowing how, mathematically, the .80 was calculated. 
 
-### 10.b Answer:
+### 10.b Answer:  
 
 If the researcher wanted a higher probability of detecting a true effect, I  
 would suggest she run another study evaluating the intervention via a   
@@ -658,7 +658,7 @@ that may have impacted study participants well-being.
 
 ---
 
-# Question 11 (Q11):
+# Question 11 (Q11):  
 
 11. What would it mean if your analysis returned the following values? Consider   
     the meaning of t - not the decision associated with it.
@@ -669,7 +669,7 @@ that may have impacted study participants well-being.
     
     c. *t(24) = 3.2*
 
-## Answer to Q11: 
+## Answer to Q11:   
 
 T-scores are effectively Z-scores that are drawn from a slightly differently  
 shaped normal curve (standardized to a different denominator) because the  
@@ -680,20 +680,20 @@ we're effectively reporting the distance between our sample mean and the
 population mean as a multiple of estimated standard error units. So, given  
 that context, here are my answers:
 
-### 11.a
+### 11.a  
 
 The sample mean is roughly 1/3rd (or 0.35 times) of an estimated standard error  
 unit away from the population mean. In context this would imply the sample mean  
 is relatively close to the population mean.
 
-### 11.b
+### 11.b  
 
 The sample mean is precisely one estimated standard error  
 unit away from the population mean. In context this would imply the sample mean   
 you drew is likely within a relatively tight grouping of all the possible means  
 that could have been drawn for your sample size.
 
-### 11.c
+### 11.c  
 
 The sample mean is roughly 3.2 times an estimated standard erroru nit away from  
 the population mean. In context this would imply the sample mean  far from the  
@@ -701,12 +701,12 @@ population mean implying that it may be unlikely to have been drawn from the
 assumed population.
 ---
 
-# Question 12 (Q12):
+# Question 12 (Q12):  
 
 12. Draw and annotate all the properties of the null and alternative curves:   
     power, beta, alpha, type 1 error, type 2 error. 
 
-## Answer to Q12: 
+## Answer to Q12:   
 
 ![See hand-drawn picture above](null_and_alt_curve_annotated.png)
 
