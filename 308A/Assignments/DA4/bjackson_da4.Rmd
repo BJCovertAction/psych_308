@@ -34,6 +34,7 @@ library(ggplot2)
 library(dplyr)
 library(magrittr)
 library(tidyr)     # for pivot_longer
+library(stringr)   # for sub_str
 ```
 
 ---
@@ -252,8 +253,95 @@ more spread out midterm scores will result in more spread out differences.
     testing.
 
 #### Answer to Q05: 
-This is my answer
 
+##### Question 05 T-Test Code:
+
+The code below runs the t-test by feeding the final and midterm scores, not the   
+manually written diff above, to the t-test algorithm for paired samples. The  
+organization of the results of this t-test, according to the 4 steps of NHST are  
+in the next section.  
+
+```{r rq1_t_test}
+# We use the ttestPS to conduct a paired samples t-test from the jamovi (jmv)  
+# package. We want to include the effect size, confidence intervals, the
+# means of our inputs, the standard errors, and the descriptive statistics in
+# out output.
+# NOTE: we supply "final" scores as i1 instead of i2 because that seems to
+#       give the same directionality in mean difference in what we found 
+#       in our descriptive stats above.
+rq1_test_results <- jmv::ttestPS( data = rq1_dat, 
+                                 pairs = list(list(i1='final', i2='midterm')), 
+                                 effectSize = TRUE, 
+                                 ci = TRUE, 
+                                 meanDiff = TRUE, 
+                                 desc = TRUE
+                                )
+# Dump the test results to output
+rq1_test_results
+
+# save the test results in a dataframe object for use later
+rq1_test_df <- rq1_test_results$ttest$asDF
+```
+
+##### Question 05 Discussion
+
+To perform the significance test we use the SCEC acronym to remember our steps:  
+Specify, Criteria, Estimate, Conclude:  
+
+ 1. **Specify** the Hypotheses: 
+     a. *Null Hypothesis:* Student test scores did **not** significantly change    
+        between the midterm and the final.
+     b. *Alternative Hypothesis*: Student test scores dd change significantly  
+        between the midterm and the final.
+    
+    $H_{0}:\ \mu_{diff}\ =\    0$  
+    $H_{1}:\ \mu_{diff}\ \neq\ 0$  
+
+ 2. **Criteria:** We will check for significance using a two-tailed t-test with   
+    *alpha* set to .05. Our degrees of freedom will be equal to the number of  
+    samples we can take differences between, $n_{diff}$ (a.k.a. the number of  
+    things we know), minus the number of things we're estimating, in this case  
+    the mean difference in scores from the population, of which there is 1.  
+    So: $df\ =\ n_{diff}\ -\ 1$  
+        $df\ =\ $ `r length(rq1_dat$fin_mid_diff)` $\ -\ 1$  
+        $df\ =\ $ `r length(rq1_dat$fin_mid_diff)-1`  
+    ... which gives us a $t_{crit}$ of 1.984  
+    
+    $\alpha\ =\ .05$  
+    $df\ =\ 99$  
+    $t_{crit}\ =\ 1.984$
+    
+ 3. **Estimate:**  Given the test conducted in the R-code above, we found the  
+    following t-test results. Please note that all values printed below are  
+    generated in text, on the fly, using the embedded r/tex-code shown afer the  
+    printout:
+    
+    $\bar{x}_{diff}\ =\ $ `r rq1_test_df$'md[stud]'`    
+    $ESE_{diff}\ =\ $ `r rq1_test_df$'sed[stud]'`  
+    $t_{calc}\ =\ $ `r rq1_test_df$'stat[stud]'`  
+    `r if( rq1_test_df$'p[stud]' >= 0.000001 ){ paste("p = ", str_sub(sprintf("$.6f", rq1_test_df$'p[stud]'), -7 ) ) }else{ "p < .000001" }`  
+    $d\ =\ $ `r rq1_test_df$'es[stud]'`  
+    $\eta^2\ =\ $ `r rq1_test_df$'stat[stud]'^2 / (rq1_test_df$'stat[stud]'^2 + rq1_test_df$'df[stud]')`
+    
+    
+    ***Verbatim Code:***
+    
+    ```
+    $\bar{x}_{diff}\ =\ $ `\r rq1_test_df$'md[stud]'`    
+    $ESE_{diff}\ =\ $ `\r rq1_test_df$'sed[stud]'`  
+    $t_{calc}\ =\ $ `\r rq1_test_df$'stat[stud]'`  
+    `\r if( rq1_test_df$'p[stud]' >= 0.000001 ){ paste("p = ", str_sub(sprintf("$.6f", rq1_test_df$'p[stud]'), -7 ) ) }else{ "p < .000001" }`  
+    $d\ =\ $ `\r rq1_test_df$'es[stud]'`  
+    $\eta^2\ =\ $ `\r rq1_test_df$'stat[stud]'^2 / (rq1_test_df$'stat[stud]'^2 + rq1_test_df$'df[stud]')`
+    ```
+    
+ 
+ 4. **Conclude:** Given that $t_{calc} > t_{crit}$ we reject $H_{0}$. The test  
+    scores did change significantly between the midterm and the final. Given  
+    that $\bar{x}_{diff}$ is positive when the midterm scores are subtracted  
+    from the final scores, this indicates that the test scores significantly  
+    improved between the midterm and the final.
+    
 ---
 
 ### Question 06 (Q06):
@@ -262,7 +350,15 @@ This is my answer
     question!)
 
 #### Answer to Q06: 
-This is my answer
+
+We conducted a dependent t-test to examine whether test scores improved between  
+the midterm and final tests for a class of 100 students given required study  
+techniques. We found that final test scores, after implementing the study  
+techniques, were significantly improved (final, $\bar{x}\ =\ 80.46,\ SD\ =\ 4.74$)  
+compared to midterm test scores before the study techniques were implemented  
+(midterm, $\bar{x}\ =\ 72.40,\ SD\ =\ 10.60$), t(99) = 7.57, p < .001, $\eta^2$ = 0.37.  
+This was a large effect; the introduction of study techniques accounted for 37%  
+of variance in the test score differences.
 
 ---
 
@@ -352,6 +448,9 @@ This is my answer
     power, beta, alpha, type 1 error, type 2 error. 
 
 ## Answer to Q12: 
-This is my answer
+
+See attached hand-drawn image below:
+
+
 
 

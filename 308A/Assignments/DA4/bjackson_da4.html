@@ -428,7 +428,8 @@ library(jmv)       # for descriptive
 library(ggplot2)
 library(dplyr)
 library(magrittr)
-library(tidyr)     # for pivot_longer</code></pre>
+library(tidyr)     # for pivot_longer
+library(stringr)   # for sub_str</code></pre>
 <hr />
 <div id="question-01-q01" class="section level1">
 <h1>Question 01 (Q01):</h1>
@@ -704,8 +705,120 @@ testing.</li>
 </ol>
 <div id="answer-to-q05" class="section level4">
 <h4>Answer to Q05:</h4>
-<p>This is my answer</p>
+<div id="question-05-t-test-code" class="section level5">
+<h5>Question 05 T-Test Code:</h5>
+<p>The code below runs the t-test by feeding the final and midterm
+scores, not the<br />
+manually written diff above, to the t-test algorithm for paired samples.
+The<br />
+organization of the results of this t-test, according to the 4 steps of
+NHST are<br />
+in the next section.</p>
+<pre class="r"><code># We use the ttestPS to conduct a paired samples t-test from the jamovi (jmv)  
+# package. We want to include the effect size, confidence intervals, the
+# means of our inputs, the standard errors, and the descriptive statistics in
+# out output.
+# NOTE: we supply &quot;final&quot; scores as i1 instead of i2 because that seems to
+#       give the same directionality in mean difference in what we found 
+#       in our descriptive stats above.
+rq1_test_results &lt;- jmv::ttestPS( data = rq1_dat, 
+                                 pairs = list(list(i1=&#39;final&#39;, i2=&#39;midterm&#39;)), 
+                                 effectSize = TRUE, 
+                                 ci = TRUE, 
+                                 meanDiff = TRUE, 
+                                 desc = TRUE
+                                )
+# Dump the test results to output
+rq1_test_results</code></pre>
+<pre><code>## 
+##  PAIRED SAMPLES T-TEST
+## 
+##  Paired Samples T-Test                                                                                                                                              
+##  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+##                                       statistic    df          p             Mean difference    SE difference    Lower       Upper                    Effect Size   
+##  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+##    final    midterm    Student&#39;s t     7.571237    99.00000    &lt; .0000001           8.061300         1.064727    5.948651    10.17395    Cohen&#39;s d      0.7571237   
+##  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+##    Note. Hₐ μ &lt;sub&gt;Measure 1 - Measure 2&lt;/sub&gt; ≠ 0
+## 
+## 
+##  Descriptives                                                         
+##  ──────────────────────────────────────────────────────────────────── 
+##               N      Mean        Median      SD           SE          
+##  ──────────────────────────────────────────────────────────────────── 
+##    final      100    80.45750    80.22500     4.742058    0.4742058   
+##    midterm    100    72.39620    72.16500    10.601257    1.0601257   
+##  ────────────────────────────────────────────────────────────────────</code></pre>
+<pre class="r"><code># save the test results in a dataframe object for use later
+rq1_test_df &lt;- rq1_test_results$ttest$asDF</code></pre>
+</div>
+<div id="question-05-discussion" class="section level5">
+<h5>Question 05 Discussion</h5>
+<p>To perform the significance test we use the SCEC acronym to remember
+our steps:<br />
+Specify, Criteria, Estimate, Conclude:</p>
+<ol style="list-style-type: decimal">
+<li><p><strong>Specify</strong> the Hypotheses:</p>
+<ol style="list-style-type: lower-alpha">
+<li><em>Null Hypothesis:</em> Student test scores did
+<strong>not</strong> significantly change<br />
+between the midterm and the final.</li>
+<li><em>Alternative Hypothesis</em>: Student test scores dd change
+significantly<br />
+between the midterm and the final.</li>
+</ol>
+<p><span class="math inline">\(H_{0}:\ \mu_{diff}\
+=\    0\)</span><br />
+<span class="math inline">\(H_{1}:\ \mu_{diff}\ \neq\
+0\)</span></p></li>
+<li><p><strong>Criteria:</strong> We will check for significance using a
+two-tailed t-test with<br />
+<em>alpha</em> set to .05. Our degrees of freedom will be equal to the
+number of<br />
+samples we can take differences between, <span class="math inline">\(n_{diff}\)</span> (a.k.a. the number of<br />
+things we know), minus the number of things we’re estimating, in this
+case<br />
+the mean difference in scores from the population, of which there is
+1.<br />
+So: <span class="math inline">\(df\ =\ n_{diff}\ -\ 1\)</span><br />
+<span class="math inline">\(df\ =\ \)</span> 100 <span class="math inline">\(\ -\ 1\)</span><br />
+<span class="math inline">\(df\ =\ \)</span> 99<br />
+… which gives us a <span class="math inline">\(t_{crit}\)</span> of
+1.984</p>
+<p><span class="math inline">\(\alpha\ =\ .05\)</span><br />
+<span class="math inline">\(df\ =\ 99\)</span><br />
+<span class="math inline">\(t_{crit}\ =\ 1.984\)</span></p></li>
+<li><p><strong>Estimate:</strong> Given the test conducted in the R-code
+above, we found the<br />
+following t-test results. Please note that all values printed below
+are<br />
+generated in text, on the fly, using the embedded r/tex-code shown afer
+the<br />
+printout:</p>
+<p><span class="math inline">\(\bar{x}_{diff}\ =\ \)</span> 8.0613<br />
+<span class="math inline">\(ESE_{diff}\ =\ \)</span> 1.064727<br />
+<span class="math inline">\(t_{calc}\ =\ \)</span> 7.5712366<br />
+p &lt; .000001<br />
+<span class="math inline">\(d\ =\ \)</span> 0.7571237<br />
+<span class="math inline">\(\eta^2\ =\ \)</span> 0.3666984</p>
+<p><strong><em>Verbatim Code:</em></strong></p>
+<pre><code>$\bar{x}_{diff}\ =\ $ `\r rq1_test_df$&#39;md[stud]&#39;`    
+$ESE_{diff}\ =\ $ `\r rq1_test_df$&#39;sed[stud]&#39;`  
+$t_{calc}\ =\ $ `\r rq1_test_df$&#39;stat[stud]&#39;`  
+`\r if( rq1_test_df$&#39;p[stud]&#39; &gt;= 0.000001 ){ paste(&quot;p = &quot;, str_sub(sprintf(&quot;$.6f&quot;, rq1_test_df$&#39;p[stud]&#39;), -7 ) ) }else{ &quot;p &lt; .000001&quot; }`  
+$d\ =\ $ `\r rq1_test_df$&#39;es[stud]&#39;`  
+$\eta^2\ =\ $ `\r rq1_test_df$&#39;stat[stud]&#39;^2 / (rq1_test_df$&#39;stat[stud]&#39;^2 + rq1_test_df$&#39;df[stud]&#39;)`</code></pre></li>
+<li><p><strong>Conclude:</strong> Given that <span class="math inline">\(t_{calc} &gt; t_{crit}\)</span> we reject <span class="math inline">\(H_{0}\)</span>. The test<br />
+scores did change significantly between the midterm and the final.
+Given<br />
+that <span class="math inline">\(\bar{x}_{diff}\)</span> is positive
+when the midterm scores are subtracted<br />
+from the final scores, this indicates that the test scores
+significantly<br />
+improved between the midterm and the final.</p></li>
+</ol>
 <hr />
+</div>
 </div>
 </div>
 <div id="question-06-q06" class="section level3">
@@ -717,7 +830,20 @@ question!)</li>
 </ol>
 <div id="answer-to-q06" class="section level4">
 <h4>Answer to Q06:</h4>
-<p>This is my answer</p>
+<p>We conducted a dependent t-test to examine whether test scores
+improved between<br />
+the midterm and final tests for a class of 100 students given required
+study<br />
+techniques. We found that final test scores, after implementing the
+study<br />
+techniques, were significantly improved (final, <span class="math inline">\(\bar{x}\ =\ 80.46,\ SD\ =\ 4.74\)</span>)<br />
+compared to midterm test scores before the study techniques were
+implemented<br />
+(midterm, <span class="math inline">\(\bar{x}\ =\ 72.40,\ SD\ =\
+10.60\)</span>), t(99) = 7.57, p &lt; .001, <span class="math inline">\(\eta^2\)</span> = 0.37.<br />
+This was a large effect; the introduction of study techniques accounted
+for 37%<br />
+of variance in the test score differences.</p>
 <hr />
 </div>
 </div>
@@ -835,7 +961,7 @@ power, beta, alpha, type 1 error, type 2 error.</li>
 </ol>
 <div id="answer-to-q12" class="section level2">
 <h2>Answer to Q12:</h2>
-<p>This is my answer</p>
+<p>See attached hand-drawn image below:</p>
 </div>
 </div>
 
