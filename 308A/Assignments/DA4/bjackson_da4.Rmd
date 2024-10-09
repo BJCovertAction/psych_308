@@ -632,7 +632,29 @@ Specify, Criteria, Estimate, Conclude:
        detecting a true effect?
 
 ## Answer to Q10: 
-This is my answer
+
+### 10.a Answer:
+
+It's difficult to determine exactly what to make if the power value given  
+by the researcher as the manner in which G\*Power was used to calculate power  
+is unclear. However, the G\*Power manual does give at least one effect size  
+index table in section 3.1 which indicates values above .50 should be   
+be considered large. This is consistent with Cohen's d, which is what G*Power   
+validated against according to the User Manual. Therefore, we can, with some   
+assumption, conclude that the developmental psychology did find a large effect   
+of the intervention on the well-being of aging adults. We can't say much   
+more without knowing how, mathematically, the .80 was calculated. 
+
+### 10.b Answer:
+
+If the researcher wanted a higher probability of detecting a true effect, I  
+would suggest she run another study evaluating the intervention via a   
+dependent-samples t-test method. That is, she should collect data on the  
+well-being of the study participants **before** the intervention, and then  
+collect the same data on the same participants **after** the intervention and  
+subtract the two well-being scores. This would help eliminate other sources  
+that may have impacted study participants well-being. 
+
 
 ---
 
