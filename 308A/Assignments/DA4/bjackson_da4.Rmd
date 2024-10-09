@@ -312,13 +312,13 @@ Specify, Criteria, Estimate, Conclude:
     
  3. **Estimate:**  Given the test conducted in the R-code above, we found the  
     following t-test results. Please note that all values printed below are  
-    generated in text, on the fly, using the embedded r/tex-code shown afer the  
+    generated in text, on the fly, using the embedded r/tex-code shown after the  
     printout:
     
     $\bar{x}_{diff}\ =\ $ `r rq1_test_df$'md[stud]'`    
     $ESE_{diff}\ =\ $ `r rq1_test_df$'sed[stud]'`  
     $t_{calc}\ =\ $ `r rq1_test_df$'stat[stud]'`  
-    `r if( rq1_test_df$'p[stud]' >= 0.000001 ){ paste("p = ", str_sub(sprintf("$.6f", rq1_test_df$'p[stud]'), -7 ) ) }else{ "p < .000001" }`  
+    `r if( rq1_test_df$'p[stud]' >= 0.000001 ){ paste("p =", str_sub(sprintf("%.3f", rq1_test_df$'p[stud]'), -4 ) ) }else{ "p < .000001" }`  
     $d\ =\ $ `r rq1_test_df$'es[stud]'`  
     $\eta^2\ =\ $ `r rq1_test_df$'stat[stud]'^2 / (rq1_test_df$'stat[stud]'^2 + rq1_test_df$'df[stud]')`
     
@@ -329,7 +329,7 @@ Specify, Criteria, Estimate, Conclude:
     $\bar{x}_{diff}\ =\ $ `\r rq1_test_df$'md[stud]'`    
     $ESE_{diff}\ =\ $ `\r rq1_test_df$'sed[stud]'`  
     $t_{calc}\ =\ $ `\r rq1_test_df$'stat[stud]'`  
-    `\r if( rq1_test_df$'p[stud]' >= 0.000001 ){ paste("p = ", str_sub(sprintf("$.6f", rq1_test_df$'p[stud]'), -7 ) ) }else{ "p < .000001" }`  
+    `\r if( rq1_test_df$'p[stud]' >= 0.000001 ){ paste("p =", str_sub(sprintf("%.3f", rq1_test_df$'p[stud]'), -4 ) ) }else{ "p < .000001" }`  
     $d\ =\ $ `\r rq1_test_df$'es[stud]'`  
     $\eta^2\ =\ $ `\r rq1_test_df$'stat[stud]'^2 / (rq1_test_df$'stat[stud]'^2 + rq1_test_df$'df[stud]')`
     ```
@@ -355,7 +355,7 @@ the midterm and final tests for a class of 100 students given required study
 techniques. We found that final test scores, after implementing the study  
 techniques, were significantly improved (final, $\bar{x}\ =\ 80.46,\ SD\ =\ 4.74$)  
 compared to midterm test scores before the study techniques were implemented  
-(midterm, $\bar{x}\ =\ 72.40,\ SD\ =\ 10.60$), t(99) = 7.57, p < .001, $\eta^2$ = 0.37.  
+(midterm, $\bar{x}\ =\ 72.40,\ SD\ =\ 10.60$), t(99) = 7.57, p < .001, $\eta^2$ = .37.  
 This was a large effect; the introduction of study techniques accounted for 37%  
 of variance in the test score differences.
 
@@ -489,8 +489,93 @@ be surprised if the difference in means between these two groups is significant.
     Organize your answer according to the 4 steps of hypothesis testing.
 
 #### Answer to Q08: 
-This is my answer
 
+##### Question 08 T-Test Code:
+
+The code below runs the t-test by feeding the final test scores to the t-test  
+algorithm for independent samples. The organization of the results of this   
+t-test, according to the 4 steps of NHST are in the next section.  
+
+```{r rq2_t_test}
+# We use the ttestIS to conduct an independent t-test from the jamovi (jmv)  
+# package. We want to include the effect size, confidence intervals, the
+# means of our inputs, the standard errors, and the descriptive statistics in
+# out output.
+rq2_test_results <- jmv::ttestIS( data = rq2_dat, 
+                                 vars = 'final',
+                                 group = 'group',
+                                 effectSize = TRUE, 
+                                 ci = TRUE, 
+                                 meanDiff = TRUE, 
+                                 desc = TRUE
+                                )
+# Dump the test results to output
+rq2_test_results
+
+# save the test results in a dataframe object for use later
+rq2_test_df <- rq2_test_results$ttest$asDF
+```
+
+##### Question 08 Discussion
+
+To perform the significance test we use the SCEC acronym to remember our steps:  
+Specify, Criteria, Estimate, Conclude:  
+
+ 1. **Specify** the Hypotheses: 
+     a. *Null Hypothesis:* There is **no** difference between the final test  
+        scores of students using the Group A study technique vs. students   
+        using the Group B study technique.
+     b. *Alternative Hypothesis*: There mean of Group A's final scores is  
+        different than the mean of Group B's final scores.
+    
+    $H_{0}:\ \mu_{A}\ =\    \mu_{B}$  
+    $H_{1}:\ \mu_{A}\ \neq\ \mu_{B}$  
+
+ 2. **Criteria:** We will check for significance using a two-tailed t-test with   
+    *alpha* set to .05. Our degrees of freedom will be equal to the total number  
+    of students between both groups, $n_{A} + n_{B}$ (a.k.a. the number of  
+    things we know), minus the number of things we're estimating, in this case  
+    the mean of the final test scores for Group A and the mean of the final    
+    test scores for Group B, or two items.  
+    So: $df\ =\ n_{students}\ -\ 2$  
+        $df\ =\ $ `r length(rq2_dat$final)` $\ -\ 2$  
+        $df\ =\ $ `r length(rq2_dat$final)-2`  
+    ... which gives us a $t_{crit}$ of 1.984
+    
+    $\alpha\ =\ .05$  
+    $df\ =\ 98$  
+    $t_{crit}\ =\ 1.984$
+    
+ 3. **Estimate:**  Given the test conducted in the R-code above, we found the  
+    following t-test results. Please note that all values printed below are  
+    generated in text, on the fly, using the embedded r/tex-code shown after the  
+    printout:
+    
+    $\bar{x}_{A}\ -\ \bar{x}_{B}\ =\ $ `r rq2_test_df$'md[stud]'`    
+    $ESED\ =\ $ `r rq2_test_df$'sed[stud]'`  
+    $t_{calc}\ =\ $ `r rq2_test_df$'stat[stud]'`  
+    `r if( rq2_test_df$'p[stud]' >= 0.000001 ){ paste("p =", str_sub(sprintf("%.3f", rq2_test_df$'p[stud]'), -4 ) ) }else{ "p < .000001" }`  
+    $d\ =\ $ `r rq2_test_df$'es[stud]'`  
+    $\eta^2\ =\ $ `r rq2_test_df$'stat[stud]'^2 / (rq2_test_df$'stat[stud]'^2 + rq2_test_df$'df[stud]')`
+    
+    
+    ***Verbatim Code:***
+    
+    ```
+    $\bar{x}_{A}\ -\ \bar{x}_{B}\ =\ $ `\r rq2_test_df$'md[stud]'`    
+    $ESED\ =\ $ `\r rq2_test_df$'sed[stud]'`  
+    $t_{calc}\ =\ $ `\r rq2_test_df$'stat[stud]'`  
+    `\r if( rq2_test_df$'p[stud]' >= 0.000001 ){ paste("p =", str_sub(sprintf("%.3f", rq2_test_df$'p[stud]'), -4 ) ) }else{ "p < .000001" }`  
+    $d\ =\ $ `\r rq2_test_df$'es[stud]'`  
+    $\eta^2\ =\ $ `\r rq2_test_df$'stat[stud]'^2 / (rq2_test_df$'stat[stud]'^2 + rq2_test_df$'df[stud]')`
+    ```
+    
+ 
+ 4. **Conclude:** Given that $t_{calc}\ <\ t_{crit}$ we fail to reject $H_{0}$.  
+    The mean final test scores **did not** vary significantly between Group A   
+    and Group B. We failed to find a significant difference in study technique  
+    impact on final test scores.
+    
 ---
 
 ### Question 09 (Q09):
@@ -498,15 +583,37 @@ This is my answer
 09. ...
 
     a. Report your findings in APA format. (Hint: make sure to answer the  
-       research question!)
+       research question!)  
+
+       #### Answer (9.a):
+       We conducted an independent t-test to determine whether studying as a   
+       group just prior to a course final (Group A), or studying using  
+       flashcards to improve memorization (Group B), was better at improving  
+       final test scores amongst 100 students, with 50 students randomly  
+       assigned to each group. The students studying as a group  
+       ( $\bar{x}_{A}\ =\ 81.23$ ) did *not* perform significantly better or  
+       worse than those studying with flashcards ( $\bar{x}_{B}\ =\ 79.66$ ),  
+       t(98) = 1.984, p = .093, $\eta^2$ = .03. This was a small effect,  
+       the difference in study technique accounted for slightly less than 3% of    
+       variance the final scores of the students.
+       
+       
     
     b. The Dean of the university was also interested in your results, as this  
        may help to raise scores in other departments. Unfortunately, she does  
        not understand statistical language. Please interpret your findings for  
-       the Dean. Did scores improve? Which technique is better?
-
-#### Answer to Q09: 
-This is my answer
+       the Dean. Did scores improve? Which technique is better?  
+       
+       #### Answer (9.b):  
+       We required students to try one of two study techniques between the   
+       midterm and the final of our psychology course to determine which  
+       technique, if any, was better at improving test scores. We found that   
+       both techniques, studying in groups just before the final, and using  
+       flashcards to improve memorization, significantly improved test scores.   
+       The study techniques accounted for 37% of the improvement measured in  
+       test scores. However, we also found that neither study technique was  
+       notably better than the other. So students could use either or both  
+       techniques to improve scores.
 
 ---
 

@@ -791,7 +791,7 @@ So: <span class="math inline">\(df\ =\ n_{diff}\ -\ 1\)</span><br />
 above, we found the<br />
 following t-test results. Please note that all values printed below
 are<br />
-generated in text, on the fly, using the embedded r/tex-code shown afer
+generated in text, on the fly, using the embedded r/tex-code shown after
 the<br />
 printout:</p>
 <p><span class="math inline">\(\bar{x}_{diff}\ =\ \)</span> 8.0613<br />
@@ -804,7 +804,7 @@ p &lt; .000001<br />
 <pre><code>$\bar{x}_{diff}\ =\ $ `\r rq1_test_df$&#39;md[stud]&#39;`    
 $ESE_{diff}\ =\ $ `\r rq1_test_df$&#39;sed[stud]&#39;`  
 $t_{calc}\ =\ $ `\r rq1_test_df$&#39;stat[stud]&#39;`  
-`\r if( rq1_test_df$&#39;p[stud]&#39; &gt;= 0.000001 ){ paste(&quot;p = &quot;, str_sub(sprintf(&quot;$.6f&quot;, rq1_test_df$&#39;p[stud]&#39;), -7 ) ) }else{ &quot;p &lt; .000001&quot; }`  
+`\r if( rq1_test_df$&#39;p[stud]&#39; &gt;= 0.000001 ){ paste(&quot;p =&quot;, str_sub(sprintf(&quot;%.3f&quot;, rq1_test_df$&#39;p[stud]&#39;), -4 ) ) }else{ &quot;p &lt; .000001&quot; }`  
 $d\ =\ $ `\r rq1_test_df$&#39;es[stud]&#39;`  
 $\eta^2\ =\ $ `\r rq1_test_df$&#39;stat[stud]&#39;^2 / (rq1_test_df$&#39;stat[stud]&#39;^2 + rq1_test_df$&#39;df[stud]&#39;)`</code></pre></li>
 <li><p><strong>Conclude:</strong> Given that <span class="math inline">\(t_{calc} &gt; t_{crit}\)</span> we reject <span class="math inline">\(H_{0}\)</span>. The test<br />
@@ -839,7 +839,7 @@ techniques, were significantly improved (final, <span class="math inline">\(\bar
 compared to midterm test scores before the study techniques were
 implemented<br />
 (midterm, <span class="math inline">\(\bar{x}\ =\ 72.40,\ SD\ =\
-10.60\)</span>), t(99) = 7.57, p &lt; .001, <span class="math inline">\(\eta^2\)</span> = 0.37.<br />
+10.60\)</span>), t(99) = 7.57, p &lt; .001, <span class="math inline">\(\eta^2\)</span> = .37.<br />
 This was a large effect; the introduction of study techniques accounted
 for 37%<br />
 of variance in the test score differences.</p>
@@ -868,7 +868,7 @@ here.</li>
 below:</p>
 <pre class="r"><code># In order to visualize the data we must first load it. To do so we look
 # in the present working directory for CSV files, and take the one that
-# has RQ1 in its filename. Append it to the current working directory
+# has RQ2 in its filename. Append it to the current working directory
 # to create the fullpath for loading
 here &lt;- getwd()
 rq2_name &lt;- list.files(here, pattern = &quot;.*RQ2.*csv&quot;)
@@ -1019,8 +1019,120 @@ testing.</li>
 </ol>
 <div id="answer-to-q08" class="section level4">
 <h4>Answer to Q08:</h4>
-<p>This is my answer</p>
+<div id="question-08-t-test-code" class="section level5">
+<h5>Question 08 T-Test Code:</h5>
+<p>The code below runs the t-test by feeding the final test scores to
+the t-test<br />
+algorithm for independent samples. The organization of the results of
+this<br />
+t-test, according to the 4 steps of NHST are in the next section.</p>
+<pre class="r"><code># We use the ttestIS to conduct an independent t-test from the jamovi (jmv)  
+# package. We want to include the effect size, confidence intervals, the
+# means of our inputs, the standard errors, and the descriptive statistics in
+# out output.
+rq2_test_results &lt;- jmv::ttestIS( data = rq2_dat, 
+                                 vars = &#39;final&#39;,
+                                 group = &#39;group&#39;,
+                                 effectSize = TRUE, 
+                                 ci = TRUE, 
+                                 meanDiff = TRUE, 
+                                 desc = TRUE
+                                )
+# Dump the test results to output
+rq2_test_results</code></pre>
+<pre><code>## 
+##  INDEPENDENT SAMPLES T-TEST
+## 
+##  Independent Samples T-Test                                                                                                                                
+##  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+##                            Statistic     df          p            Mean difference    SE difference    Lower         Upper                    Effect Size   
+##  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+##    final    Student&#39;s t    1.697670 ᵃ    98.00000    0.0927436           1.595000        0.9395231    -0.2694530    3.459453    Cohen&#39;s d      0.3395340   
+##  ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+##    Note. Hₐ μ &lt;sub&gt;A_group_study&lt;/sub&gt; ≠ μ &lt;sub&gt;B_flashcards&lt;/sub&gt;
+##    ᵃ Levene&#39;s test is significant (p &lt; .05), suggesting a violation of the assumption of equal variances
+## 
+## 
+##  Group Descriptives                                                                
+##  ───────────────────────────────────────────────────────────────────────────────── 
+##             Group            N     Mean        Median      SD          SE          
+##  ───────────────────────────────────────────────────────────────────────────────── 
+##    final    A_group_study    50    81.25500    80.94000    5.904107    0.8349668   
+##             B_flashcards     50    79.66000    79.78500    3.045768    0.4307366   
+##  ─────────────────────────────────────────────────────────────────────────────────</code></pre>
+<pre class="r"><code># save the test results in a dataframe object for use later
+rq2_test_df &lt;- rq2_test_results$ttest$asDF</code></pre>
+</div>
+<div id="question-08-discussion" class="section level5">
+<h5>Question 08 Discussion</h5>
+<p>To perform the significance test we use the SCEC acronym to remember
+our steps:<br />
+Specify, Criteria, Estimate, Conclude:</p>
+<ol style="list-style-type: decimal">
+<li><p><strong>Specify</strong> the Hypotheses:</p>
+<ol style="list-style-type: lower-alpha">
+<li><em>Null Hypothesis:</em> There is <strong>no</strong> difference
+between the final test<br />
+scores of students using the Group A study technique vs. students<br />
+using the Group B study technique.</li>
+<li><em>Alternative Hypothesis</em>: There mean of Group A’s final
+scores is<br />
+different than the mean of Group B’s final scores.</li>
+</ol>
+<p><span class="math inline">\(H_{0}:\ \mu_{A}\
+=\    \mu_{B}\)</span><br />
+<span class="math inline">\(H_{1}:\ \mu_{A}\ \neq\
+\mu_{B}\)</span></p></li>
+<li><p><strong>Criteria:</strong> We will check for significance using a
+two-tailed t-test with<br />
+<em>alpha</em> set to .05. Our degrees of freedom will be equal to the
+total number<br />
+of students between both groups, <span class="math inline">\(n_{A} +
+n_{B}\)</span> (a.k.a. the number of<br />
+things we know), minus the number of things we’re estimating, in this
+case<br />
+the mean of the final test scores for Group A and the mean of the
+final<br />
+test scores for Group B, or two items.<br />
+So: <span class="math inline">\(df\ =\ n_{students}\ -\ 2\)</span><br />
+<span class="math inline">\(df\ =\ \)</span> 100 <span class="math inline">\(\ -\ 2\)</span><br />
+<span class="math inline">\(df\ =\ \)</span> 98<br />
+… which gives us a <span class="math inline">\(t_{crit}\)</span> of
+1.984</p>
+<p><span class="math inline">\(\alpha\ =\ .05\)</span><br />
+<span class="math inline">\(df\ =\ 98\)</span><br />
+<span class="math inline">\(t_{crit}\ =\ 1.984\)</span></p></li>
+<li><p><strong>Estimate:</strong> Given the test conducted in the R-code
+above, we found the<br />
+following t-test results. Please note that all values printed below
+are<br />
+generated in text, on the fly, using the embedded r/tex-code shown after
+the<br />
+printout:</p>
+<p><span class="math inline">\(\bar{x}_{A}\ -\ \bar{x}_{B}\ =\ \)</span>
+1.595<br />
+<span class="math inline">\(ESED\ =\ \)</span> 0.9395231<br />
+<span class="math inline">\(t_{calc}\ =\ \)</span> 1.6976698<br />
+p = .093<br />
+<span class="math inline">\(d\ =\ \)</span> 0.339534<br />
+<span class="math inline">\(\eta^2\ =\ \)</span> 0.0285688</p>
+<p><strong><em>Verbatim Code:</em></strong></p>
+<pre><code>$\bar{x}_{A}\ -\ \bar{x}_{B}\ =\ $ `\r rq2_test_df$&#39;md[stud]&#39;`    
+$ESED\ =\ $ `\r rq2_test_df$&#39;sed[stud]&#39;`  
+$t_{calc}\ =\ $ `\r rq2_test_df$&#39;stat[stud]&#39;`  
+`\r if( rq2_test_df$&#39;p[stud]&#39; &gt;= 0.000001 ){ paste(&quot;p =&quot;, str_sub(sprintf(&quot;%.3f&quot;, rq2_test_df$&#39;p[stud]&#39;), -4 ) ) }else{ &quot;p &lt; .000001&quot; }`  
+$d\ =\ $ `\r rq2_test_df$&#39;es[stud]&#39;`  
+$\eta^2\ =\ $ `\r rq2_test_df$&#39;stat[stud]&#39;^2 / (rq2_test_df$&#39;stat[stud]&#39;^2 + rq2_test_df$&#39;df[stud]&#39;)`</code></pre></li>
+<li><p><strong>Conclude:</strong> Given that <span class="math inline">\(t_{calc}\ &lt;\ t_{crit}\)</span> we fail to
+reject <span class="math inline">\(H_{0}\)</span>.<br />
+The mean final test scores <strong>did not</strong> vary significantly
+between Group A<br />
+and Group B. We failed to find a significant difference in study
+technique<br />
+impact on final test scores.</p></li>
+</ol>
 <hr />
+</div>
 </div>
 </div>
 <div id="question-09-q09" class="section level3">
@@ -1030,21 +1142,50 @@ testing.</li>
 <ol style="list-style-type: lower-alpha">
 <li><p>Report your findings in APA format. (Hint: make sure to answer
 the<br />
-research question!)</p></li>
+research question!)</p>
+<h4 id="answer-a">Answer (a):</h4>
+<p>We conducted an independent t-test to determine whether studying as
+a<br />
+group just prior to a course final (Group A), or studying using<br />
+flashcards to improve memorization (Group B), was better at
+improving<br />
+final test scores amongst 100 students, with 50 students randomly<br />
+assigned to each group. The students studying as a group<br />
+( <span class="math inline">\(\bar{x}_{A}\ =\ 81.23\)</span> ) did
+<em>not</em> perform significantly better or<br />
+worse than those studying with flashcards ( <span class="math inline">\(\bar{x}_{B}\ =\ 79.66\)</span> ),<br />
+t(98) = 1.984, p = .093, <span class="math inline">\(\eta^2\)</span> =
+.03. This was a small effect,<br />
+the difference in study technique accounted for slightly less than 3%
+of<br />
+variance the final scores of the students.</p></li>
 <li><p>The Dean of the university was also interested in your results,
 as this<br />
 may help to raise scores in other departments. Unfortunately, she
 does<br />
 not understand statistical language. Please interpret your findings
 for<br />
-the Dean. Did scores improve? Which technique is better?</p></li>
+the Dean. Did scores improve? Which technique is better?</p>
+<h4 id="answer-b">Answer (b):</h4>
+<p>We required students to try one of two study techniques between
+the<br />
+midterm and the final of our psychology course to determine which<br />
+technique, if any, was better at improving test scores. We found
+that<br />
+both techniques, studying in groups just before the final, and
+using<br />
+flashcards to improve memorization, significantly improved test
+scores.<br />
+The study techniques accounted for 37% of the improvement measured
+in<br />
+test scores. However, we also found that neither study technique
+was<br />
+notably better than the other. So students could use either or
+both<br />
+techniques to improve scores.</p></li>
 </ol></li>
 </ol>
-<div id="answer-to-q09" class="section level4">
-<h4>Answer to Q09:</h4>
-<p>This is my answer</p>
 <hr />
-</div>
 </div>
 </div>
 </div>
