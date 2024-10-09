@@ -130,7 +130,7 @@ questions:
 
 #### Answer to Q04:
 
-##### Loading Data for Q04
+##### Loading Data for Q04:
 
 The first step to visualizing the data is to load it. See code below:  
 
@@ -216,8 +216,7 @@ bar_rq1 <- ggplot( rq1_long, aes(name, value) )
 
 
 
-#make a bar graph of relationship between fieldtrip and hard tangrams
-# START HERE FIX BUGGY CODE BELOW
+# Annotate the ggplot object to make a bar graph of test scodes.
 bar_rq1 + stat_summary( fun = mean,
                         geom = "bar",
                         position = "dodge",
@@ -375,7 +374,111 @@ of variance in the test score differences.
     here.
 
 #### Answer to Q07: 
-This is my answer
+
+##### Loading Data for Q07:
+
+The first step to visualizing the data is to load it. See code below:  
+
+```{r, q07_data_load}
+
+# In order to visualize the data we must first load it. To do so we look
+# in the present working directory for CSV files, and take the one that
+# has RQ2 in its filename. Append it to the current working directory
+# to create the fullpath for loading
+here <- getwd()
+rq2_name <- list.files(here, pattern = ".*RQ2.*csv")
+
+# Use the file.path function to create a platform appropriate fullpath / filename
+# to the Research Question 2 data.
+rq2_file <- file.path(here, rq2_name)
+
+# Read the CSV data in as rq1_dat
+rq2_dat <- read.csv(rq2_file, header = TRUE)
+
+# Lower-case all column names for convenience
+colnames(rq2_dat) <- tolower(colnames(rq2_dat))
+
+```
+
+##### Data Prep Q07
+
+Ultimately we're going to answer Research Question 2 as an independent t-test   
+since we're evaluating differences in test scores between the study technique   
+employed by Group A and that by Group B. Since we're not looking at matched  
+samples between groups (i.e. the same students are not in both groups) there  
+is no math to do here. We just need to make sure the group category is set to  
+the correct datatype (factor). We also rename the categories as "A" and "B"  
+are not particularly descriptive. See code below:   
+
+```{r, q07_data_prep}
+# Recast the variables in the "group" vector to be factors instead of freeform
+# character strings
+rq2_dat$group <- as.factor(rq2_dat$group)
+
+# Rename group "A" to A_group_study and group "B" to "B_flashcards"
+levels(rq2_dat$group) <- sub("A", "A_group_study", levels(rq2_dat$group))
+levels(rq2_dat$group) <- sub("B", "B_flashcards", levels(rq2_dat$group))
+```
+
+##### Visualize Prepared Data Q07 - Descriptives and Bar Chart
+
+See the histograms below for visualization of the data pertinent to this  
+research question (RQ2). Bar graphs of the final scores for Group A and Group B  
+are also shown for better understanding.  
+
+```{r, q07_answer_and_visualization_outputs}
+
+# We're going to create a descriptives object so we can checkout the histogram
+# and descriptive stats of the final scores split by Group. Since we have the
+# descriptives available for all final scores combined from RQ1 above, we 
+# won't recreate that here.
+rq2_desc <- jmv::descriptives( rq2_dat, 
+                               vars = c('final'),
+                               splitBy = c('group'),
+                               hist = TRUE,
+                               dens = TRUE,
+                               sd = TRUE,
+                               variance = TRUE,
+                               se = TRUE, 
+                               skew = TRUE, 
+                               kurt = TRUE
+                             )
+
+# Render the rq2 descriptives object as output.
+rq2_desc
+
+# Now we're going to create a bar chart of the final scores sorted by group.
+# No pivoting is needed here as data is already properly formatted.
+
+# First we create the bar chart ggplot object via associating the group with 
+# the scores as an aesthetic object (aes)
+bar_rq2 <- ggplot( rq2_dat, aes(group, final) )
+
+# Now we annotate the bar chart appropriately. Bars will be colored orchid. 
+# error bars will be added. 
+bar_rq2 + stat_summary( fun = mean,
+                        geom = "bar",
+                        position = "dodge",
+                        fill="orchid1"
+                      ) +
+          stat_summary( fun.data = mean_cl_normal,
+                        geom = "errorbar",
+                        position = position_dodge(width = 0.90),
+                        width = 0.2
+                      ) +
+          labs(x = "Study Method of Group", y = "Score (pts))") +
+          ggtitle('Final Test Scores by Study Method')
+
+```
+
+##### Discussion of Visualization for RQ2
+
+The study technique employed by Group B, using flashcards for memorization,  
+produced less spread in test scores for that group, however, the mean final test   
+scores were remarkably similar to those of Group A. Despite this, the study  
+technique employed by Group A, studying in groups right before the final exam  
+had more spread out test scores (higher variance / standard deviation).  I'll  
+be surprised if the difference in means between these two groups is significant.  
 
 ---
 
