@@ -593,7 +593,7 @@ Specify, Criteria, Estimate, Conclude:
        assigned to each group. The students studying as a group  
        ( $\bar{x}_{A}\ =\ 81.23$ ) did *not* perform significantly better or  
        worse than those studying with flashcards ( $\bar{x}_{B}\ =\ 79.66$ ),  
-       t(98) = 1.984, p = .093, $\eta^2$ = .03. This was a small effect,  
+       t(98) = 1.70, p = .093, $\eta^2$ = .03. This was a small effect,  
        the difference in study technique accounted for slightly less than 3% of    
        variance the final scores of the students.
        
@@ -670,8 +670,35 @@ that may have impacted study participants well-being.
     c. *t(24) = 3.2*
 
 ## Answer to Q11: 
-This is my answer
 
+T-scores are effectively Z-scores that are drawn from a slightly differently  
+shaped normal curve (standardized to a different denominator) because the  
+population standard deviation is unknown. In the case of hypothesis testing,  
+where we are evaluating the distance of some sample statistic (usually the mean)  
+from the population parameter as normalized to an estimated standard error,  
+we're effectively reporting the distance between our sample mean and the   
+population mean as a multiple of estimated standard error units. So, given  
+that context, here are my answers:
+
+### 11.a
+
+The sample mean is roughly 1/3rd (or 0.35 times) of an estimated standard error  
+unit away from the population mean. In context this would imply the sample mean  
+is relatively close to the population mean.
+
+### 11.b
+
+The sample mean is precisely one estimated standard error  
+unit away from the population mean. In context this would imply the sample mean   
+you drew is likely within a relatively tight grouping of all the possible means  
+that could have been drawn for your sample size.
+
+### 11.c
+
+The sample mean is roughly 3.2 times an estimated standard erroru nit away from  
+the population mean. In context this would imply the sample mean  far from the  
+population mean implying that it may be unlikely to have been drawn from the  
+assumed population.
 ---
 
 # Question 12 (Q12):
@@ -681,7 +708,7 @@ This is my answer
 
 ## Answer to Q12: 
 
-See attached hand-drawn image below:
+![See hand-drawn picture above](null_and_alt_curve_annotated.png)
 
 
 
