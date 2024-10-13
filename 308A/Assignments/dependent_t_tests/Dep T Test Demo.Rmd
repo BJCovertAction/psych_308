@@ -1,0 +1,202 @@
+---
+title: "Two Sample T-Test Demo Fall 2023"
+author: "JD"
+date: "10/5/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(psych)
+library(jmv)
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+library(tidyr)
+```
+
+
+*Dependent T Test: Example 1*
+There are active movements to connect children with nature to improve their well-being. However, most of the research on children and nature has focused on cognitive benefits or used non-experimental designs. In their preliminatry study, Dopko et al. (2019) examined the potential benefits of a 4-hour nature experience on children's mood, pro-sociality, and attitudes toward nature. Eighty students from an urban Canadian elementary school were recruited to participate in field trips to both a nature school and an aviation/space museum. Following each field trip, they measured each child's mood, connection to nature, and pro-social behavior.  
+
+Two tasks were used to assess children's pro-sociality. First, a windfall task asked children to imagine they unexpectedly received $100 and could decide how much money to allocate to charity. As a second measure of pro-social behavior, children were asked to complete a tangram task. Children were asked to imagine they were assigning tangrams to someone else in their class and to choose 11 tangrams from three categories: easy, medium, and hard. The data included represents the number of hard tangrams asigned, indicating lower levels of pro-social behavior. 
+
+RQ: Is there a relationship between exposure to nature and pro-social behavior in children?
+
+Hypothesis: Exposure to nature positively relates to pro-social behavior
+
+Theoretical Model: Exposure to Nature (Yes-Nature Center, No-Museum) --> Pro-Social Behavior
+
+Statistical Model: Pro-Social Behavior = Exposure to Nature + Error
+
+```{r}
+#read in the data
+dat.nature <- read.csv("nature.csv")
+```
+
+**DESCRIPTIVES**
+```{r}
+#generate an object called desc.nature that contains all of the descriptive information
+#  to specify consecutive columns in a data frame use:     dat.nature[2:5]
+#  to specify non-consecutive columns in a data frame use: dat.nature[c(2,4:5)] etc. (this leaves out 3)
+#
+desc.nature <- jmv::descriptives(dat.nature[2:5], hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+
+#view that object (call it from your environment)
+desc.nature
+```
+
+```{r}
+#since dependent t tests estimate difference scores, we need to create difference scores for both of our outcome variarables
+dat.nature$tang_diff <- (dat.nature$tg_nature - dat.nature$tg_museum)
+dat.nature$charity_diff <- (dat.nature$ch_nature - dat.nature$ch_museum)
+```
+
+```{r}
+#creating a descriptive object of difference scores and "calling it" so we can see it
+desc.nature.diff <- jmv::descriptives(dat.nature, vars = c('tang_diff', 'charity_diff'), hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+desc.nature.diff
+```
+
+**VISUALIZATION**
+```{r}
+#in order to create a bar graph, we have to reformat our data from wide to long. We'll use the function "pivot_wide" but this particular code is a little more complicated because we have two sets of outocome variables. 
+dat.naturelong <- dat.nature[1:5] %>% pivot_longer(cols = c(tg_nature, tg_museum, ch_nature, ch_museum), names_to = c("variable", "fieldtrip"), names_sep = "_") %>% pivot_wider(names_from = "variable", values_from = "value")
+
+#make field trip a categorical (factor) variable
+dat.naturelong$fieldtrip <- as.factor(dat.naturelong$fieldtrip)
+
+#create the relationship between fieldtrip and hard tangrams
+bar.nature.tg <- ggplot(dat.naturelong, aes(fieldtrip, tg))
+#create the relationship between fieldtrip and money allocated to charity
+bar.nature.ch <- ggplot(dat.naturelong, aes(fieldtrip, ch))
+
+#make a bar graph of relationship between fieldtrip and hard tangrams
+bar.nature.tg + stat_summary(fun = mean, geom = "bar", position = "dodge", fill="tomato1") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Fieldtrip", y = "Hard Tangrams") + ggtitle('Effect of Nature on Prosocial Measure 1 in Children')
+#make a bar graph of relationship between fieldtrip and money allocated to charity
+bar.nature.ch + stat_summary(fun = mean, geom = "bar", position = "dodge", fill="tomato4") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Fieldtrip", y = "Charitable Giving") + ggtitle('Effect of Nature on Prosocial Measure 2 in Children')
+```
+
+**T TEST**
+```{r}
+#run ta t-test for each of our measures of pro-social behavior. Note we're using the original wide data here. 
+ttestPS(data = dat.nature, pairs = list(list(i1='tg_nature', i2='tg_museum')), effectSize = TRUE, ci = TRUE, meanDiff = TRUE, desc = TRUE)
+
+ttestPS(data = dat.nature, pairs = list(list(i1='ch_nature', i2='ch_museum')), effectSize = TRUE, ci = TRUE, meanDiff = TRUE, desc = TRUE)
+```
+
+*APA WRITE UP*
+A series of dependent t-tests supports the notion that visits exposure to nature positive impacts prosocial behavior in school age children. Students awarded significantly fewer difficult tangram tasks (*M* = 3.90) to their peers following their nature visit than they did following their museum visit (*M* = 5.32), *t*(40) = 3.35, *p* = .002, *d* = 0.52, 95% MD CI [-2.27,-0.56]. This was a moderate affect, students awarded approximately half a standard deviation fewer difficult tasks after being exposed to nature. We found similar effects when measuring pro-social behavior as the amount of money students chose to allocate to charity. Students allocated significantly more money to charity following their nature visit (*M* = 37.59) than they did following their museum visit(*M* = 32.27), *t*(40) = 2.11, *p* = .041, *d* = 0.33, 95% MD CI [2.52,0.23]. This operationalization of prosocial behavior returned a smaller effect, about a third of a standard deviation of difference between the two allocated amounts. 
+
+
+*Dependent T Test: Example 2*
+Researchers were curious how the COVID-19 lockdown impacted the number of hours people slept each night. They asked participants to report the average hours of sleep per night participants received before and after the lockdown. 
+
+RQ: Is there a significant difference in the number of hours people slept before and after the lockdown? 
+RQ: Did pariticpant sleep change significant from pre and post covid lockdown?
+
+Covid Lockdown (before, after) --> Hours of Sleep
+
+Sleep = Covid Lockdown Timepoint + Error
+
+```{r}
+dat_sleep <- read.csv("sleep.csv")
+
+dat_sleep$ID <- as.factor(dat_sleep$ID)
+```
+
+**DESCRIPTIVES**
+```{r}
+#read in the data
+desc_sleep <- descriptives(dat_sleep, vars = c('pre', 'post'), hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+
+desc_sleep
+```
+
+```{r}
+#create difference scores and view descriptives
+dat_sleep$diff <- (dat_sleep$post - dat_sleep$pre)
+
+desc_sleepdiff <- descriptives(dat_sleep, vars = c('diff'), hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+desc_sleepdiff
+```
+
+**VISUALIZATION**
+```{r}
+#in order to create a bar graph, we have to reformat our data from wide to long
+#  Turn data into long form and don't get rid of it (reassigned to dat_sleeplong instead of dat_sleep)
+#   Pivot dat_sleep (pivot means transpose)
+#   Columns I want to pivot "pre" and "post"  
+#   Take "names" of those columns (pre and post) assign them to column "Timepoint"
+#   Take values to a column called "Sleep"
+# Look at format of dat_sleep vs. dat_sleeplong to better understand permutation that's 
+#   happening here.
+dat_sleeplong <- pivot_longer(dat_sleep, cols = c("pre", "post"), names_to = "Timepoint", values_to = "Sleep")
+dat_sleeplong
+
+#this is an alternative code for our usual data$variable <- as.factor(data$variable) that lets us order the factor/categorical levels how we want to. 
+dat_sleeplong$Timepoint <- factor(dat_sleeplong$Timepoint,levels = c("pre", "post"))
+
+bar_sleep <- ggplot(dat_sleeplong, aes(Timepoint, Sleep))
+
+bar_sleep + stat_summary(fun = mean, geom = "bar", position = "dodge", fill="tomato1") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Timepoint", y = "Wake Time") + ggtitle('Pre and Post Lockdown Wake Times')
+```
+
+**T TEST**
+```{r}
+#run the t-test, note that we are using wide data here
+ttestPS(data = dat_sleep, pairs = list(list(i1='pre', i2='post')), effectSize = TRUE, ci = TRUE, meanDiff = TRUE, desc = TRUE)
+```
+
+*APA WRITE UP*
+A dependent t-test confirmed that participants got significantly more sleep after the COVID-19 lockdown (*M* = 8.97) than before (*M* = 7.92), *t*(59) = -39.13, *p* < .001, *d* = 5.05, 95% CI [-1.11,-1.01]. This was a very large effect, on average participants slept over five standard deviations more after the lockdown compared to before. 
+
+
+
+*Dependent T Test: Example 3*
+A large organization is interested in implementing a well-being program to help address employee stress levels. Before spending the money required to implement the program org-wide, they decide to run a pilot with 100 participants. They recruit 100 employees to participate in the quarter long program and measure their stress before and after completion. You are interested in determining whether or not the organization should offer the program org-wide. 
+
+RQ: Is there a significant difference in employee stress before and after the well-being program? 
+
+**SET UP**
+```{r}
+#read in the data
+dat_stress <- read.csv("stress.csv")
+```
+
+**DESCRIPTIVES**
+```{r}
+desc_stress <- descriptives(dat_stress, vars = c('Pre', 'Post'), hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+desc_stress
+```
+
+```{r}
+dat_stress$diff <- (dat_stress$Pre - dat_stress$Post)
+
+desc_stress_diff <- descriptives(dat_stress, vars = c('diff'), hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+desc_stress_diff
+```
+
+**VISUALIZATION**
+```{r}
+#in order to create a bar graph, we have to reformat our data from wide to long
+dat_stresslong <- pivot_longer(dat_stress, cols = c("Pre", "Post", "diff"), names_to = "Time", values_to = "Stress")
+dat_stresslong
+
+dat_stresslong$Time <- factor(dat_stresslong$Time,levels = c("Pre", "Post"))
+
+bar_stress <- ggplot(dat_stresslong, aes(Time, Stress))
+
+bar_stress  + stat_summary(fun = mean, geom = "bar", position = "dodge", fill="green4") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Time", y = "Stress") + ggtitle('Stress Before and After Well-being Program')
+```
+
+**T TEST**
+```{r}
+ttestPS(data = dat_stress, pairs = list(list(i1='Pre', i2='Post')), effectSize = TRUE, meanDiff = TRUE, ci = TRUE, desc = TRUE)
+```
+
+*APA WRITE UP*
+A dependent t-test confirmed that employee stress significantly decreased after the well-being program (*M* = 2.73) compared to before (*M* = 3.56),  *t*(99) = 7.73, *p* < .001, *d* = 0.77, 95% CI [0.62,1.04]. There was a moderate effect of the program, the mean stress score after the program was about three quarters of standard deviation lower than before. 

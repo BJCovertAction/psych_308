@@ -1,0 +1,715 @@
+---
+title: "PSYCH308A - Data Analysis 4 (DA4)"
+author: "Brady C. Jackson"
+date: "2024/10/04"
+
+# Write document output to both HTML and PDF output types with a Table of
+# contents included.
+output: 
+  html_document:
+    toc: true
+  pdf_document:
+    toc: true
+    latex_engine: xelatex
+
+# This option here enables output to both HTML and PDF formats
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding,
+  output_format = "all") })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+
+```{r package_loading, message=FALSE, warning=FALSE}
+
+# Load packages. Set messages and warnings to FALSE so I don't have to see the
+# masking messages in the output.
+library(psych)
+library(jmv)       # for descriptive
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+library(tidyr)     # for pivot_longer
+library(stringr)   # for sub_str
+```
+
+---
+
+# Question 01 (Q01):  
+
+01. Interpret a p-value of .042. (This question is **not** asking for the  
+    decision this p-value results in, rather what does this value mean?)
+
+## Answer to Q01:  
+
+A p-value of .042 implies that the finding of some statistical test (z-test,  
+t-test, etc.) that the probability of obtaining the test statistic found or  
+something more extreme was .042 (a.k.a. 4.2%) assuming the null hypothesis was  
+true
+
+---
+
+# Question 02 (Q02):  
+
+2. ***In no more than two sentences,*** what is the relationship between sample  
+   size, effect size, and power?
+
+## Answer to Q02:   
+
+Power is positively correlated with both sample size and effect size in a  
+manner that convolutes the two (sample and effect). That is to say, the power  
+of a finding will increase if either sample size increases or effect size  
+increases, and if one (e.g. sample size) is necessarily small, a higher  
+power can be achieved by increasing the other (e.g. effect size).
+
+---
+
+# Question 03 (Q03):  
+
+03. A researcher records the number of words recalled by students presented with  
+    a list of words for 1 minute. In one group, students were presented with the  
+    list of words in color; in a second group, the same words were presented in  
+    black and white. An equal number of students were in each group. The  
+    researcher reports the following: *Participants recalled significantly more  
+    words when the words were presented in color (M = 12.4 words) versus black  
+    and white (M = 10.9 words), t(48) = 2.01, p = .035, d = 0.18.* Based on the  
+    previous statement, what is the sample size in each group?
+
+## Answer to Q03:   
+Given the wording of the prompt, I'm assuming this test was conducted as an  
+independent sample t-test ("In one group ... in a second group" instead of  
+phrasing like, "...the group of students looked at colored words and then  
+later looked at black and white words...").  
+
+The degrees of freedom for the t-test ran is given as 48 ( *t(48)* ).  
+As this is an indepdendent t-test, two parameters had to be estimated, the  
+mean of the population from which group 1 was drawn, and the mean of the  
+population from which group 2 was drawn. Therefore, we have the relationship  
+$$
+\begin{aligned}
+& df\ =\ [Things\ we\ know\ (n_{total}) ] - [Estimated\ Parameters\ (n_{P,est})] \\  
+& df\ =\ n_{total}\ -\ n_{P,est} \\
+& 48\ =\ n_{total}\ -\ 2 \\
+& 48\ +\ 2\ =\ n_{total} \\
+& 50 =\ n_{total} 
+\end{aligned}
+$$
+
+Therefore, there were a total of 50 students in the study, with 25 in each group  
+given that the prompt states the same number of students were in each group.
+
+---
+
+# Research Prompt for Q04 through Q09:  
+
+You are teaching your first Intro to Psychology course! After the midterm, you  
+are disappointed with your students’ overall test scores. You decide to   
+implement two different required study techniques. There are 100 students in   
+the class; 50 of them will be required to meet in groups to study right before   
+the final (Group A) and the other 50 will be required to create flashcards to   
+aid in memorization (Group B). You are interested in two primary research   
+questions:
+
+---
+
+## Research Question 1 (RQ1): Q04 - Q06:  
+
+**Did student test scores improve significantly from the midterm to the final?**  
+**Data:** *308A.RQ1 Data.DA4.csv*
+
+---
+
+### Question 04 (Q04):  
+
+04. Visualize your data for this research question. Include your visualization  
+    here.
+
+#### Answer to Q04:  
+  
+##### Loading Data for Q04:  
+
+The first step to visualizing the data is to load it. See code below:  
+
+```{r, q04_data_load}
+
+# In order to visualize the data we must first load it. To do so we lool
+# in the present working directory for CSV files, and take the one that
+# has RQ1 in its filename. Append it to the current working directory
+# to create the fullpath for loading
+here <- getwd()
+rq1_name <- list.files(here, pattern = ".*RQ1.*csv")
+
+# Use the file.path function to create a platform appropriate fullpath / filename
+# to the Research Question 1 data.
+rq1_file <- file.path(here, rq1_name)
+
+# Read the CSV data in as rq1_dat
+rq1_dat <- read.csv(rq1_file, header = TRUE)
+
+# Lower-case all column names for convenience
+colnames(rq1_dat) <- tolower(colnames(rq1_dat))
+
+```
+
+##### Data Prep Q04  
+
+Ultimately we're going to answer Research Question 1 as a dependent T-test   
+since we're evaluating change in student test scores over time (regardless)   
+of study method. So we're going to prepare the data further with some math.  
+See code below:  
+
+```{r, q04_data_prep}
+# Since we want to know if scores improved between the midterm and final we'll
+# look at midterm scores, final scores, and the delta between the two. 
+# To do this, we need to add one more column to our math, the difference
+# between the two. We need to maintain chirality (direction) as it will
+# be informative if scores rise or decrease so we will do final - midterm
+# without taking the absolute value. If scores decreased, we should see a 
+# positive mean of the diff. If they decreased we'll see a negative mean
+# of the diff.
+rq1_dat$fin_mid_diff <- rq1_dat$final - rq1_dat$midterm
+```
+
+##### Visualize Prepared Data Q04 - Descriptives and Bar Chart  
+
+See the histograms below for visualization of the data pertinent to this  
+research question. Bar graphs of the midterm scores, the final scores, and   
+the diff of final - midterm are also shown for better understanding  
+
+```{r, q04_answer_and_visualization_outputs}
+
+# We're going to create a descriptives object so we can checkout the histogram
+# and descriptive stats of the midterm scores, the final scores, and the
+# diff of both.
+rq1_desc <- jmv::descriptives( rq1_dat[2:4], 
+                               hist = TRUE,
+                               dens = TRUE,
+                               sd = TRUE,
+                               variance = TRUE,
+                               se = TRUE, 
+                               skew = TRUE, 
+                               kurt = TRUE
+                             )
+
+# Render the rq1 descriptives object as output.
+rq1_desc
+
+# Now we're going to create a bar chart of the midterm scores, final scores,
+# and diffs .. though the diffs data willbe oddly scaled (much smaller) than the
+# raw scores
+
+# In order to plot the scores as bar charts, we need to permute the data so all 
+# scores are in one vector and there's n indy axis vector of the same size that
+# defines whether the score is a midterm score, final score, or difference.
+# We use pivot_longer to concatenate the three dcore vectors to each other 
+# (interleaved), with the column names saved in the new "name" vector.
+rq1_long <- rq1_dat[2:4] %>% 
+            pivot_longer(cols = c(midterm, final, fin_mid_diff) )
+
+# We're going to lay all three datasets out on a single bar graph 
+# even though that may jackup the scaling to be bad for the diff.
+bar_rq1 <- ggplot( rq1_long, aes(name, value) )
+
+
+
+# Annotate the ggplot object to make a bar graph of test scodes.
+bar_rq1 + stat_summary( fun = mean,
+                        geom = "bar",
+                        position = "dodge",
+                        fill="slateblue1"
+                      ) +
+          stat_summary( fun.data = mean_cl_normal,
+                        geom = "errorbar",
+                        position = position_dodge(width = 0.90),
+                        width = 0.2
+                      ) +
+          labs(x = "Test Type", y = "Score (pts))") +
+          ggtitle('Test Scores and Difference')
+
+```
+
+##### Discussion of Visualization for RQ1    
+  
+It is notable that the error bar on the final scores is so much tighter than  
+that of the midterm scores. This is reflected in the final scores histogram  
+which looks less "spread out" (smaller variance) than the same of the midterm  
+scores. The larger spread in the differences of scores is also accounted for  
+by the larger spread in the midterms as the tighter final scores minus the   
+more spread out midterm scores will result in more spread out differences.  
+
+
+---
+
+### Question 05 (Q05):  
+
+05. Did student test scores improve significantly from the midterm to the final?  
+    Using RStudio to analyze, conduct a hypothesis test to evaluate this  
+    question. Organize your answer according to the 4 steps of hypothesis  
+    testing.
+
+#### Answer to Q05:   
+   
+##### Question 05 T-Test Code:  
+
+The code below runs the t-test by feeding the final and midterm scores, not the   
+manually written diff above, to the t-test algorithm for paired samples. The  
+organization of the results of this t-test, according to the 4 steps of NHST are  
+in the next section.  
+
+```{r rq1_t_test}
+# We use the ttestPS to conduct a paired samples t-test from the jamovi (jmv)  
+# package. We want to include the effect size, confidence intervals, the
+# means of our inputs, the standard errors, and the descriptive statistics in
+# out output.
+# NOTE: we supply "final" scores as i1 instead of i2 because that seems to
+#       give the same directionality in mean difference in what we found 
+#       in our descriptive stats above.
+rq1_test_results <- jmv::ttestPS( data = rq1_dat, 
+                                 pairs = list(list(i1='final', i2='midterm')), 
+                                 effectSize = TRUE, 
+                                 ci = TRUE, 
+                                 meanDiff = TRUE, 
+                                 desc = TRUE
+                                )
+# Dump the test results to output
+rq1_test_results
+
+# save the test results in a dataframe object for use later
+rq1_test_df <- rq1_test_results$ttest$asDF
+```
+
+##### Question 05 Discussion  
+
+To perform the significance test we use the SCEC acronym to remember our steps:  
+Specify, Criteria, Estimate, Conclude:  
+
+ 1. **Specify** the Hypotheses: 
+     a. *Null Hypothesis:* Student test scores did **not** significantly change    
+        between the midterm and the final.
+     b. *Alternative Hypothesis*: Student test scores dd change significantly  
+        between the midterm and the final.
+    
+    $H_{0}:\ \mu_{diff}\ =\    0$  
+    $H_{1}:\ \mu_{diff}\ \neq\ 0$  
+
+ 2. **Criteria:** We will check for significance using a two-tailed t-test with   
+    *alpha* set to .05. Our degrees of freedom will be equal to the number of  
+    samples we can take differences between, $n_{diff}$ (a.k.a. the number of  
+    things we know), minus the number of things we're estimating, in this case  
+    the mean difference in scores from the population, of which there is 1.  
+    So: $df\ =\ n_{diff}\ -\ 1$  
+        $df\ =\ $ `r length(rq1_dat$fin_mid_diff)` $\ -\ 1$  
+        $df\ =\ $ `r length(rq1_dat$fin_mid_diff)-1`  
+    ... which gives us a $t_{crit}$ of 1.984  
+    
+    $\alpha\ =\ .05$  
+    $df\ =\ 99$  
+    $t_{crit}\ =\ 1.984$
+    
+ 3. **Estimate:**  Given the test conducted in the R-code above, we found the  
+    following t-test results. Please note that all values printed below are  
+    generated in text, on the fly, using the embedded r/tex-code shown after the  
+    printout:
+    
+    $\bar{x}_{diff}\ =\ $ `r rq1_test_df$'md[stud]'`    
+    $ESE_{diff}\ =\ $ `r rq1_test_df$'sed[stud]'`  
+    $t_{calc}\ =\ $ `r rq1_test_df$'stat[stud]'`  
+    `r if( rq1_test_df$'p[stud]' >= 0.000001 ){ paste("p =", str_sub(sprintf("%.3f", rq1_test_df$'p[stud]'), -4 ) ) }else{ "p < .000001" }`  
+    $d\ =\ $ `r rq1_test_df$'es[stud]'`  
+    $\eta^2\ =\ $ `r rq1_test_df$'stat[stud]'^2 / (rq1_test_df$'stat[stud]'^2 + rq1_test_df$'df[stud]')`
+    
+    
+    ***Verbatim Code:***
+    
+    ```
+    $\bar{x}_{diff}\ =\ $ `\r rq1_test_df$'md[stud]'`    
+    $ESE_{diff}\ =\ $ `\r rq1_test_df$'sed[stud]'`  
+    $t_{calc}\ =\ $ `\r rq1_test_df$'stat[stud]'`  
+    `\r if( rq1_test_df$'p[stud]' >= 0.000001 ){ paste("p =", str_sub(sprintf("%.3f", rq1_test_df$'p[stud]'), -4 ) ) }else{ "p < .000001" }`  
+    $d\ =\ $ `\r rq1_test_df$'es[stud]'`  
+    $\eta^2\ =\ $ `\r rq1_test_df$'stat[stud]'^2 / (rq1_test_df$'stat[stud]'^2 + rq1_test_df$'df[stud]')`
+    ```
+    
+ 
+ 4. **Conclude:** Given that $t_{calc} > t_{crit}$ we reject $H_{0}$. The test  
+    scores did change significantly between the midterm and the final. Given  
+    that $\bar{x}_{diff}$ is positive when the midterm scores are subtracted  
+    from the final scores, this indicates that the test scores significantly  
+    improved between the midterm and the final.
+    
+---
+
+### Question 06 (Q06):  
+
+06. Report your findings in APA format. (Hint: make sure to answer the research  
+    question!)
+
+#### Answer to Q06:   
+
+We conducted a dependent t-test to examine whether test scores improved between  
+the midterm and final tests for a class of 100 students given required study  
+techniques. We found that final test scores, after implementing the study  
+techniques, were significantly improved (final, $\bar{x}\ =\ 80.46,\ SD\ =\ 4.74$)  
+compared to midterm test scores before the study techniques were implemented  
+(midterm, $\bar{x}\ =\ 72.40,\ SD\ =\ 10.60$), t(99) = 7.57, p < .001, $\eta^2$ = .37.  
+This was a large effect; the introduction of study techniques accounted for 37%  
+of variance in the test score differences.
+
+---
+
+## Research Question 2 (RQ2): Q07 - Q09:  
+
+**Does the study technique used predict scores on the final exam? **  
+**Data:** *308A.RQ2 Data.DA4.csv*
+
+---
+
+### Question 07 (Q07):  
+
+07. Visualize your data for this research question. Include your visualization  
+    here.
+
+#### Answer to Q07:   
+
+##### Loading Data for Q07:  
+
+The first step to visualizing the data is to load it. See code below:  
+
+```{r, q07_data_load}
+
+# In order to visualize the data we must first load it. To do so we look
+# in the present working directory for CSV files, and take the one that
+# has RQ2 in its filename. Append it to the current working directory
+# to create the fullpath for loading
+here <- getwd()
+rq2_name <- list.files(here, pattern = ".*RQ2.*csv")
+
+# Use the file.path function to create a platform appropriate fullpath / filename
+# to the Research Question 2 data.
+rq2_file <- file.path(here, rq2_name)
+
+# Read the CSV data in as rq1_dat
+rq2_dat <- read.csv(rq2_file, header = TRUE)
+
+# Lower-case all column names for convenience
+colnames(rq2_dat) <- tolower(colnames(rq2_dat))
+
+```
+
+##### Data Prep Q07  
+
+Ultimately we're going to answer Research Question 2 as an independent t-test   
+since we're evaluating differences in test scores between the study technique   
+employed by Group A and that by Group B. Since we're not looking at matched  
+samples between groups (i.e. the same students are not in both groups) there  
+is no math to do here. We just need to make sure the group category is set to  
+the correct datatype (factor). We also rename the categories as "A" and "B"  
+are not particularly descriptive. See code below:   
+
+```{r, q07_data_prep}
+# Recast the variables in the "group" vector to be factors instead of freeform
+# character strings
+rq2_dat$group <- as.factor(rq2_dat$group)
+
+# Rename group "A" to A_group_study and group "B" to "B_flashcards"
+levels(rq2_dat$group) <- sub("A", "A_group_study", levels(rq2_dat$group))
+levels(rq2_dat$group) <- sub("B", "B_flashcards", levels(rq2_dat$group))
+```
+
+##### Visualize Prepared Data Q07 - Descriptives and Bar Chart  
+
+See the histograms below for visualization of the data pertinent to this  
+research question (RQ2). Bar graphs of the final scores for Group A and Group B  
+are also shown for better understanding.  
+
+```{r, q07_answer_and_visualization_outputs}
+
+# We're going to create a descriptives object so we can checkout the histogram
+# and descriptive stats of the final scores split by Group. Since we have the
+# descriptives available for all final scores combined from RQ1 above, we 
+# won't recreate that here.
+rq2_desc <- jmv::descriptives( rq2_dat, 
+                               vars = c('final'),
+                               splitBy = c('group'),
+                               hist = TRUE,
+                               dens = TRUE,
+                               sd = TRUE,
+                               variance = TRUE,
+                               se = TRUE, 
+                               skew = TRUE, 
+                               kurt = TRUE
+                             )
+
+# Render the rq2 descriptives object as output.
+rq2_desc
+
+# Now we're going to create a bar chart of the final scores sorted by group.
+# No pivoting is needed here as data is already properly formatted.
+
+# First we create the bar chart ggplot object via associating the group with 
+# the scores as an aesthetic object (aes)
+bar_rq2 <- ggplot( rq2_dat, aes(group, final) )
+
+# Now we annotate the bar chart appropriately. Bars will be colored orchid. 
+# error bars will be added. 
+bar_rq2 + stat_summary( fun = mean,
+                        geom = "bar",
+                        position = "dodge",
+                        fill="orchid1"
+                      ) +
+          stat_summary( fun.data = mean_cl_normal,
+                        geom = "errorbar",
+                        position = position_dodge(width = 0.90),
+                        width = 0.2
+                      ) +
+          labs(x = "Study Method of Group", y = "Score (pts))") +
+          ggtitle('Final Test Scores by Study Method')
+
+```
+
+##### Discussion of Visualization for RQ2  
+
+The study technique employed by Group B, using flashcards for memorization,  
+produced less spread in test scores for that group, however, the mean final test   
+scores were remarkably similar to those of Group A. Despite this, the study  
+technique employed by Group A, studying in groups right before the final exam  
+had more spread out test scores (higher variance / standard deviation).  I'll  
+be surprised if the difference in means between these two groups is significant.  
+
+---
+
+### Question 08 (Q08):  
+  
+08. Does the study technique used predict scores on the final exam? Using  
+    RStudio to analyze, conduct a hypothesis test to evaluate this question.  
+    Organize your answer according to the 4 steps of hypothesis testing.
+
+#### Answer to Q08:   
+
+##### Question 08 T-Test Code:  
+
+The code below runs the t-test by feeding the final test scores to the t-test  
+algorithm for independent samples. The organization of the results of this   
+t-test, according to the 4 steps of NHST are in the next section.  
+
+```{r rq2_t_test}
+# We use the ttestIS to conduct an independent t-test from the jamovi (jmv)  
+# package. We want to include the effect size, confidence intervals, the
+# means of our inputs, the standard errors, and the descriptive statistics in
+# out output.
+rq2_test_results <- jmv::ttestIS( data = rq2_dat, 
+                                 vars = 'final',
+                                 group = 'group',
+                                 effectSize = TRUE, 
+                                 ci = TRUE, 
+                                 meanDiff = TRUE, 
+                                 desc = TRUE
+                                )
+# Dump the test results to output
+rq2_test_results
+
+# save the test results in a dataframe object for use later
+rq2_test_df <- rq2_test_results$ttest$asDF
+```
+
+##### Question 08 Discussion  
+
+To perform the significance test we use the SCEC acronym to remember our steps:  
+Specify, Criteria, Estimate, Conclude:  
+
+ 1. **Specify** the Hypotheses: 
+     a. *Null Hypothesis:* There is **no** difference between the final test  
+        scores of students using the Group A study technique vs. students   
+        using the Group B study technique.
+     b. *Alternative Hypothesis*: There mean of Group A's final scores is  
+        different than the mean of Group B's final scores.
+    
+    $H_{0}:\ \mu_{A}\ =\    \mu_{B}$  
+    $H_{1}:\ \mu_{A}\ \neq\ \mu_{B}$  
+
+ 2. **Criteria:** We will check for significance using a two-tailed t-test with   
+    *alpha* set to .05. Our degrees of freedom will be equal to the total number  
+    of students between both groups, $n_{A} + n_{B}$ (a.k.a. the number of  
+    things we know), minus the number of things we're estimating, in this case  
+    the mean of the final test scores for Group A and the mean of the final    
+    test scores for Group B, or two items.  
+    So: $df\ =\ n_{students}\ -\ 2$  
+        $df\ =\ $ `r length(rq2_dat$final)` $\ -\ 2$  
+        $df\ =\ $ `r length(rq2_dat$final)-2`  
+    ... which gives us a $t_{crit}$ of 1.984
+    
+    $\alpha\ =\ .05$  
+    $df\ =\ 98$  
+    $t_{crit}\ =\ 1.984$
+    
+ 3. **Estimate:**  Given the test conducted in the R-code above, we found the  
+    following t-test results. Please note that all values printed below are  
+    generated in text, on the fly, using the embedded r/tex-code shown after the  
+    printout:
+    
+    $\bar{x}_{A}\ -\ \bar{x}_{B}\ =\ $ `r rq2_test_df$'md[stud]'`    
+    $ESED\ =\ $ `r rq2_test_df$'sed[stud]'`  
+    $t_{calc}\ =\ $ `r rq2_test_df$'stat[stud]'`  
+    `r if( rq2_test_df$'p[stud]' >= 0.000001 ){ paste("p =", str_sub(sprintf("%.3f", rq2_test_df$'p[stud]'), -4 ) ) }else{ "p < .000001" }`  
+    $d\ =\ $ `r rq2_test_df$'es[stud]'`  
+    $\eta^2\ =\ $ `r rq2_test_df$'stat[stud]'^2 / (rq2_test_df$'stat[stud]'^2 + rq2_test_df$'df[stud]')`
+    
+    
+    ***Verbatim Code:***
+    
+    ```
+    $\bar{x}_{A}\ -\ \bar{x}_{B}\ =\ $ `\r rq2_test_df$'md[stud]'`    
+    $ESED\ =\ $ `\r rq2_test_df$'sed[stud]'`  
+    $t_{calc}\ =\ $ `\r rq2_test_df$'stat[stud]'`  
+    `\r if( rq2_test_df$'p[stud]' >= 0.000001 ){ paste("p =", str_sub(sprintf("%.3f", rq2_test_df$'p[stud]'), -4 ) ) }else{ "p < .000001" }`  
+    $d\ =\ $ `\r rq2_test_df$'es[stud]'`  
+    $\eta^2\ =\ $ `\r rq2_test_df$'stat[stud]'^2 / (rq2_test_df$'stat[stud]'^2 + rq2_test_df$'df[stud]')`
+    ```
+    
+ 
+ 4. **Conclude:** Given that $t_{calc}\ <\ t_{crit}$ we fail to reject $H_{0}$.  
+    The mean final test scores **did not** vary significantly between Group A   
+    and Group B. We failed to find a significant difference in study technique  
+    impact on final test scores.
+    
+---
+
+### Question 09 (Q09):  
+
+09. ...
+  
+    a. Report your findings in APA format. (Hint: make sure to answer the  
+       research question!)  
+
+       #### Answer (9.a):
+       We conducted an independent t-test to determine whether studying as a   
+       group just prior to a course final (Group A), or studying using  
+       flashcards to improve memorization (Group B), was better at improving  
+       final test scores amongst 100 students, with 50 students randomly  
+       assigned to each group. The students studying as a group  
+       ( $\bar{x}_{A}\ =\ 81.23$ ) did *not* perform significantly better or  
+       worse than those studying with flashcards ( $\bar{x}_{B}\ =\ 79.66$ ),  
+       t(98) = 1.70, p = .093, $\eta^2$ = .03. This was a small effect,  
+       the difference in study technique accounted for slightly less than 3% of    
+       variance the final scores of the students.
+       
+       
+    
+    b. The Dean of the university was also interested in your results, as this  
+       may help to raise scores in other departments. Unfortunately, she does  
+       not understand statistical language. Please interpret your findings for  
+       the Dean. Did scores improve? Which technique is better?  
+       
+       #### Answer (9.b):  
+       We required students to try one of two study techniques between the   
+       midterm and the final of our psychology course to determine which  
+       technique, if any, was better at improving test scores. We found that   
+       both techniques, studying in groups just before the final, and using  
+       flashcards to improve memorization, significantly improved test scores.   
+       The study techniques accounted for 37% of the improvement measured in  
+       test scores. However, we also found that neither study technique was  
+       notably better than the other. So students could use either or both  
+       techniques to improve scores.
+
+---
+
+# Question 10 (Q10):  
+
+10. A developmental psychologist is interested in the effect of a positive  
+    psychology intervention on the well-being of aging adults. She administers  
+    the intervention, collects well-being scores from a sample of 100  
+    participants, and tests whether their well-being differs significantly from  
+    the national average. Using G*Power, she determines the power for her test  
+    is .80. 
+
+    a. Interpret this value 
+    
+    b. What suggestion would you give her if she wants a higher probability of  
+       detecting a true effect?
+
+## Answer to Q10:   
+
+### 10.a Answer:  
+
+It's difficult to determine exactly what to make if the power value given  
+by the researcher as the manner in which G\*Power was used to calculate power  
+is unclear. However, the G\*Power manual does give at least one effect size  
+index table in section 3.1 which indicates values above .50 should be   
+be considered large. This is consistent with Cohen's d, which is what G*Power   
+validated against according to the User Manual. Therefore, we can, with some   
+assumption, conclude that the developmental psychology did find a large effect   
+of the intervention on the well-being of aging adults. We can't say much   
+more without knowing how, mathematically, the .80 was calculated. 
+
+### 10.b Answer:  
+
+If the researcher wanted a higher probability of detecting a true effect, I  
+would suggest she run another study evaluating the intervention via a   
+dependent-samples t-test method. That is, she should collect data on the  
+well-being of the study participants **before** the intervention, and then  
+collect the same data on the same participants **after** the intervention and  
+subtract the two well-being scores. This would help eliminate other sources  
+that may have impacted study participants well-being. 
+
+
+---
+
+# Question 11 (Q11):  
+
+11. What would it mean if your analysis returned the following values? Consider   
+    the meaning of t - not the decision associated with it.
+
+    a. *t(24) = 0.35*
+    
+    b. *t(24) = 1.00*
+    
+    c. *t(24) = 3.2*
+
+## Answer to Q11:   
+
+T-scores are effectively Z-scores that are drawn from a slightly differently  
+shaped normal curve (standardized to a different denominator) because the  
+population standard deviation is unknown. In the case of hypothesis testing,  
+where we are evaluating the distance of some sample statistic (usually the mean)  
+from the population parameter as normalized to an estimated standard error,  
+we're effectively reporting the distance between our sample mean and the   
+population mean as a multiple of estimated standard error units. So, given  
+that context, here are my answers:
+
+### 11.a  
+
+The sample mean is roughly 1/3rd (or 0.35 times) of an estimated standard error  
+unit away from the population mean. In context this would imply the sample mean  
+is relatively close to the population mean.
+
+### 11.b  
+
+The sample mean is precisely one estimated standard error  
+unit away from the population mean. In context this would imply the sample mean   
+you drew is likely within a relatively tight grouping of all the possible means  
+that could have been drawn for your sample size.
+
+### 11.c  
+
+The sample mean is roughly 3.2 times an estimated standard erroru nit away from  
+the population mean. In context this would imply the sample mean  far from the  
+population mean implying that it may be unlikely to have been drawn from the  
+assumed population.
+---
+
+# Question 12 (Q12):  
+
+12. Draw and annotate all the properties of the null and alternative curves:   
+    power, beta, alpha, type 1 error, type 2 error. 
+
+## Answer to Q12:   
+
+![See hand-drawn picture above](null_and_alt_curve_annotated.png)
+
+
+
+

@@ -1,0 +1,116 @@
+---
+title: "PSYCH308A - Data Analysis <UPDATE> (DA<UPDATE>)"
+author: "Brady C. Jackson"
+date: "2024/<UPDATE>/<UPDATE>"
+
+# Write document output to both HTML and PDF output types with a Table of
+# contents included.
+output: 
+  html_document:
+    toc: true
+  pdf_document:
+    toc: true
+
+# This option here enables output to both HTML and PDF formats
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding,
+  output_format = "all") })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+
+# Question 01 (Q01):
+
+01. <UPDATE>
+
+## Answer to Q01: 
+This is my answer
+
+---
+
+# Question 02 (Q02):
+
+2.  <UPDATE>
+
+## Answer to Q02: 
+This is my answer
+
+---
+
+# Question 03 (Q03):
+
+03.  <UPDATE>
+
+## Answer to Q03: 
+This is my answer
+
+---
+
+# Question 04 (Q04):
+
+04.  <UPDATE>
+
+## Answer to Q04: 
+This is my answer
+
+---
+
+# Question 05 (Q05):
+
+05.  <UPDATE>
+
+## Answer to Q05: 
+This is my answer
+
+---
+
+# Question 06 (Q06):
+
+06.  <UPDATE>
+
+## Answer to Q06: 
+This is my answer
+
+---
+
+# Question 07 (Q07):
+
+07.  <UPDATE>
+
+## Answer to Q07: 
+This is my answer
+
+---
+
+# Question 08 (Q08):
+
+08.  <UPDATE>
+
+## Answer to Q08: 
+This is my answer
+
+---
+
+# Question 09 (Q09):
+
+09.  <UPDATE>
+
+## Answer to Q09: 
+This is my answer
+
+---
+
+# Question 10 (Q10):
+
+10.  <UPDATE>
+
+    a.  <UPDATE>
+    
+    b.  <UPDATE>
+
+## Answer to Q10: 
+This is my answer
