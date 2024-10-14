@@ -1,0 +1,65 @@
+---
+title: "PSYCH308A - Data Analysis 5 (DA5)"
+author: "Brady C. Jackson"
+date: "2024/10/15"
+
+# Write document output to HTML, Word, and PDF output types with a Table of
+# contents included.
+output: 
+  html_document:
+    toc: true
+  word_document:
+    toc: true
+  pdf_document:
+    toc: true
+    latex_engine: xelatex
+
+# This option here enables output to both HTML and PDF formats
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding,
+  output_format = "all") })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+
+```{r package_loading, message=FALSE, warning=FALSE}
+
+# Load packages. Set messages and warnings to FALSE so I don't have to see the
+# masking messages in the output.
+library(psych)
+library(jmv)       # for descriptive
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+library(stringr)   # for sub_str
+library(AER)
+
+```
+
+# Question 06
+
+Stuff goes here
+
+```{r question_06}
+# Code goes here
+```
+
+# Question 07
+
+Moar stuff
+
+```{r question_0}
+# Code goes here
+```
+
+# Question 08
+
+Last bit-o'-stuff
+
+```{r question_08}
+# Code goes here
+```
