@@ -1,0 +1,157 @@
+---
+title: "Chi Squared"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#load your packages...note the new one :)
+library(jmv)
+library(dplyr)
+library(ggplot2)
+library(magrittr)
+library(AER)
+```
+
+**Example 1: Chi Square Goodness of Fit (Equal Frequencies Expected)**
+You run a small business with four employees: Susan, Jimmy, Albert, and Camilla. Because you need three employees at work at any given time, only one employee ever has the day off. Unfortunately, everyone always wants Saturday off. One of your employees has confronted you and said that you favor some employees over others in providing Saturdays off. To investigate this, you pulled up a list of who has has had Saturdays off each week for the past two years. Conduct a goodness of fit test to investigate this. 
+
+```{r}
+#read in the data, save it as a dataframe called sat
+sat <- read.csv("saturday.csv")
+
+#The head function gives you a look at the column headers to see how the data are laid out without opening the full data set.
+head(sat)
+
+#The str function gives you a look at the structure of your entire data frame without opening the full data set.
+str(sat)
+```
+
+```{r}
+#creates a table of observed frequencies for the employee variable
+table(sat$Employee)
+```
+
+```{r}
+#visualize the frequencies as a bar chart. 
+ggplot(data = sat, aes(x = Employee)) + 
+  geom_bar(fill = "darkseagreen3") + 
+  ggtitle("Count of Saturdays Off by Employee") + theme(plot.title = element_text(hjust = 0.5)) + 
+  xlab("Employee")+ylab("Number of Saturdays")
+```
+
+```{r}
+#The function propTestN function is jmv's chi square test (proportion of counts (N) in each cell). Expected = TRUE allows you to specify your expected frequencies under the null hypothesis. Since the null here is equal frequencies, the ratio is entered as 1,1,1,1. 
+
+jmv::propTestN(data = sat,
+               var = 'Employee',
+               expected = TRUE, 
+               ratio = c(1,1,1,1))
+```
+
+
+**Example 2: Chi Square Goodness of Fit (Unequal Frequencies Expected)**
+A buyer for a clothing company wants to compare the proportion of shirts of each size that are sold to the proportion that were ordered. The buyer counts the number of shirts of each size that are sold in a week. Are the proportions sold consistent with the proportion ordered?
+
+Proportions Ordered
+10% Small 
+20% Medium  
+40% Large
+30% X-Large
+
+```{r}
+#read in the data, save it as a dataframe called shirt
+shirt <- read.csv("shirt.csv") 
+
+#change shirt size from a character to a factor
+shirt$size <- as.factor(shirt$size)
+
+#once I turn size into a factor (categorical), I can also just ask for a simple summary of the counts. 
+summary(shirt)
+```
+
+```{r}
+#chi square test. Here we aren't assuming equal frequencies under the null. The null is the count of shirts ordered and we're testing it against the number of shirts sold in a week. Here we assigned the chi-square results a name so we can use it later to graph
+shirt2 <- jmv::propTestN(data = shirt,
+               var = 'size',
+               expected = TRUE, 
+               ratio = c(.10, .20, .40, .30))
+
+shirt2
+```
+
+```{r}
+#create a data table of the frequencies and call it shirt 3
+shirt3 <- as.data.frame(shirt2$props)
+
+#select observed and expected values and put them into a new data frame (lots of cleaning fun in this code)
+#put your own notes on this code here :) 
+shirt_obs <- shirt3 %>% dplyr::select(1:3) %>% rename(name="name[obs]") %>% rename(count="count[obs]")
+shirt_exp <- shirt3 %>% dplyr::select(1,5,6) %>% rename(name="name[exp]") %>% rename(count="count[exp]")
+shirt_graph <- bind_rows(shirt_obs, shirt_exp)
+
+#change the order of the size factor from default (alphabetical) to smallest to largest
+shirt_graph$level <- factor(shirt_graph$level,levels = c("S", "M", "L", "XL"))
+
+#graph
+shirt_graph %>%
+    ggplot(aes(x = level, y = count, fill = name)) +
+    geom_bar(stat = "identity", position = "dodge")+scale_fill_brewer(palette = "Set2")+labs(y = "Count", x = "Size", fill= "Category", title = "Observed v. Expected Shirt Sales") + theme_minimal()
+```
+
+Example 3: Chi Square Test of Independence
+
+In the 2004 study titled “Are Emily and Greg more employable than Lakisha and Jamal: A Field Experiment on Labor Market Discrimination,” Bertrand and Mullainathan randomly assigned names and quality of resumes and sent them to over 1300 employment advertisements. “Are Emily and Greg more employable than Lakisha and Jamal: A Field Experiment on Labor Market Discrimination,” Bertrand and Mullainathan randomly assigned names and quality to resumes and sent them to over 1300 employment advertisements. Bertrand and Mullainathan decided to measure the callback for interviews for each resume sent in response to newspaper employment ads in Chicago and Boston. They randomly assign very white-sounding names (such as Emily Walsh and Greg Baker) to half the resumes and very African American-sounding names (Lakisha Washington or Jamal Jones) to the other half. The researchers also varied the quality of resumes. A higher-quality resume would have more experience, certifications and honors than a lower-quality one.
+
+```{r}
+#this data is stored in R so no csv to read it, we just call it using the function data
+data("ResumeNames")
+
+#summary of the counts
+summary(ResumeNames)
+```
+
+```{r}
+#create a contingency table of just the two variables we're interested in (ethnicity and call) and round it to 2
+table <- prop.table(xtabs(~ ethnicity + call, data = ResumeNames), 1)
+round(table, 2)
+```
+
+```{r}
+#visualization 
+ggplot(ResumeNames, aes(x=call, fill=as.factor(ethnicity)))+geom_bar(position = "fill")+scale_fill_brewer(palette = "Set2")+labs(y = "Percent", x = "Callback", fill= "Perceived Race", title = "Callback Results by Perceived Race") + theme_minimal()
+```
+
+Is there a relationship between perceived ethnicity and call back?
+```{r}
+#the null hypothesis in a chi square test of independence is that the two categorical variables are not related. So we're testing the observed frequencies against the frequencies we'd expect if they were independent. Also, note that here we're asking for an effect size (phi/Cramer's V)
+jmv::contTables(data = ResumeNames,
+                rows = 'ethnicity',
+                cols = 'call',
+                exp = TRUE,
+                phiCra = TRUE)
+
+```
+
+Is there a relationship between resume quality and call back?
+```{r}
+jmv::contTables(data = ResumeNames,
+                rows = 'quality',
+                cols = 'call',
+                exp = TRUE,
+                phiCra = TRUE)
+```
+
+Is there a relationship between gender and call back?
+```{r}
+jmv::contTables(data = ResumeNames,
+                rows = 'gender',
+                cols = 'call',
+                exp = TRUE,
+                phiCra = TRUE)
+```
