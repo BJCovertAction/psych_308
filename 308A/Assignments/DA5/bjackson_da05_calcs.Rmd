@@ -40,26 +40,173 @@ library(AER)
 
 ```
 
+# Data Prep
+
+First we need to load the data
+
+```{r data_prep}
+
+# Load the data as a dataframe
+reading_dat <- read.csv("./DA5a.csv")
+
+# Assert column names to be lowercase
+colnames(reading_dat) <- tolower(colnames(reading_dat))
+
+# Check the structure of the data:
+print(head(reading_dat))
+cat("\n\n")
+str(reading_dat)
+
+# Check uniqueness of fields of interrest for upcoming questions 
+# (sex, education, and employment). We want to make sure that there are not 
+# equal value inputs that would look different due to things like case or type:
+# (e.g. High school graduate and HIGH School Graduatre and High School Complete)
+uni_edu = unique(reading_dat$education) 
+uni_sex = unique(reading_dat$sex)
+uni_emp = unique(reading_dat$employment)
+
+# Print the values for inspection
+cat("\nUnique values in Education:\n") 
+cat(uni_edu, sep="\n")
+cat("---\n\n")
+
+cat("\nUnique values in Sex:\n") 
+cat(uni_sex, sep="\n")
+cat("---\n\n")
+
+cat("\nUnique values in Employment:\n") 
+cat(uni_emp, sep="\n")
+cat("---\n\n")
+```
+
 # Question 06
 
-Stuff goes here
+Data for Employment and Sex look appropriately unique. So we'll create a  
+visualization (bar chart) for employment sorted by sex. Then we will print  
+contingency tables and run the test  
+  
+## Q06 Visualization
 
-```{r question_06}
-# Code goes here
+Code below will create two bar-charts, one with the breakdown named by the   
+original employment categories in the data, and one with the same data but  
+labeled by more readable display names. Both are printed so that they can  
+be inspected to ensure names were mapped correctly.  
+  
+```{r question_06_vis}
+
+# Create a mapping vector setting each long-name to a shortened display name
+emp_disp_name_map = c( "Employed full-time" = "Full-time",
+                       "Employed part-time" = "Part-time",
+                       "Have own business/self-employed" = "Self-employed",
+                       "Not employed for pay" = "Not employed",
+                       "Retired" = "Retired",
+                       "Student" = "Student",
+                       "Disabled" = "Disabled"
+                      )
+
+# Bar chart visualization. This code constructs a bar chart that shows each 
+# employment type broken down by percentage of females vs. percentage of
+# males at that level. Note: Two versions of the same chart are produced, one 
+# uses default education level names and one with shortened display names. This  
+# is just to ensure I mapped the display names correctly.
+ggplot(reading_dat, aes( x=employment, fill=as.factor(sex) ) ) + 
+    geom_bar(position = "fill") + 
+    scale_fill_brewer(palette = "Set2") + 
+    labs(y = "Percent", x = "Employment Type", fill= "Sex", title = "Employment by Sex") +
+    theme_minimal() + 
+    theme( axis.text.x = element_text(angle = 45, hjust = 1) )
+
+ggplot(reading_dat, aes( x=employment, fill=as.factor(sex) ) ) + 
+    geom_bar(position = "fill") + 
+    scale_fill_brewer(palette = "Set2") + 
+    scale_x_discrete(labels = emp_disp_name_map) +
+    labs(y = "Percent", x = "Employment Type", fill= "Sex", title = "Employment by Sex") +
+    theme_minimal() + 
+    theme( axis.text.x = element_text(angle = 45, hjust = 1) )
+
+```
+
+## Q06 Contingency Table
+
+```{r question_06_table}
+# We create a table for consumption
+emp_v_sex_tab <- prop.table( xtabs(~ sex +  employment, data = reading_dat), 1 )
+round(emp_v_sex_tab, 2)
+
+```
+
+## Q06 NHST
+
+```{r question_06_nhst}
+jmv::contTables(data = reading_dat, 
+                rows="sex", cols="employment", 
+                exp=TRUE, 
+                phiCra=TRUE
+                )
 ```
 
 # Question 07
 
-Moar stuff
+Data for Education and Sex look appropriately unique. So we'll create a  
+visualization (bar chart) for education sorted by sex. Then we will print  
+contingency tables and run the test  
 
-```{r question_0}
-# Code goes here
+## Q07 Visualization
+
+```{r question_07_vis}
+
+# Create a mapping vector setting each long-name to a shortened display name
+edu_disp_name_map = c( "Post-graduate training/professional school after college" = "Post Graduate",
+                       "Some college, no 4-year degree" = "Some College",
+                       "College graduate" = "College Graduate",
+                       "High school graduate" = "HS Graduate",
+                       "High school incomplete" = "HS Incomplete",
+                       "Technical, trade or vocational school AFTER high school" = "Vocational after HS",
+                       "None" = "None"
+                      )
+
+# Bar chart visualization. This code constructs a bar chart that shows each 
+# level of education broken down by percentage of females vs. percentage of
+# males at that level. Note: Two versions of the same chart are produced, one 
+# default education level names and one with shortened display names. This is 
+# just to ensure I mapped the display names correctly.
+ggplot(reading_dat, aes( x=education, fill=as.factor(sex) ) ) + 
+    geom_bar(position = "fill") + 
+    scale_fill_brewer(palette = "Set2") + 
+    labs(y = "Percent", x = "Education Level", fill= "Sex", title = "Education by Sex") +
+    theme_minimal() + 
+    theme( axis.text.x = element_text(angle = 45, hjust = 1) )
+
+ggplot(reading_dat, aes( x=education, fill=as.factor(sex) ) ) + 
+    geom_bar(position = "fill") + 
+    scale_fill_brewer(palette = "Set2") + 
+    scale_x_discrete(labels = edu_disp_name_map) +
+    labs(y = "Percent", x = "Education Level", fill= "Sex", title = "Education by Sex") +
+    theme_minimal() + 
+    theme( axis.text.x = element_text(angle = 45, hjust = 1) )
+
+```
+
+## Q07 Contingency Table
+
+```{r question_07_table}
+# We create a table for consumption
+edu_v_sex_tab <- prop.table( xtabs(~ sex + education, data = reading_dat), 1 )
+round(edu_v_sex_tab, 2)
+
+```
+
+## Q07 NHST
+
+```{r question_07_nhst}
+jmv::contTables(data = reading_dat, 
+                rows="sex", cols="education", 
+                exp=TRUE, 
+                phiCra=TRUE
+                )
+
 ```
 
 # Question 08
 
-Last bit-o'-stuff
-
-```{r question_08}
-# Code goes here
-```
+R was not used in any capacity for this question.
