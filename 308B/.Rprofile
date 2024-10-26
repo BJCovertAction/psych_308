@@ -1,5 +1,4 @@
 # Activate virtual environment
-source("renv/activate.R")
 
 # Construct path to default profile file
 home_dir = file.path(path.expand("~"))
