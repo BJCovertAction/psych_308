@@ -1,0 +1,170 @@
+---
+title: "Assumptions and Diagnostics Demo Fall 2022"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+Example 1
+You are a research assistant working with Harvard University on a research study looking at differences in alcohol use between students who affiliated with the Greek system and those who are not. You survey the student body (n=4445) and ask them to report their Greek life involvement (Greek = 1, Not Greek = 0) as well as their gender, year in school, and number of drinks consumed in the last 30 days. You are charged with determining whether there is a difference in alcohol consumption based on involvement with the Greek system. 
+
+```{r}
+#load my packages off the library shelf before I start ALWAYS
+library(psych)
+library(jmv)
+library(plyr)
+library(car)
+library(performance)
+library(tidyverse)
+```
+
+**Set Up**
+```{r}
+#read in the data
+dat_alcohol <- read.csv("alcohol.csv")
+View(dat_alcohol)
+```
+
+```{r}
+# The "Group" variable was entered as an integer so we need to convert it to a factor
+dat_alcohol$Greek <- as.factor(dat_alcohol$Greek)
+```
+
+**Descriptives - We can look at univariate normality this way and can see univariate outliers in the histograms**
+```{r}
+# Get descriptive statistics for each group
+groupdesc_alcohol <- descriptives(dat_alcohol, vars = c('Drinks'), splitBy='Greek', hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+
+#calling the object out of your environment
+groupdesc_alcohol
+```
+
+*Visualize your Data*
+```{r}
+#creating a bar graph
+bar <- ggplot(dat_alcohol, aes(Greek, Drinks))
+
+bar + stat_summary(fun.y = mean, geom = "bar", position = "dodge", fill="steelblue") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Greek", y = "Drinks") + ggtitle('Effect of Greek Life Involvement on Alcohol Consumption')
+```       
+
+**QQ Plot - Great for visualizing multivariate normality and outliers**
+```{r}
+model.alcohol <- lm(Drinks~Greek, data = dat_alcohol)
+
+#qqplot to look at multivariate normality - tests your model residuals against perfectly normal residuals
+ggplot(model.alcohol, aes(qqnorm(.stdresid)[[1]], .stdresid))+geom_point(na.rm = TRUE)+xlab("Theoretical Quantiles")+ylab("Standardized Residuals")+ggtitle("Normal Q-Q")
+```
+
+**Histogram of Model Residuals - Great for visualizing multivatriate normality and outliers**
+```{r}
+#another way to look at normality - the residuals should be normally distributed
+res=residuals(model.alcohol)
+
+hist(res,main="Histogram of residuals")
+```
+
+**Homogeneity of Variance (Homoscedasticity) - CRITICAL FOR A T TEST AND ANOVA**
+```{r}
+#Now that we confirmed normality, we need to be sure our data doesn't violate the assumptions of normality. To do this, we run a Levene's test to determine whether the variance of each group are significantly different from one another. 
+leveneTest(Drinks ~ Greek, dat_alcohol)
+```
+
+**Examining Influential Data Points (Outliers)**
+```{r}
+#visualize outliers. Specify the model first and then view outliers
+model <- lm(Drinks ~ Greek, data = dat_alcohol)
+outliers <- check_outliers(model)
+plot(outliers, type = "dots")
+
+
+#My preferred method - identify AND remove outliers based on either SD or boxplot threshold, which you can adjust
+#Find outliers
+out_alcohol_SD<- performance::check_outliers(dat_alcohol$Drinks, method = "zscore", threshold = 3)
+#Show the row index of the outliers
+out_alcohol_SD
+#ilter out those outliers
+dat_alcohol_nouni <- dat_alcohol[!out_alcohol_SD,]
+```
+
+
+**Descriptives Take 2**
+```{r}
+# Get descriptive statistics for each group
+groupdesc_alcohol_nouni <- descriptives(dat_alcohol_nouni, vars = c('Drinks'), splitBy='Greek', hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+
+#calling the object out of your environment
+groupdesc_alcohol_nouni
+```
+
+**Visualize your Data Take 2**
+```{r}
+#creating a bar graph (you can forget the really complicated code you used in One Way ANOVA, it i simplified for you below. 
+bar <- ggplot(dat_alcohol_nouni, aes(Greek, Drinks))
+
+bar + stat_summary(fun.y = mean, geom = "bar", position = "dodge", fill="steelblue") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Greek", y = "Drinks") + ggtitle('Effect of Greek Life Involvement on Alcohol Consumption')
+```       
+
+**QQ Plot Take 2**
+```{r}
+model.alcohol2 <- lm(Drinks~Greek, data = dat_alcohol_nouni)
+
+#qqplot to look at multivariate normality - tests your model residuals against perfectly normal residuals
+ggplot(model.alcohol2, aes(qqnorm(.stdresid)[[1]], .stdresid))+geom_point(na.rm = TRUE)+xlab("Theoretical Quantiles")+ylab("Standardized Residuals")+ggtitle("Normal Q-Q")
+```
+
+**Histogram of Model Residuals Take 2**
+```{r}
+#another way to look at normality - the residuals should be normally distributed
+res2=residuals(model.alcohol2)
+
+hist(res2,main="Histogram of residuals")
+```
+**Homogeneity of Variance (Homoscedasticity) Take 2- CRITICAL FOR A T TEST AND ANOVA**
+```{r}
+#Now that we confirmed normality, we need to be sure our data doesn't violate the assumptions of normality. To do this, we run a Levene's test to determine whether the variance of each group are significantly different from one another. 
+leveneTest(Drinks ~ Greek, dat_alcohol_nouni)
+```
+
+
+**T TEST**
+```{r}
+ttestIS(data = dat_alcohol_nouni, vars = 'Drinks', group = 'Greek', eqv = TRUE, effectSize = TRUE, ci = TRUE, desc = TRUE, welchs = TRUE)
+```
+
+
+Example 2: A large organization is interested in implementing a well-being program to help address employee stress levels. Before spending the money required to implement the program org-wide, they decide to run a pilot with 100 participants. They recruit 100 employees to participate in the quarter long program and measure their stress before and after completion. You are interested in determining whether or not the organization should offer the program org-wide. 
+
+DV: Stress
+IV: Time (Pre, Post)
+
+**SET UP**
+```{r}
+#read in the data
+dat_stress <- read.csv("stress.csv")
+
+#pivot the data from wide to long form
+stress_long <- pivot_longer(dat_stress, !ID, names_to = "Time", values_to = "Stress")
+```
+
+**DESCRIPTIVES**
+```{r}
+dat_stress$diff <- (dat_stress$Post - dat_stress$Pre)
+head(dat_stress)
+
+desc_stress_diff <- descriptives(dat_stress, vars = c('diff'), hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+desc_stress_diff
+```
+
+**Visualize**
+```{r}
+bar_stress <- ggplot(stress_long, aes(Time, Stress))
+
+bar_stress + stat_summary(fun = mean, geom = "bar", position = "dodge", fill="green4") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Time", y = "Stress") + ggtitle('Stress Before and After Well-being Program')
+```  
+
+**T TEST**
+```{r}
+ttestPS(data = dat_stress, pairs = list(list(i1='Pre', i2='Post')), effectSize = TRUE, ci = TRUE, desc = TRUE)
+```
+
