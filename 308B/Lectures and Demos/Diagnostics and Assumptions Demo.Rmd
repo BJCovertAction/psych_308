@@ -9,7 +9,7 @@ output:
 Example 1
 You are a research assistant working with Harvard University on a research study looking at differences in alcohol use between students who affiliated with the Greek system and those who are not. You survey the student body (n=4445) and ask them to report their Greek life involvement (Greek = 1, Not Greek = 0) as well as their gender, year in school, and number of drinks consumed in the last 30 days. You are charged with determining whether there is a difference in alcohol consumption based on involvement with the Greek system. 
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 #load my packages off the library shelf before I start ALWAYS
 library(psych)
 library(jmv)
@@ -17,13 +17,15 @@ library(plyr)
 library(car)
 library(performance)
 library(tidyverse)
+library(Hmisc)
+library(see)
 ```
 
 **Set Up**
 ```{r}
 #read in the data
 dat_alcohol <- read.csv("alcohol.csv")
-View(dat_alcohol)
+# View(dat_alcohol)
 ```
 
 ```{r}
