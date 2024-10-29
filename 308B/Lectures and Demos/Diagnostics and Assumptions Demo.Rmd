@@ -1,9 +1,9 @@
 ---
 title: "Assumptions and Diagnostics Demo Fall 2022"
 output:
-  word_document: default
-  pdf_document: default
   html_document: default
+  pdf_document: default
+  word_document: default
 ---
 
 Example 1
@@ -52,6 +52,7 @@ bar + stat_summary(fun.y = mean, geom = "bar", position = "dodge", fill="steelbl
 
 **QQ Plot - Great for visualizing multivariate normality and outliers**
 ```{r}
+# Name model (model.alcohol in example). Then feed as input to ggplot
 model.alcohol <- lm(Drinks~Greek, data = dat_alcohol)
 
 #qqplot to look at multivariate normality - tests your model residuals against perfectly normal residuals
@@ -131,6 +132,8 @@ leveneTest(Drinks ~ Greek, dat_alcohol_nouni)
 
 **T TEST**
 ```{r}
+# Welchs = TRUE is new option
+# eqv = TRUE is new option that puts Levene's right in the T-test
 ttestIS(data = dat_alcohol_nouni, vars = 'Drinks', group = 'Greek', eqv = TRUE, effectSize = TRUE, ci = TRUE, desc = TRUE, welchs = TRUE)
 ```
 
