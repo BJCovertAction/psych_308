@@ -1,0 +1,350 @@
+---
+title: "One-way ANOVA Demo"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+
+***Load Packages (e.g. gather the right tools)***
+```{r}
+library(psych)
+library(jmv)
+library(ggplot2)
+library(dplyr)
+library(car)
+library(stringr)
+```
+
+**Example 1**
+Previous research has shown that trait concepts and stereotypes become active automatically in the presence of relevant behavior or stereotyped-group features. In their 1996 study, Bargh and colleagues tested whether priming the concept of rudeness led participants to interrupt the experimenter more quickly than participants primed with polite related stimuli. Upon arrival to the lab, the experimenter handed each participant an envelope that contained one of the three forms of the scrambled-sentence test (rude, polite, or neutral priming).The experimenter told the participant that when the test had been completed (most participants took about 5 min to complete the 30-item test), he or she should come out into the hallway to find the experimenter (to obtain a second task), who would be at a different room around the corner.  A confederate of the experimenter was seated in this second room, in sight of the experimenter but not of anyone coming from the direction of the first room, as she was seated behind a half-opened door.The confederate posed as another participant who was apparently having difficulty understanding how to complete a task. The experimenter and confederate engaged in a conversation, with the experimenter standing so that his body was open to the direction from which the participant would be coining down the hall. When the participant turned the hallway corner and became visible to the experimenter, without looking at the participant or acknowledging his or her presence the experimenter made a subtle prearranged sign to the confederate (i.e., touching his right pant leg). At this the confederate started a stopwatch. Their dependent measure was the amount of time the participant would wait until interrupting the conversation between experimenter and confederate and ask to be given the next experimental task.
+
+Model Building
+
+ASK
+Identify Research Question 
+- RQ: Is there a difference in interruption time based on rudeness priming condition? 
+     
+HYPOTHESIZE YOUR MODEL
+- Interruption Time = Priming Condition + Error
+- H1: Participants will interrupt significantly faster when primed with rude trait qualities. 
+
+DESIGN AND DATA COLLECTION
+- IV: Priming Condition (rude, polite, neutral)
+- DV: Time to interruption (in seconds)
+- Study Design: One Way Between Groups
+- Appropriate Analysis: One Way Between Groups ANOVA
+
+PREPARE YOUR DATA
+- Investigate Data (Visually and Descriptively)
+- Check Assumptions
+
+SPECIFY
+- time ~ priming condition
+
+ESTIMATE
+- Generate estimated population parameters (F Statistic, Effect Size, Mean Differences, Standard Error, Pairwise T Stats, Pairwise Effect Sizes)
+
+CONCLUDE
+- Interpret Results & Draw Conclusions
+
+ANSWER
+- Communicate Findings to lay and academic audiences (significance, magnitude, direction)
+
+
+Prepare Your Data
+***Import and Look at Data***
+```{r}
+#read the csv file into R. If yout your script and data in the same folder, you can use the simple code below. 
+dat.priming <- read.csv("priming.csv")
+
+```
+
+***Clean or Prepare the Data***
+```{r}
+# The "Condition" variable was entered as an integer so we need to convert it to a factor
+dat.priming$condition <- as.factor(dat.priming$condition)
+```
+
+***Visualize Data***
+```{r}
+#Create a graph of your data to visually see potential differences between groups
+graph2 <- ggplot(dat.priming, aes(condition, time))
+
+graph2 + stat_summary(fun.y = mean, geom = "bar", position = "dodge", fill="red") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Priming Condition", y = "Interruption Time") + ggtitle('Effect of Trait Priming on Interrupting Behavior') + theme(plot.title = element_text(hjust = 0.5))
+```
+
+***Check Assumptions of Data***
+```{r}
+#Run descriptives. This not only helps us further examine our data (measures of central tendency, standard deviation, mix value, max value) but it gives us the information we need to check our normality assumption
+
+# Get descriptive statistics for the entire sample
+desc.priming <- descriptives(dat.priming, vars = c('time'), hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+desc.priming
+
+# Get descriptive statistics for each group
+desc.group.priming <- descriptives(dat.priming, vars = c('time'), splitBy = 'condition', hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+desc.group.priming
+```
+
+```{r}
+#Now that we confirmed normality, we need to be sure our data doesn't violate the homogeneity of variance assumption. To do this, we run a Levene's test to determine whether the variance of each group are significantly different from one another. 
+leveneTest(time ~ condition, dat.priming)
+```
+
+Specify, Estimate, Interpret
+***Conduct the Appropriate Analysis***
+```{r}
+# This chunk of code runs a one-way between groups ANOVA with Condition as the IV and priming as the DV.
+# There are several ANOVA functions in R. We will be using the ANOVA function in the jmv package. To avoid confusion, we will specify the package before the function in our code, e.g., jmv::ANOVA
+
+jmv::ANOVA(data = dat.priming, 
+           dep = 'time', #ANOVA
+           factors = c('condition'), #ANOVA
+           effectSize = 'partEta', #ANOVA
+           postHoc = c('condition'), #POST HOC
+           postHocCorr = c('tukey'), #POST HOC
+           postHocES = 'd', #POST HOC
+           emMeans = list('condition'), #DESCRIPTIVES BECAUSE JESS IS LAZY
+           emmTables = TRUE, #YES, MAKE ME A TABLE BECAUSE I'M LAZY
+           emmPlotError = 'ci')
+```
+
+APA Write UP (Results Only - No Assumption Write Up)
+
+We conducted a one-way between groups ANOVA to determine whether priming participants with rude, neutral, or polite phrase impacted stereotypically rude bahvior. We found a significant difference in time it took participants to interrupt based on condition, *F*(2, 33) = 12.64, *p* < .001, $\eta$^2^ = .43. This was a large effect, with 43% of the variance in interruption time explained by priming condition.
+
+Post-hoc pairwise comparisons using the Tukey's procedure full supported hypothesis one. Participants in the rude priming condition (*M* = 349.30, *SD* = 11.04) interrupted significantly faster than those in the polite condition (*M* = 349.30, *SD* = 118.58), *M~difference~* = 144.31, *t*(33) = 3.11, *p* = .010, *d* = 0.59 as well as those in the neutral priming condition (*M* = 580.10, *SD* = 111.00) *M~difference~* = 230.80, *t*(33) = 4.98, *p* < .001, *d* = 0.94. There was no difference in interruption time between participants in the polite and neutral conditions, *M~difference~* = 86.48, *t*(33) = 1.86, *p* = .165, *d* = 0.35. 
+
+___________________________________________________________________________________________________________________________________________________________________
+
+**Example 2** 
+In their 2019 study, Caneli et al. examined how smartphone availability impacts working memory. They recruited 132 college students to complete a laboratory task that assessed visual working memory capacity in three different conditions: two conditions differing in terms of smartphone availability (smartphone turned off and visible (1), smartphone in silent mode and visible (2) and a condition in which the smartphone was not available and was replaced by a calculator (control condition - 3). Students were randomly assigned to three groups. 
+
+Model Building
+
+ASK
+Identify Research Question 
+- RQ: Does smart phone availability influence working memory capacity?
+     
+HYPOTHESIZE YOUR MODEL
+- Working Memory = Smartphone Availability + Error
+- H1a: ??
+- H1b: ??
+
+DESIGN AND DATA COLLECTION
+- IV: Smart phone availability (off-1, silent-2, control-3)
+- DV: Working memory capacity (continuous)
+- Study Design: Between group
+- Appropriate Analysis: One Way [between groups] ANOVA
+
+PREPARE YOUR DATA
+- Investigate Data (Visually and Descriptively)
+- Check Assumptions
+
+SPECIFY
+- Working memory ~ smart phone availability 
+
+ESTIMATE
+- Generate estimated population parameters (F Statistic, Effect Size, Mean Differences, Standard Error, Pairwise T Stats, Pairwise Effect Sizes)
+
+CONCLUDE
+- Interpret Results & Draw Conclusions
+
+ANSWER
+- Communicate Findings to lay and academic audiences (significance, magnitude, direction)
+
+
+Prepare Your Data
+***Import and Look at Data***
+```{r}
+#read the csv file into R. If your your script and data in the same folder, you can use the simple code below. 
+dat.phone <- read.csv("smartphone.csv")
+```
+
+***Clean or Prepare the Data***
+```{r}
+#change the content of the Group variable to their actual level names so its easier to interpret in the output
+dat.phone$Group <- str_replace(dat.phone$Group, "1", "off")
+dat.phone$Group <- str_replace(dat.phone$Group, "2", "silent")
+dat.phone$Group <- str_replace(dat.phone$Group, "3", "control")
+
+# The "Group" variable was entered as an integer so we need to convert it to a factor
+dat.phone$Group <- as.factor(dat.phone$Group)
+```
+
+***4: Investigate Visualize Data***
+```{r}
+#Create a graph of your data to visually see potential differnces between groups
+graph <- ggplot(dat.phone, aes(Group, WM))
+
+graph + stat_summary(fun = mean, geom = "bar", position = "dodge", fill="darkcyan") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Smartphone Availability", y = "Working Memory") + ggtitle('Effect of Smartphone Availability on Working Memory') + theme(plot.title = element_text(hjust = 0.5))
+```
+
+***Check Model Assumptions of Data***
+```{r}
+#Run descriptives. This not only helps us further examine our data (measures of central tendency, standard deviation, mix value, max value) but it gives us the information we need to check our normality assumption
+
+# Get descriptive statistics for the entire sample
+desc.phone <- descriptives(dat.phone, vars = c('WM'), hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+desc.phone
+
+# Get descriptive statistics for each group
+desc.phone.group <- descriptives(dat.phone, vars = c('WM'), splitBy = 'Group', hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+desc.phone.group
+```
+
+```{r}
+#Now that we confirmed normality, we need to check the homogeneity of variance assumption (be sure our data are homoscedastic). To do this, we run a Levene's test to determine whether the variance of each group are significantly different from one another. 
+leveneTest(WM ~ Group, dat.phone, center=mean)
+```
+
+Specify, Estimate, and Interpret
+***Conduct the Appropriate Analysis***
+```{r}
+# This chunk of code runs a one-way between groups ANOVA with Group as the IV and Working Memory as the DV.
+# There are several ANOVA functions in R. We will be using the ANOVA function in the jmv package. To avoid confusion, we will specify the package before the function in our code, e.g., jmv::ANOVA
+
+jmv::ANOVA(data = dat.phone, 
+           dep = 'WM', 
+           factors = c('Group'),
+           effectSize = 'partEta',
+           postHoc = c('Group'), #this is the variable 
+           postHocCorr = 'tukey',
+           postHocES = 'd', #cohen's d for post pairwise comparison
+           emMeans = list('Group'),
+           emmTables = TRUE,
+           emmPlotError = 'ci')
+```
+
+***For Fun***
+Run a T test between groups 2 (silent phone) and group 3 (no phone). Compare these results to your post-hoc testing
+```{r}
+library(dplyr)
+library(magrittr)
+
+#you need to SUBSET your data - remove the group 1 condition
+dat.ttest <- dat.phone %>% dplyr::filter(Group!="off")
+
+#run a t test to compare 2 v. 3
+ttestIS(data = dat.ttest, vars = 'WM', group = 'Group', eqv = TRUE, effectSize = TRUE, meanDiff = TRUE, ci = TRUE, desc = TRUE, welchs = TRUE)
+```
+
+Communicate Findings
+The present study used a one way, between groups experimental design to determine the impact of smart phone availability impacted working memory capactiy. A total of 132 participants were randomly assigned to one of three conditions: smartphone turned off and visible, smartphone in silent mode and visible, and a control condition in which the smartphone was replaced by a calculator. All participants then completed a working memory capacity assessment. 
+
+Prior to analysis, data were cleaned and assumptions were checked. Examination of histograms demonstrated presumed normality of the dependent variable in each condition. Skew and kurtosis values were all below |3| and |10| respectively, confirming normality. A Levene's test confirmed the data do not violate the homogeneity of variance assumption, *F*(2,357) = 0.21, *p* = .810. As such, we proceded to analysis. 
+
+A one way between groups ANOVA confirmed a significant difference in working memory based on smart phone condition, *F*(2, 357) = 6.57, *p* = .002, $\eta$^2^ = .04. This was a small effect; 4% of working memory capacity can be explained by smart phone availability. Post-hoc testing using the Tukey's procedure revealed significantly higher levels of working memory for participants whose phone was off (*M* = 2.33, *SD* = 0.59) compared to those whose phone was in silent mode (*M* = 2.07, *SD* = 0.58), *t*(357) = 3.57, *p* = .001, *d* = 0.46. However, there were no significant differences in working memory between participants in the control condition (*M* = 2.24, *SD* = 0.55) and those in either the off condition, *t*(357) = 1.22, *p* = .440, *d* = 0.16 or those in the silent condition, *t*(357) = 2.31, *p* = .055, *d* = 0.30. Both H1 and H2 were supported. 
+
+Example interpretation/implication for the discussion section: 
+Findings suggest that when individuals perceive no access to content on their phones because the phone is off, their working memory is not impacted. However, compared to being off, when participants perceive access to content on their phone, it has a negative impact on their working memory capacity. To maximize working memory capacity during complex tasks, the present study suggests individuals should turn their phones off...Comment on interesting silent v. control finding. 
+
+____________________________________________________________________________________________________________________________________________________________________
+
+***Example 2***
+National Public Radio recently reported a 2015 study by Suresh and colleagues evaluating the analgesic (pain relieving) effect of music and audiobooks in children undergoing major surgical procedures. In their study, they randomly assignded 60 children undergoing major surgeries into one of the three groups: music, audiobook or control (noise canceling headphones). The primary outcome was the pain level. What did they find?
+
+Model Building
+
+ASK
+Identify Research Question 
+- RQ: Is there a difference in chilren's pain level based audio format?
+     
+HYPOTHESIZE YOUR MODEL
+- Pain = Audio Format + Error
+- H1: Average pain levels will be lower for children listening to an audio book or music compared to those wearing noise canceling headphones but not listenign to anything. 
+- H2: Average pain levels will be lower when listening to music than when listening to an audio book. 
+
+DESIGN AND DATA COLLECTION
+- IV: Audio Format (music, audiobook, control)
+- DV: Pain Level Reduction 
+- Study Design: One Way Between Groups
+- Appropriate Analysis: One Way Between Groups ANOVA
+
+PREPARE YOUR DATA
+- Investigate Data (Visually and Descriptively)
+- Check Assumptions
+
+SPECIFY
+- pain ~ audio format
+
+ESTIMATE
+- Generate estimated population parameters (F Statistic, Effect Size, Mean Differences, Standard Error, Pairwise T Stats, Pairwise Effect Sizes)
+
+CONCLUDE
+- Interpret Results & Draw Conclusions
+
+ANSWER
+- Communicate Findings to lay and academic audiences (significance, magnitude, direction)
+
+
+Prepare Your Data
+***Import and Look at Data***
+```{r}
+#read the csv file into R. If yout your script and data in the same folder, you can use the simple code below. 
+dat.pain <- read.csv("pain.csv")
+```
+
+***Clean or Prepare the Data***
+```{r}
+# The "Condition" variable was entered as an integer so we need to convert it to a factor
+dat.pain$Condition <- as.factor(dat.pain$Condition)
+```
+
+***Visualize Data***
+```{r}
+#Create a graph of your data to visually see potential differences between groups
+graph2 <- ggplot(dat.pain, aes(Condition, Pain))
+
+graph2 + stat_summary(fun.y = mean, geom = "bar", position = "dodge", fill="forestgreen") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Condition", y = "Pain") + ggtitle('Effect of Audio Therapy on Post Surgical Pain in Children') + theme(plot.title = element_text(hjust = 0.5))
+```
+
+***Check Assumptions of Data***
+```{r}
+#Run descriptives. This not only helps us further examine our data (measures of central tendency, standard deviation, mix value, max value) but it gives us the information we need to check our normality assumption
+
+# Get descriptive statistics for the entire sample
+desc.pain <- descriptives(dat.pain, vars = c('Pain'), hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+desc.pain
+
+# Get descriptive statistics for each group
+desc.group.pain <- descriptives(dat.pain, vars = c('Pain'), splitBy = 'Condition', hist = TRUE, sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+desc.group.pain
+```
+
+```{r}
+#Now that we confirmed normality, we need to be sure our data doesn't violate the homogeneity of variance assumption. To do this, we run a Levene's test to determine whether the variance of each group are significantly different from one another. 
+leveneTest(Pain ~ Condition, dat.pain)
+```
+
+Specify, Estimate, Interpret
+***Conduct the Appropriate Analysis***
+```{r}
+# This chunk of code runs a one-way between groups ANOVA with Condition as the IV and Pain as the DV.
+# There are several ANOVA functions in R. We will be using the ANOVA function in the jmv package. To avoid confusion, we will specify the package before the function in our code, e.g., jmv::ANOVA
+
+jmv::ANOVA(data = dat.pain, 
+           dep = 'Pain', #ANOVA
+           factors = c('Condition'), #ANOVA
+           effectSize = 'partEta', #ANOVA
+           postHoc = c('Condition'), #POST HOC
+           postHocCorr = c('tukey'), #POST HOC
+           postHocES = 'd', #POST HOC
+           emMeans = list('Condition'), #DESCRIPTIVES BECAUSE JESS IS LAZY
+           emmTables = TRUE, #YES, MAKE ME A TABLE BECAUSE I'M LAZY
+           emmPlotError = 'ci')
+```
+
+APA Write UP (Results Only - No Assumption Write Up)
+
+A one way between groups ANOVA confirmed a significant difference in pain level based on audio format, *F*(2, 57) = 10.59, *p* < .001, $\eta$^2^ = .27. This was a moderate to large effect, with 27% of the variance in pain level explained by what children listened to. 
+
+Post-hoc pairwise comparisons using the Tukey's procedure full supported hypothesis one. Children wearing noise canceling headphones reported significantly more pain than those listening to either an audio book, *M~difference~* = 2.00, *t*(57) = 3.78, *p* = .001, *d* = 1.20 or music, *M~difference~* = 2.20 *t*(57) = 4.12, *p* < .001, *d* = 1.32. However, contrary to our second hypothesis, there was no significant difference in average pain levels between children listening to music and those listening to an audio book, *M~difference~* = 0.20, *t*(57) = 0.38, *p* = .924, *d* = 0.12. 
+
+____________________________________________________________________________________________________________________________________________________________________
+
+
+
+
