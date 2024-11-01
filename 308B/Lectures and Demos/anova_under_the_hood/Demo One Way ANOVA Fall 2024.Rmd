@@ -76,6 +76,8 @@ graph2 + stat_summary(fun.y = mean, geom = "bar", position = "dodge", fill="red"
 ```
 
 ***Check Assumptions of Data***
+Discussions of what to look for here happened at lecture time 1Hr 45min
+
 ```{r}
 #Run descriptives. This not only helps us further examine our data (measures of central tendency, standard deviation, mix value, max value) but it gives us the information we need to check our normality assumption
 
@@ -88,12 +90,22 @@ desc.group.priming <- descriptives(dat.priming, vars = c('time'), splitBy = 'con
 desc.group.priming
 ```
 
+# Test Homgeneity of Variance
+
 ```{r}
 #Now that we confirmed normality, we need to be sure our data doesn't violate the homogeneity of variance assumption. To do this, we run a Levene's test to determine whether the variance of each group are significantly different from one another. 
 leveneTest(time ~ condition, dat.priming)
 ```
 
-Specify, Estimate, Interpret
+# Specify, Estimate, Interpret
+
+Use jmv::ANOVA because there are many ANOVA functions w/in R.
+Use:
+   postHocCorr = c('tukey', 'bonf'), #POST HOC
+   
+To compare
+
+
 ***Conduct the Appropriate Analysis***
 ```{r}
 # This chunk of code runs a one-way between groups ANOVA with Condition as the IV and priming as the DV.
@@ -104,7 +116,7 @@ jmv::ANOVA(data = dat.priming,
            factors = c('condition'), #ANOVA
            effectSize = 'partEta', #ANOVA
            postHoc = c('condition'), #POST HOC
-           postHocCorr = c('tukey'), #POST HOC
+           postHocCorr = c('tukey', 'bonf'), #POST HOC
            postHocES = 'd', #POST HOC
            emMeans = list('condition'), #DESCRIPTIVES BECAUSE JESS IS LAZY
            emmTables = TRUE, #YES, MAKE ME A TABLE BECAUSE I'M LAZY
@@ -211,11 +223,13 @@ jmv::ANOVA(data = dat.phone,
            factors = c('Group'),
            effectSize = 'partEta',
            postHoc = c('Group'), #this is the variable 
-           postHocCorr = 'tukey',
+           postHocCorr = c('tukey', 'bonf'),
            postHocES = 'd', #cohen's d for post pairwise comparison
            emMeans = list('Group'),
            emmTables = TRUE,
-           emmPlotError = 'ci')
+           emmPlotError = 'ci',
+           postHocEsCi = TRUE,
+           postHocEsCiWidth = 98.33333333333)
 ```
 
 ***For Fun***
