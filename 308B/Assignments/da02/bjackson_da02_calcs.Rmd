@@ -384,71 +384,82 @@ manipulation for the record.
 
 # NOTE: It's important to reference ANOVA to the jmv:: package explicitly as there are many ANOVA functions in R
 #       and we intend to use the jamovi one.
-jmv::ANOVA(data = dats_helping,
-           dep = 'helping',                   # ANOVA - Evaluate helping likelihood as outcome var
-           factors = c('haste_names'),        # ANOVA - split by haste condition
-           effectSize = 'partEta',            # ANOVA - report fraction of variance, not Cohen's d
-           postHoc = c('haste_names'),        # POST HOC - Also split post-hoc's by haste condition
-           postHocCorr = c('tukey', 'bonf'),  # Include both Tukey's and Bonferroni's
-           postHocES = 'd',                   #POST HOC
-           emMeans = list('haste_names'),       # DESCRIPTIVES BECAUSE JESS IS LAZY
-           emmTables = TRUE,                  # YES, MAKE ME A TABLE BECAUSE I'M LAZY
-           emmPlotError = 'ci',
-           postHocEsCi = TRUE,
-           postHocEsCiWidth = 98.33333333333)
+jmv::ANOVA( data = dats_helping,
+            dep = 'helping',                   # ANOVA - Evaluate helping likelihood as outcome var
+            factors = c('haste_disp_names'),        # ANOVA - split by haste condition
+            effectSize = 'partEta',            # ANOVA - report fraction of variance, not Cohen's d
+            postHoc = c('haste_disp_names'),        # POST HOC - Also split post-hoc's by haste condition
+            postHocCorr = c('tukey', 'bonf'),  # Include both Tukey's and Bonferroni's
+            postHocES = 'd',                   # POST HOC
+            emMeans = list('haste_disp_names'),     # DESCRIPTIVES BECAUSE JESS IS LAZY
+            emmTables = TRUE,                  # YES, MAKE ME A TABLE BECAUSE I'M LAZY
+            emmPlotError = 'ci',
+            emmPlotData = TRUE
+           )
 
 ```
 
-## Investigation of Processed Data
+## Compare Early and On-Time Groups Directly (T-Test)
 
-Replicate analysis post-outlier handling.
+This section contains analysis to be used in Questions 5 and 6. 
 
-### Processed Data Descriptive Stats and Visualization
+### Reduce the Dataframe
 
-```{r processed_descriptives_and_visuals}
+To expedite this analysis, we're going to create a subselected dataframe from our existing dataframe that  
+only exists of rows for groups 1 and 2.
+
+```{r subselect_dataframe}
+
+# We "OR" two logical conditions, haste_condition equal to 1 or equal to 2, and then use that logical array to
+# subselect the dataframe and assign it to a new name
+dats_helping_sub <- subset( dats_helping, (haste == 1 | haste == 2 ) )
+
+# Drop the unused values in the factor columns in our new data
+dats_helping_sub$haste_names = droplevels(dats_helping_sub$haste_names)
+dats_helping_sub$haste_disp_names = droplevels(dats_helping_sub$haste_disp_names)
+dats_helping_sub$haste = droplevels(dats_helping_sub$haste)
+```
+
+### Assumption Checks for T-Test
+
+We'll conduct a couple quick assumptions checks that won't be reported in our answer, but the data will be available  
+in case the TA's want to confirm I did it. 
+
+```{r subselect_assumptions}
+# Check normality using descriptives (we've already seen the histograms of the residuals)
+helping_descr_sub = jmv::descriptives( dats_helping_sub, 
+                                       vars = "helping", 
+                                       splitBy="haste_names", 
+                                       hist = TRUE,
+                                       dens = TRUE,
+                                       qq = TRUE,
+                                       sd = TRUE, 
+                                       variance = TRUE,
+                                       se = TRUE, 
+                                       skew = TRUE, 
+                                       kurt = TRUE,
+                                       missing = TRUE)
+print(helping_descr_sub)
+
+
+# Check homoscedasticity with Levene's
+leveneTest(helping ~ haste_names, dats_helping_sub)
 
 ```
 
-### Formalize Model of Processed Data
+### Independent T-Test of Early to On-Time
 
-Formalizing the processed model.
-
-```{r processed_model_definition}
-
-
+```{r indy_t_test_subset}
+# This is an independent samples T-test since we have two groups that are not
+# matched in pairs
+ttestIS(data = dats_helping_sub, 
+        vars = "helping", 
+        group = "haste_disp_names", 
+        eqv = TRUE,
+        meanDiff = TRUE,
+        effectSize = TRUE, 
+        ci = TRUE, 
+        ciWidth = 95,
+        desc = TRUE, 
+        welchs = TRUE)
 ```
-
-### Advanced Processed Visuals
-
-Processed data and model visualizations
-
-```{r advanced_processed_visuals}
-
-
-```
-
-### Test of Variance for Processed Data
-
-[OPTIONAL] Hederoscedasticity check for processed data.
-
-```{r levenes_processed}
-
-```
-
-### Check Test / Analysis Results on Processed Data
-
-Run the Test / Analysis on processed data
-
-```{r, processed_t_test}
-
-
-```
-
-### Plot Residuals of Processed Data
-
-Residuals plots of processed data.
-
-```{r outlier_analysis_processed}
-
-```
-
