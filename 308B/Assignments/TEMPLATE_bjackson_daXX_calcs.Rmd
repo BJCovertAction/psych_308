@@ -1,0 +1,169 @@
+---
+title: "PSYCH308B - Data Analysis __ (DA__)"
+author: "Brady C. Jackson"
+date: "2024/__/__"
+
+# Write document output to HTML, Word, and PDF output types with a Table of
+# contents included.
+output: 
+  html_document:
+    toc: true
+  word_document:
+    toc: true
+  pdf_document:
+    toc: true
+    latex_engine: xelatex
+
+# This option here enables output to both HTML and PDF formats
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding,
+  output_format = "all") })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+
+```{r package_loading, message=FALSE, warning=FALSE}
+
+# Load packages. Set messages and warnings to FALSE so I don't have to see the
+# masking messages in the output.
+library(jmv)       # for descriptive
+library(ggplot2)
+library(dplyr)
+# library(car)       # for leveneTest
+# library(stringr)   # for sub_str operations
+# library(psych)
+# library(Hmisc)     # for fun.dat substitution
+# library(see)       # for outliers analysis 
+# library(magrittr)
+# library(AER)
+```
+
+## Investigation of Raw, Unprocessed Data
+
+### Data Loading
+
+First we need to load the data. 
+
+```{r data_prep}
+
+```
+
+### Raw Data Descriptive Stats and Visualization
+
+```{r raw_descriptives_and_visuals}
+
+
+```
+
+### Formalize Model
+
+Model formalization for unprocessed data goes here.
+
+```{r raw_model_definition}
+
+```
+
+### Advanced Raw Visuals
+
+More advanced visuals which can be based on model object go here.
+
+```{r advanced_raw_visuals}
+
+
+```
+
+### Test of Variance for Raw Data
+
+[OPTIONAL] The following section checks the homogeneity of variance in all of   
+the raw data. This may or may not be necessary depending on what kinds of models  
+you're building.
+
+```{r levenes_raw}
+
+```
+
+### Test / Analysis of Raw Results
+
+Run the test / analysis you intend to conduct on the raw data (no outlier)  
+manipulation for the record.
+
+```{r, raw_t_test}
+
+```
+
+### Check Outliers Directly
+
+[OPTIONAL] Can use check_outliers function here as necessary
+
+
+```{r outlier_analysis}
+
+
+```
+
+### Decision to Handle Outliers
+
+Use this section to drop or modify outliers.
+
+```{r outlier_handling}
+
+
+```
+
+## Investigation of Processed Data
+
+Replicate analysis post-outlier handling.
+
+### Processed Data Descriptive Stats and Visualization
+
+```{r processed_descriptives_and_visuals}
+
+```
+
+### Formalize Model of Processed Data
+
+Formalizing the processed model.
+
+```{r processed_model_definition}
+
+
+```
+
+### Advanced Processed Visuals
+
+Processed data and model visualizations
+
+```{r advanced_processed_visuals}
+
+
+```
+
+### Test of Variance for Processed Data
+
+[OPTIONAL] Hederoscedasticity check for processed data.
+
+```{r levenes_processed}
+
+```
+
+### Check Test / Analysis Results on Processed Data
+
+Run the Test / Analysis on processed data
+
+```{r, processed_t_test}
+
+
+```
+
+### Plot Residuals of Processed Data
+
+Residuals plots of processed data.
+
+```{r outlier_analysis_processed}
+
+```
+

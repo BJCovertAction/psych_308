@@ -1,0 +1,465 @@
+---
+title: "PSYCH308B - Data Analysis 02 (DA02)"
+author: "Brady C. Jackson"
+date: "2024/11/01"
+
+# Write document output to HTML, Word, and PDF output types with a Table of
+# contents included.
+output: 
+  html_document:
+    toc: true
+  word_document:
+    toc: true
+  pdf_document:
+    toc: true
+    latex_engine: xelatex
+
+# This option here enables output to both HTML and PDF formats
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding,
+  output_format = "all") })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+
+```{r package_loading, message=FALSE, warning=FALSE}
+
+# Load packages. Set messages and warnings to FALSE so I don't have to see the
+# masking messages in the output.
+library(jmv)       # for descriptive
+library(ggplot2)
+library(cowplot)   # for axis aligned grid plots
+# library(gridExtra) # for creating subplots
+# library(patchwork)
+library(dplyr)
+library(car)       # for leveneTest
+# library(stringr)   # for sub_str operations
+# library(psych)
+library(Hmisc)     # for fun.dat substitution
+# library(see)       # for outliers analysis 
+# library(magrittr)
+# library(AER)
+```
+
+## Investigation of Raw, Unprocessed Data
+
+### Data Loading
+
+First we need to load the data. We check if it's in memory already and delete   
+it if it is just to ensure we're working with a clean slate.
+
+```{r data_prep}
+# Check if dats_helping exists and, if it does, nuke it first
+if( exists("dats_helping") ){
+    rm(dats_helping)
+}
+
+
+# First we load the data raw.
+dats_helping <- read.csv("./308B.Data.DA2.csv")
+
+# We convert all headings to lower to minimize column naming confusion.
+colnames(dats_helping) <- tolower(colnames(dats_helping))
+
+# We cast the values in haste (1,2, or 3) to a factor to prevent them from being
+# operated on as if they were integers. I'm going to maintain this column for
+# the record of data, but will create an additional array with the categories
+# labeled as more descriptive strings appropriately. We use the non-factor 
+# haste array as the basis for the character arrays as we can't substitute 
+# chars into an array of factors once it is cast as such
+dats_helping$haste_names <- dats_helping$haste
+dats_helping$haste_disp_names <- dats_helping$haste
+
+# Perform the string substitutions here, first for the raw lower case names
+# second for the appropriately cased display names
+dats_helping$haste_names[dats_helping$haste_names == 1] <- "early"
+dats_helping$haste_names[dats_helping$haste_names == 2] <- "on_time"
+dats_helping$haste_names[dats_helping$haste_names == 3] <- "late"
+
+dats_helping$haste_disp_names[dats_helping$haste_disp_names == 1] <- "Early"
+dats_helping$haste_disp_names[dats_helping$haste_disp_names == 2] <- "On-Time"
+dats_helping$haste_disp_names[dats_helping$haste_disp_names == 3] <- "Late"
+
+# Convert all "group" categories to factors
+dats_helping$haste_names <- as.factor(dats_helping$haste_names)
+dats_helping$haste_disp_names <- as.factor(dats_helping$haste_disp_names)
+dats_helping$haste <- as.factor(dats_helping$haste)
+
+```
+
+### Raw Data Descriptive Stats and Visualization
+
+Code in this section produces basic figures for getting to know our data.  
+These are all conducted on data with no outliers removed, processed, or otherwise  
+handled.
+
+```{r raw_descriptives_and_visuals}
+
+# Base visuals and Q-Q Normal plot by category.
+# Code here checks for data integrity, normality, and homoscedasticity
+# NOTE: Given R's propensity for plotting everything in alphabetical order, I ran this twice, once sorted by "haste_names"
+#       and another sorted by "haste." I confirmed, visually, that the data were correctly binned in both situations 
+#         e.g. the "tetris shapes" in the histogram for "3" were the same as those in "late" etc. But, true to form,
+#         R prints the "late" data as the second plot when splitting by "haste_names" and as the third plot when 
+#         splitting by "haste number." So, the data labels are all correct, but the print / output order is just 
+#         different.
+helping_descr_raw = jmv::descriptives( dats_helping, 
+                                       vars = "helping", 
+                                       splitBy="haste_names", 
+                                       hist = TRUE,
+                                       dens = TRUE,
+                                       qq = TRUE,
+                                       sd = TRUE, 
+                                       variance = TRUE,
+                                       se = TRUE, 
+                                       skew = TRUE, 
+                                       kurt = TRUE,
+                                       missing = TRUE)
+print(helping_descr_raw)
+
+# We'll also check the descriptives for the integrated dataset (e.g. not split by group)
+helping_descr_int_raw = jmv::descriptives( dats_helping, 
+                                           vars = "helping",
+                                           hist = TRUE,
+                                           dens = TRUE,
+                                           qq = TRUE,
+                                           sd = TRUE, 
+                                           variance = TRUE,
+                                           se = TRUE, 
+                                           skew = TRUE, 
+                                           kurt = TRUE,
+                                           missing = TRUE)
+print(helping_descr_int_raw)
+
+
+# Continuity plot: We create a figure of the values of likelihood of helping  
+#                  sorted in ascending order just to see how much of the 0-6   
+#                  outcome range our observed data span.
+# First we an index array to use as our x-values in our ordered plot. Since
+# the rows of the dataframe aren't named we can just cast them as ints and
+# they'll suffice. Save sort and unsort indices in case we need them later
+dats_helping$dats_idx = as.integer(rownames(dats_helping))
+dats_helping$sorted_helping = sort(dats_helping$helping, decreasing = FALSE) # sorts ascending
+dats_helping$sorted_ids = order(dats_helping$helping, decreasing = FALSE)    # helping[sorted_ids] -> sorted_helping
+dats_helping$unsorted_ids = order(dats_helping$sorted_ids)                   # sorted_helping[unsorted_ids] -> helping
+
+
+# Define the figure scatterplot
+cont_plot = ggplot(dats_helping, aes(x = dats_idx, y = sorted_helping) ) + 
+                 geom_point( aes(color = "Helping Score") ) + 
+                 geom_line( aes(color = "Helping Score")  ) + 
+                 labs(x = "Index (unitless)", y = "Likelihood of Helping (0-6)") + 
+                 ggtitle("Helping Scores sorted in Ascending Order for Continuity Check") + 
+                 geom_hline( aes( yintercept = 0, color = "Upper Limit" ), linetype = "dashed" ) + 
+                 geom_hline( aes( yintercept = 6, color = "Lower Limit" ), linetype = "dashed" ) + 
+                 scale_color_manual(
+                                     name = "Legend",
+                                     values = c( "steelblue3", "red4", "red4"),
+                                     labels = c("Helping Score", "Upper Limit", "Lower Limit")
+                                    ) +
+                 theme(legend.position = "right")
+cont_plot
+                
+
+
+# Bar chart: We'll check the mean likelihood to help by category with 
+#            confidence intervals included.
+ggplot(dats_helping, aes( haste_disp_names, helping) ) +
+    stat_summary(fun = mean, geom = "bar", position = "dodge", fill="steelblue3") + 
+    stat_summary( fun.data = mean_cl_normal, geom = "errorbar", 
+                  position = position_dodge(width = 0.90), width = 0.5
+                 ) + 
+    labs( y = "Mean Likelihood of Helping (0 - 6)",
+          x = "Hastiness State") +
+    ggtitle('Impact of Haste State on Likelihood to Help') + 
+    theme_minimal()
+
+
+# Category-wise Scatter Plot 
+cat_plot = ggplot(dats_helping, aes(x = haste_disp_names, y = helping) ) + 
+                  geom_point( aes(color = "Helping Score") ) + 
+                  labs(x = "Hastiness State", y = "Likelihood of Helping (0-6)") + 
+                  ggtitle("Helping Scores Scatterplot binned by Hastiness State") + 
+                  geom_hline( aes( yintercept = 0, color = "Upper Limit" ), linetype = "dashed" ) + 
+                  geom_hline( aes( yintercept = 6, color = "Lower Limit" ), linetype = "dashed" ) + 
+                  scale_color_manual(
+                                     name = "Legend",
+                                     values = c( "steelblue3", "red4", "red4"),
+                                     labels = c("Helping Score", "Upper Limit", "Lower Limit")
+                                    ) +
+                 theme(legend.position = "right")
+cat_plot
+
+
+```
+
+### Formalize Model
+
+Model formalization for unprocessed data goes here.
+
+```{r raw_model_definition}
+# A simple linear model defined such that helping is dependent upon haste_names
+raw_helping_model <- lm(helping~haste_names, data = dats_helping)
+
+```
+
+### Advanced Raw Visuals
+
+In order to confirm normality of residuals (as opposed to raw scores), we're going to plot histograms of   
+the residuals.  
+  
+We'll also create a scatterplot of all likelihood to help scores with outliers highlighted so we can determine if we  
+need to adjust our data at all.
+
+```{r advanced_raw_visuals}
+
+# Now that we have a formalized model we can use the residuals command to output the residuals with respect to the   
+# helping mean separated by haste condition. First we need to compute the residuals and then downselect the full   
+# array to subsets of residuals separated by haste condition  
+# NOTE: When applied to a formalized model listing a categorical variable as the predictor variable   
+#       (in this case, haste_names), the residuals function computes the residuals with respect to the means of each 
+#       condition (level). So the residuals for "early" scores are computed against the mean for all scores grouped as 
+#      "early," etc. This was confirmed via inspection.
+dats_helping$raw_help_resids_all <- residuals(raw_helping_model)
+raw_help_resids_early  <- dats_helping$raw_help_resids_all[dats_helping$haste == 1]
+raw_help_resids_ontime <- dats_helping$raw_help_resids_all[dats_helping$haste == 2]
+raw_help_resids_late   <- dats_helping$raw_help_resids_all[dats_helping$haste == 3]
+
+# We need to pack all of the residuals subsets into dataframes to be usable by ggplot
+df_early <- data.frame( raw_resids = raw_help_resids_early, helping = dats_helping$helping[dats_helping$haste == 1] )
+df_ontime <- data.frame(raw_resids = raw_help_resids_ontime, helping = dats_helping$helping[dats_helping$haste == 2]  )
+df_late <- data.frame(raw_resids = raw_help_resids_late, helping = dats_helping$helping[dats_helping$haste == 3]  )
+
+# We'll control x-limits so everything aligns nicely
+my_xlims = c(round( min(dats_helping$raw_help_resids_all) ) - 1, 
+             round( max(dats_helping$raw_help_resids_all) ) + 1)
+my_ylims = c(0, 1)
+font_color = "#4F81BD"
+
+# Early residuals histogram
+early_resids_fig <- ggplot( df_early, aes(x = raw_resids) ) + 
+                      geom_histogram( aes(y = ..density..),  binwidth = 0.5, color = "steelblue3", fill = "steelblue3") +
+                      geom_density(color = "steelblue4", size = 1) + 
+                      labs(x = "Likelihood of Helping (0 -6)", y = "Density") + 
+                      xlim(my_xlims) + 
+                      ylim(my_ylims) + 
+                      theme( axis.title.x = element_blank(),
+                             axis.title.y = element_text(color = font_color) 
+                            )
+
+# print(early_resids_fig)
+
+# On-Time residuals histogram
+ontime_resids_fig <- ggplot( df_ontime, aes(x = raw_resids) ) + 
+                       geom_histogram( aes(y = ..density..),  binwidth = 0.5, color = "purple3", fill = "purple3") +
+                       geom_density(color = "purple4", size = 1) + 
+                       labs(x = "Likelihood of Helping (0 -6)", y = "Density") + 
+                       xlim(my_xlims) +  
+                       ylim(my_ylims) + 
+                       theme( axis.title.x = element_blank(),
+                              axis.title.y = element_text(color = font_color) 
+                             )
+
+# print(ontime_resids_fig)
+
+# Late residuals histogram
+late_resids_fig <- ggplot( df_late, aes(x = raw_resids) ) + 
+                     geom_histogram( aes(y = ..density..),  binwidth = 0.5, color = "orange3", fill = "orange3") +
+                     geom_density(color = "orange4", size = 1) + 
+                     labs(x = "Likelihood of Helping (0-6)", y = "Density") + 
+                     xlim(my_xlims) + 
+                     ylim(my_ylims) + 
+                     theme( axis.title.x = element_text(color = font_color),
+                            axis.title.y = element_text(color = font_color)
+                            )
+
+# print(late_resids_fig)
+
+# Display residuals histograms in a subplot
+resids_title = ggplot() + 
+               ggtitle("Likelihood of Helping Residuals with respect to Mean Likelihood binned by Haste Condition") + 
+               theme_void() + 
+               theme(plot.title = element_text(size = 12, face = "italic", color = font_color) )
+resids_grid = plot_grid( early_resids_fig, ontime_resids_fig, late_resids_fig, 
+                         nrow = 4, ncol = 1,
+                         align = "h"
+                        )
+resids_figure = plot_grid( resids_title, resids_grid,
+                           ncol = 1,
+                           rel_heights = c(0.05, 1)
+                           )
+print( resids_figure)
+
+```
+
+### Test of Variance for Raw Data
+
+The following section checks the homogeneity of variance in all of the raw data to confirm assumption   
+of homoscedasticity. 
+
+```{r levenes_raw}
+
+# The general data skew and kurtosis measures are reasonably normal. But  
+# let's check variance directly:
+leveneTest(helping ~ haste_names, dats_helping)
+
+```
+
+### Check Outliers Directly
+
+While the data looks normal and variance looks acceptable I'm still going to check for beyond 3-sigma outliers  
+as at least one value in the "late" data q-q plots looks a bit interesting.
+
+
+```{r outlier_analysis}
+
+# We'll create my own flavor of an outliers plot using the check_outliers 
+# function in the performance package. I prefer this output to the weird  
+# hull output made by plotting the entire check_outliers output structure
+outliers_3_sigma <- performance::check_outliers( raw_helping_model,  
+                                                 method = "zscore",  
+                                                 threshold = list("zscore" = 3)
+                                               )
+
+# In our general data dataframe we'll create a logical array column that's
+# FALSE by default and TRUE for all indices that were flagged as outliers. 
+# This will allow us to highlight values in a residuals scatter plot marked as  
+# TRUE
+dats_helping$outliers_3_sigma_logical <- outliers_3_sigma
+
+# Now we're going to create a simple scatter plot of the residuals and highlight  
+# any outliers found as bright pink so they stand out. We'll also label them 
+# with both their row number (id) and their residuals value so we can spot
+# them in the dataframe if need be.
+ggplot( dats_helping, aes( x = dats_idx, y = raw_help_resids_all) ) +
+    geom_point( aes(color = outliers_3_sigma_logical) ) + 
+    scale_color_manual( values = c("navy", "magenta"), 
+                        name = "Outlier Status",
+                        labels = c("Within 3*SD", "Outside 3*SD")
+                        ) +
+    geom_text(
+               data = subset(dats_helping, outliers_3_sigma_logical == TRUE),    #  Filter to only include outliers
+               aes(label = paste("(", dats_idx, ",", raw_help_resids_all, ")" ) ),     # Label with the x-value (haste)
+               vjust = -1,                                                      # Position above the point
+               color = "magenta"                                                # Label color
+              ) +
+    
+    labs(
+          title = "Likelihood of Helping Residuals with Outliers Highlighted",
+          x = "Index (Row No.)",
+          y = "Unstandardized Residuals"
+         ) +
+    theme_minimal() + 
+    theme( plot.title = element_text( face = "italic", color = font_color ),
+           axis.title.x = element_text( color = font_color),
+           axis.title.y = element_text( color = font_color),
+           legend.text = element_text( color = font_color),
+           legend.title = element_text( color = font_color)
+          )
+
+
+```
+
+### Decision to Handle Outliers
+
+No outliers beyond 3*SD were found so no data massaging is necessary.
+
+```{r outlier_handling}
+
+# This code chunk is left intentionally blank.
+
+```
+
+
+### Test / Analysis of Raw Results
+
+Run the test / analysis you intend to conduct on the raw data (no outlier)  
+manipulation for the record.
+
+```{r, raw_t_test}
+
+# NOTE: It's important to reference ANOVA to the jmv:: package explicitly as there are many ANOVA functions in R
+#       and we intend to use the jamovi one.
+jmv::ANOVA( data = dats_helping,
+            dep = 'helping',                   # ANOVA - Evaluate helping likelihood as outcome var
+            factors = c('haste_disp_names'),        # ANOVA - split by haste condition
+            effectSize = 'partEta',            # ANOVA - report fraction of variance, not Cohen's d
+            postHoc = c('haste_disp_names'),        # POST HOC - Also split post-hoc's by haste condition
+            postHocCorr = c('tukey', 'bonf'),  # Include both Tukey's and Bonferroni's
+            postHocES = 'd',                   # POST HOC
+            emMeans = list('haste_disp_names'),     # DESCRIPTIVES BECAUSE JESS IS LAZY
+            emmTables = TRUE,                  # YES, MAKE ME A TABLE BECAUSE I'M LAZY
+            emmPlotError = 'ci',
+            emmPlotData = TRUE
+           )
+
+```
+
+## Compare Early and On-Time Groups Directly (T-Test)
+
+This section contains analysis to be used in Questions 5 and 6. 
+
+### Reduce the Dataframe
+
+To expedite this analysis, we're going to create a subselected dataframe from our existing dataframe that  
+only exists of rows for groups 1 and 2.
+
+```{r subselect_dataframe}
+
+# We "OR" two logical conditions, haste_condition equal to 1 or equal to 2, and then use that logical array to
+# subselect the dataframe and assign it to a new name
+dats_helping_sub <- subset( dats_helping, (haste == 1 | haste == 2 ) )
+
+# Drop the unused values in the factor columns in our new data
+dats_helping_sub$haste_names = droplevels(dats_helping_sub$haste_names)
+dats_helping_sub$haste_disp_names = droplevels(dats_helping_sub$haste_disp_names)
+dats_helping_sub$haste = droplevels(dats_helping_sub$haste)
+```
+
+### Assumption Checks for T-Test
+
+We'll conduct a couple quick assumptions checks that won't be reported in our answer, but the data will be available  
+in case the TA's want to confirm I did it. 
+
+```{r subselect_assumptions}
+# Check normality using descriptives (we've already seen the histograms of the residuals)
+helping_descr_sub = jmv::descriptives( dats_helping_sub, 
+                                       vars = "helping", 
+                                       splitBy="haste_names", 
+                                       hist = TRUE,
+                                       dens = TRUE,
+                                       qq = TRUE,
+                                       sd = TRUE, 
+                                       variance = TRUE,
+                                       se = TRUE, 
+                                       skew = TRUE, 
+                                       kurt = TRUE,
+                                       missing = TRUE)
+print(helping_descr_sub)
+
+
+# Check homoscedasticity with Levene's
+leveneTest(helping ~ haste_names, dats_helping_sub)
+
+```
+
+### Independent T-Test of Early to On-Time
+
+```{r indy_t_test_subset}
+# This is an independent samples T-test since we have two groups that are not
+# matched in pairs
+ttestIS(data = dats_helping_sub, 
+        vars = "helping", 
+        group = "haste_disp_names", 
+        eqv = TRUE,
+        meanDiff = TRUE,
+        effectSize = TRUE, 
+        ci = TRUE, 
+        ciWidth = 95,
+        desc = TRUE, 
+        welchs = TRUE)
+```
