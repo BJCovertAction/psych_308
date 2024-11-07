@@ -1,0 +1,225 @@
+---
+title: "PSY.308b.RMANOVA.DEMO"
+output: html_document
+---
+ 
+```{r, echo=FALSE, results=FALSE, message=FALSE, cache=FALSE}
+library(knitr); opts_chunk$set(error=TRUE, cache=FALSE)
+```
+
+```{r}
+# Load packages
+library(psych)
+library(jmv)
+library(ggplot2)
+library(car)
+library(pastecs)
+library(dplyr)
+library(magrittr)
+library(tidyr)
+library(afex)
+library(emmeans)
+```
+
+
+EXAMPLE 1
+A study conducted by Stiller-Ostrowski et al. (2005) assessed the effectiveness of an education intervention on injury psychology for athletic training students. Students (n = 11) completed a skill usage assessment at 5 timepoints (baseline, week 3, week 6, week 7, week 14) in order to determine the effectiveness of the intervention over time. 
+
+IV: Training (Baseline, Week 3, Week 6, Week 7, Week 14)
+DV: Skill Usage (1-300)
+
+**SET UP**
+```{r}
+# Read data - notice it's in wide format
+dat_injury <- read.csv("injury.csv")
+```
+
+```{r}
+#changing to long for graphing purposes
+dat_injury_long <- dat_injury %>% pivot_longer(!ID, names_to = "time", values_to = "usage")
+
+#specifying the levels of time so they're in the right order when graphing
+dat_injury_long$time <- factor(dat_injury_long$time,levels = c("base", "week3", "week6", "week7", "week14"))
+```
+
+```{r}
+#check the class of all the variable to confirm
+str(dat_injury_long)
+```
+
+**PREPARE: VISUALIZE (GET TO KNOW) YOUR DATA AND CHECK ASSUMPTIONS**
+Assumption Reminder: The DV (residuals) of the DIFFERENCE scores must be normally distributed and the variances of the DIFFERENCE score distributions must be homogeneous (sphericity). We will check normality first looking at the histogram of the residuals and checking skew and kurtosis for all of the DIFFERENCE scores. For sphericity, we will run a Mauchly's test as a part of the RM ANOVA. 
+
+```{R}
+#creating a bar graph  
+bar <- ggplot(dat_injury_long, aes(time, usage))
+
+bar + stat_summary(fun = mean, geom = "bar", position = "dodge", fill = "tomato1") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Timepoint", y = "Skill Usage") + ggtitle('Effect of Time on Skill Usage')
+```
+
+```{r}
+#Create difference scores 
+dat_injury$base_week3 <- (dat_injury$base - dat_injury$week3)
+dat_injury$base_week6 <- (dat_injury$base - dat_injury$week6)
+dat_injury$base_week7 <- (dat_injury$base - dat_injury$week7)
+dat_injury$base_week14 <- (dat_injury$base - dat_injury$week14)
+dat_injury$week3_week6 <- (dat_injury$week3 - dat_injury$week6)
+dat_injury$week3_week7 <- (dat_injury$week3 - dat_injury$week7)
+dat_injury$week3_week14 <- (dat_injury$week3 - dat_injury$week14)
+dat_injury$week6_week7 <- (dat_injury$week6 - dat_injury$week7)
+dat_injury$week6_week14 <- (dat_injury$week6 - dat_injury$week14)
+dat_injury$week7_week14 <- (dat_injury$week7 - dat_injury$week14)
+```
+
+```{r}
+#checking normality graphically. We specify the model and then ask for a histogram of the model residuals (i.e. the amount the model over or under predicts each participant's skill usage score)
+model.injury<-aov(usage~as.factor(time),data=dat_injury_long)
+res.injury<-model.injury$residuals
+hist(res.injury, main="Histogram of residuals",xlab="Residuals")
+```
+
+```{r}
+#checking descriptive stats, including quantitative indicators of normality - specifically skew and kurtosis of the difference scores. 
+desc.campaign.diff <- jmv::descriptives(dat_injury, vars = c('base_week3','base_week6','base_week7','base_week14','week3_week6', 'week3_week7','week3_week14', 'week6_week7', 'week6_week14','week7_week14'), sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+desc.campaign.diff
+
+#since we're checking so many variables, sometimes I like to use psych's describe function because it organizes the variables vertically rather than horizontally - can be helpful when there are a lot of variables
+desc.campaign2 <- psych::describe(dat_injury)
+desc.campaign2
+```
+
+**RM ANOVA**
+```{r}
+modelinjury <- anovaRM(
+  data = dat_injury,
+  rm = list(list(label = 'training', levels = c('base', 'week3', 'week6', 'week7', 'week14'))),
+  rmCells = list(
+    list(measure = 'base', cell = 'base'),
+    list(measure = 'week3', cell = 'week3'),
+    list(measure = 'week6', cell = 'week6'),
+    list(measure = 'week7', cell = 'week7'),
+    list(measure = 'week14', cell = 'week14')
+  ),
+  rmTerms = list('training'),
+  effectSize = c('partEta', 'eta'),
+  spherTests = TRUE,  # Mauchly's test of sphericity
+  spherCorr = c('none', 'GG'),  # Sphericity corrections: no correction and GG
+  postHoc = list('training'),
+  postHocCorr = 'holm',
+  emMeans = list('training'),
+  emmTables = TRUE)
+
+modelinjury
+
+```
+
+```{r}
+#pairwise comparison results again but with confidence intervals and effect sizes, yay!
+pairwise_injury <- 
+  emmeans(aov_ez(id = "ID", dv = "usage", within = "time", data = dat_injury_long), 
+          pairwise ~ time, adjust = "holm") %>%
+  contrast(method = "pairwise", adjust = "holm") %>%
+  summary(infer = TRUE) %>%
+  mutate(Cohen_d = estimate / SE)
+
+# Print results
+print(pairwise_injury)
+```
+
+
+EXAMPLE 2
+A local nonprofit is interested in increasing participation in their community volunteering program. They hire a market panel research company to test the effect of three different recruitment campaigns on the likelihood to join the program. The first campaign highlights the need, the second focuses on the impact volunteers have had in the past, and the third highlights the relationships and community that volunteers develop. They work with the market research firm to recruit a panel of 100 participants to review three pitches (one for each campaign) and rate their likelihood to volunteer after each campaign. 
+
+IV: Campaign (Need, Impact, Relationship)
+DV: Likelihood to Volunteer (1-25)
+
+**SET UP**
+```{r}
+#Read data - notice the data is in long format
+dat_vol <- read.csv("volunteer.csv")
+```
+
+```{r}
+#check the class of all the variable
+str(dat_vol)
+
+#convert both subject and campaign to factors. We converted subject to factor so that R knows all of the 1s are one person and all the 2s are one person (but they aren't numerically related to one another). Subject is a categorical variable with 100 levels. Here we're using a different function. Mutate from dplyr is a common way to make all kinds of changes to variables. 
+dat_vol <- dat_vol %>% dplyr::mutate_at(c('Subject', 'Campaign'), as.factor)
+```
+
+```{r}
+#convert your data from long to wide format so you have it ready for the anovaRM function
+dat_vol_wide <- pivot_wider(dat_vol, names_from = Campaign, values_from = Volunteer)
+```
+
+**PREPARE: VISUALIZE (GET TO KNOW) YOUR DATA AND CHECK ASSUMPTIONS**
+Assumption Reminder: The DV (residuals) of the DIFFERENCE scores must be normally distributed and the variances of the DIFFERENCE score distributions must be homogeneous (sphericity). We will check normality first looking at the histogram of the residuals and checking skew and kurtosis for all of the DIFFERENCE scores. For sphericity, we will run a Mauchly's test as a part of the RM ANOVA. 
+
+```{R}
+#creating a bar graph  
+bar <- ggplot(dat_vol, aes(Campaign, Volunteer))
+
+bar + stat_summary(fun = mean, geom = "bar", position = "dodge", fill = "tomato1") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Campaign", y = "Mean Volunteering Likelihood") + ggtitle('Effect of Campaign Type of Likelihood to Volunteer')
+```
+
+```{r}
+
+#descriptive split by campaign type to review means, sds, etc
+desc.campaign <- descriptives(dat_vol, vars = c('Volunteer'), splitBy = 'Campaign',sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+desc.campaign
+```
+
+```{r}
+#checking normality graphically. We specify the model and then ask for a histogram of the model residuals (i.e. the amount the model over or under predicts each participant's skill usage score)
+model.vol<-aov(Volunteer~as.factor(Campaign),data=dat_vol)
+res.vol<-model.vol$residuals
+hist(res.vol, main="Histogram of residuals",xlab="Residuals")
+```
+
+```{r}
+#create difference scores to be able to check means an skew/kurtosis of those difference scores
+dat_vol_wide$im_nd <- dat_vol_wide$Impact - dat_vol_wide$Need
+dat_vol_wide$im_rel <- dat_vol_wide$Impact - dat_vol_wide$Relationship
+dat_vol_wide$nd_rel <- dat_vol_wide$Need - dat_vol_wide$Relationship
+
+desc.campaign.diff <- descriptives(dat_vol_wide, vars = c('im_nd', 'im_rel', 'nd_rel'), sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
+desc.campaign.diff
+```
+
+**RM ANOVA**
+```{r}
+modelvol <- anovaRM(data = dat_vol_wide, 
+                 rm = list(list(label = 'Campaign', 
+                                levels = c('Impact', 'Need', 'Relationship'))), 
+                 rmCells = list(list(measure = 'Impact', cell = 'Impact'),
+                                list(measure = 'Need', cell = 'Need'),
+                                list(measure = 'Relationship', cell = 'Relationship')),
+                 rmTerms = list('Campaign'),
+                 effectSize = c('partEta', 'eta'),
+                 spherTests = TRUE,
+                 spherCorr = c('none','GG'),
+                 postHoc = list('Campaign'),
+                 postHocCorr = 'holm',
+                 emMeans = list('Campaign'),
+                 emmTables = TRUE)
+
+modelvol
+```
+
+```{r}
+#pairwise comparison results again but with confidence intervals and effect sizes, yay!
+pairwise_volunteer <- 
+  emmeans(aov_ez(id = "Subject", dv = "Volunteer", within = "Campaign", data = dat_vol), 
+          pairwise ~ Campaign, adjust = "holm") %>%
+  contrast(method = "pairwise", adjust = "holm") %>%
+  summary(infer = TRUE) %>%
+  mutate(Cohen_d = estimate / SE)
+
+# Print results
+print(pairwise_volunteer)
+```
+
+
+
+
+
