@@ -1862,6 +1862,21 @@
       ],
       "Hash": "518970426f8042a2b27c3415da881674"
     },
+    "pastecs": {
+      "Package": "pastecs",
+      "Version": "1.4.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "boot",
+        "grDevices",
+        "graphics",
+        "stats",
+        "utils"
+      ],
+      "Hash": "56e66b7bf898437aac44f7e4b088affb"
+    },
     "patchwork": {
       "Package": "patchwork",
       "Version": "1.3.0",
