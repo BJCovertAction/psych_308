@@ -35,9 +35,14 @@ dat_injury <- read.csv("injury.csv")
 ```
 
 ```{r}
+# Code here permutes data to be columnal instead of meshgrid. Each ID has a category variable in "time" with the score 
+# for each next to it.
+
 #changing to long for graphing purposes
 dat_injury_long <- dat_injury %>% pivot_longer(!ID, names_to = "time", values_to = "usage")
 
+# use "factor" here instead of "as.factor" so that we strictly order the levels ... this basically allows you to 
+# control your lists without having to sort post-hoc
 #specifying the levels of time so they're in the right order when graphing
 dat_injury_long$time <- factor(dat_injury_long$time,levels = c("base", "week3", "week6", "week7", "week14"))
 ```
@@ -59,6 +64,7 @@ bar + stat_summary(fun = mean, geom = "bar", position = "dodge", fill = "tomato1
 
 ```{r}
 #Create difference scores 
+# Could to this using a loop
 dat_injury$base_week3 <- (dat_injury$base - dat_injury$week3)
 dat_injury$base_week6 <- (dat_injury$base - dat_injury$week6)
 dat_injury$base_week7 <- (dat_injury$base - dat_injury$week7)
@@ -72,6 +78,8 @@ dat_injury$week7_week14 <- (dat_injury$week7 - dat_injury$week14)
 ```
 
 ```{r}
+# AOV is another linear model definition function. (Stands for analysis of Variance)
+# Double check with Raider or Dr. Diaz that these are residuals against a mean....
 #checking normality graphically. We specify the model and then ask for a histogram of the model residuals (i.e. the amount the model over or under predicts each participant's skill usage score)
 model.injury<-aov(usage~as.factor(time),data=dat_injury_long)
 res.injury<-model.injury$residuals
@@ -83,18 +91,25 @@ hist(res.injury, main="Histogram of residuals",xlab="Residuals")
 desc.campaign.diff <- jmv::descriptives(dat_injury, vars = c('base_week3','base_week6','base_week7','base_week14','week3_week6', 'week3_week7','week3_week14', 'week6_week7', 'week6_week14','week7_week14'), sd = TRUE, se = TRUE, skew = TRUE, kurt = TRUE)
 desc.campaign.diff
 
+# Describe has better descriptives formatting for very long data.
+
 #since we're checking so many variables, sometimes I like to use psych's describe function because it organizes the variables vertically rather than horizontally - can be helpful when there are a lot of variables
 desc.campaign2 <- psych::describe(dat_injury)
 desc.campaign2
+
+# For Grand Mean we could either take descriptives of _long data (all scores in 1 column), or we can take the mean of the group means
+#  divided by j_groups
 ```
 
 **RM ANOVA**
 ```{r}
+
+# NOTE: anovaRM is taking in the meshgrid formatted data (wide), not columncatted data
 modelinjury <- anovaRM(
   data = dat_injury,
   rm = list(list(label = 'training', levels = c('base', 'week3', 'week6', 'week7', 'week14'))),
-  rmCells = list(
-    list(measure = 'base', cell = 'base'),
+  rmCells = list(                              # Maps : the concept of a measure, or level, to which column in the meshgrid table
+    list(measure = 'base', cell = 'base'),     #        ... which constructs difference pairs
     list(measure = 'week3', cell = 'week3'),
     list(measure = 'week6', cell = 'week6'),
     list(measure = 'week7', cell = 'week7'),
@@ -102,18 +117,38 @@ modelinjury <- anovaRM(
   ),
   rmTerms = list('training'),
   effectSize = c('partEta', 'eta'),
-  spherTests = TRUE,  # Mauchly's test of sphericity
-  spherCorr = c('none', 'GG'),  # Sphericity corrections: no correction and GG
+  spherTests = TRUE,                          # Mauchly's test of sphericity: Recall - testing differences in variance of diff-scores
+  spherCorr = c('none', 'GG'),                # Sphericity corrections: no correction and GG
   postHoc = list('training'),
-  postHocCorr = 'holm',
+  postHocCorr = 'holm',                       # Since repeated measure (don't use Tukey)
   emMeans = list('training'),
   emmTables = TRUE)
 
 modelinjury
 
+# OUTPUT NOTES:
+#   Recall, "Mean Squares" is variance.
+#           F is equal to Mean Squares of "training" divided by Mean Squares of "Residuals" 
+#                                         model                 error
+
 ```
 
 ```{r}
+# This package gives output very similar to JMV (pretty table), but includes pairwise comparison confidence intervals
+#  (JMV only does CI for effect sizes in pairwise)
+# NOTE: we pass a model to this (aov_ez, which is the same model as above but uses the longform dataframe instead of
+#       the meshgrid)
+#      "pairwise" is the argument that says, "use this column to define pairwise sets"
+#
+# Contrast function gives us a pairwise t-test (holm's)
+# Summary w/ infer argument gives us Ci extracted from those holm's tests in Contrast
+# mutate gives us a manual calc of Cohen's d
+# EXERCISE: Play with each piece one at a time
+# NOTE: comaprisons are done in alaphaetical order (base minus week3) so they're "negative" even though we should
+#       report it as positive sice tie increases
+
+
+
 #pairwise comparison results again but with confidence intervals and effect sizes, yay!
 pairwise_injury <- 
   emmeans(aov_ez(id = "ID", dv = "usage", within = "time", data = dat_injury_long), 
