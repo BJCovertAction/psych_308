@@ -1,7 +1,7 @@
 ---
-title: "PSYCH308B - Data Analysis __ (DA__)"
+title: "PSYCH308B - Data Analysis 03 (DA03)"
 author: "Brady C. Jackson"
-date: "2024/__/__"
+date: "2024/11/10"
 
 # Write document output to HTML, Word, and PDF output types with a Table of
 # contents included.
@@ -33,6 +33,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(jmv)       # for descriptive
 library(ggplot2)
 library(dplyr)
+library(tidyr)       # for pivot_longer
 # library(car)       # for leveneTest
 # library(stringr)   # for sub_str operations
 # library(psych)
@@ -50,28 +51,232 @@ First we need to load the data.
 
 ```{r data_prep}
 
+# Load in the data
+dats_bodies_full <- read.csv("./Bernard et al. (2012).csv")
+
+# Our research introduction doesn't tell us what "1" and "2" mean in the "gender" column so we can't
+# add any data labels for that category. Notably, our research question doesn't rely on understanding the gender of the
+# participants so we'll drop that column before doing further data sorting and preping
+colnames(dats_bodies_full) <- tolower(colnames(dats_bodies_full))
+dats_bodies <- subset(dats_bodies_full, select = -gender)
+
+# We'll be sure to include some display name versions of the
+# column headers in the long form data. So first let's create the longform data.
+dats_bodies_long <- dats_bodies %>% tidyr::pivot_longer(!id, names_to = "pic_type", values_to = "recognition")
+
+# Add a column of "display names" to the long-form data so we can have some print friendly output when needed
+dats_bodies_long$pic_disp_names = dats_bodies_long$pic_type
+dats_bodies_long$pic_disp_names[dats_bodies_long$pic_disp_names == "inverted_women"] <- 'Inverted Women'
+dats_bodies_long$pic_disp_names[dats_bodies_long$pic_disp_names == "upright_women"] <- 'Upright Women'
+dats_bodies_long$pic_disp_names[dats_bodies_long$pic_disp_names == "inverted_men"] <- 'Inverted Men'
+dats_bodies_long$pic_disp_names[dats_bodies_long$pic_disp_names == "upright_men"] <- 'Upright Men'
+
+# Cast both the display names and the pic_type columns as factors. Note that before-and-after arrays
+# were manually inspected to ensure appropriate order of values were maintained for the cast arrays given
+# Specifically, entries for ID==81 were inspected as that row has unique values for all four conditions
+# of picture type.
+dats_bodies_long$pic_type       <- factor( dats_bodies_long$pic_type, levels = c( "inverted_women",
+                                                                                  "upright_women", 
+                                                                                  "inverted_men", 
+                                                                                  "upright_men" 
+                                                                                 )
+                                          )
+dats_bodies_long$pic_disp_names <- factor(dats_bodies_long$pic_disp_names, levels = c( "Inverted Women",
+                                                                                       "Upright Women", 
+                                                                                       "Inverted Men", 
+                                                                                       "Upright Men" 
+                                                                                      )
+                                          )
 ```
 
-### Raw Data Descriptive Stats and Visualization
+### Create Difference Scores
 
-```{r raw_descriptives_and_visuals}
+We need to add the difference scores to the base dataset (which already has gender removed as an unnecessary variable)
 
+
+```{r calc_diff_scores}
+# First we'll get the names of the independent variable columns from the longform data
+pic_types = unique(as.character( dats_bodies_long$pic_type) )
+
+# Now we loop over the list of names and compute difference scores to each name that is not the current one being
+# differenced against. Once we difference each other column to the current pic_type, we pop that pic_type off so 
+# that we don't compute differences against it again.
+n_types = length(pic_types)
+for(iii in 1:(n_types - 1) ){
+    for(jjj in (iii + 1):n_types){
+        this_type <- pic_types[iii]
+        next_type <- pic_types[jjj]
+        
+        # Create the difference score column name
+        diff_name <- paste(this_type, 'm', next_type, sep = '_')
+        
+        # Add the new difference score column to the non-long-wise data
+        dats_bodies[[diff_name]] <- dats_bodies[[this_type]] - dats_bodies[[next_type]]
+        
+    }
+}
 
 ```
+
 
 ### Formalize Model
 
-Model formalization for unprocessed data goes here.
+We've been using the lm function to formalize a linear model thus far, but for this analysis we'll use the 
+AOV function instead per Dr. Diaz's recommendations.
 
 ```{r raw_model_definition}
 
+# We define our model as object recognition percentage (recognition) being dependent on pic_type.
+bodies_model <- aov( recognition~pic_type, data=dats_bodies_long )
+
 ```
+
+### Data Descriptives Stats and Visualization
+
+
+
+```{r raw_descriptives_and_visuals}
+
+# Get JMV descriptives of difference scores
+
+# Get JMV descriptives of long_scores
+
+# Try psych::describe for difference scores
+
+# Try psych::describe for long_scores
+
+
+
+# Bar chart: We'll check the mean object recognition by picture type with 
+#            confidence intervals included.
+ggplot(dats_bodies_long, aes( pic_disp_names, recognition) ) +
+    stat_summary(fun = mean, geom = "bar", position = "dodge", fill="steelblue3") +
+    stat_summary( fun.data = mean_cl_normal, geom = "errorbar",
+                  position = position_dodge(width = 0.90), width = 0.5
+                 ) +
+    labs( y = "Mean Object Recognition Fraciton",
+          x = "Picture Type") +
+    ggtitle('Impact of Picture Type on Object Recognition') +
+    theme_minimal()
+
+
+# Category-wise Scatter Plot 
+#  This shows us that the predictor variable is, indeed, categorical.
+cat_plot = ggplot(dats_bodies_long, aes(x = pic_disp_names, y = recognition) ) + 
+                  geom_point( aes(color = "Recognition Fraction") ) + 
+                  labs(x = "Picture Type", y = "Recognition Fraction (0 - 1)") + 
+                  ggtitle("Recognition Fraction binned by Picture Type") + 
+                  geom_hline( aes( yintercept = 0, color = "Upper Limit" ), linetype = "dashed" ) + 
+                  geom_hline( aes( yintercept = 1, color = "Lower Limit" ), linetype = "dashed" ) + 
+                  scale_color_manual(
+                                     name = "Legend",
+                                     values = c( "steelblue3", "red4", "red4"),
+                                     labels = c("Recognition Fraction", "Upper Limit", "Lower Limit")
+                                    ) +
+                 theme(legend.position = "right")
+cat_plot
+
+
+
+# Consider adding continuity plot:
+# For one-way ANOVA's we explicitly checked continuity of data (e.g. output data generally spanned the entire
+# range of allowed values). That wasn't listed as an assumption for RM ANOVA's by Dr. Diaz so I'm not plotting it here
+# to save myself time. But you may consider adding later if you have time.
+
+
+
+```
+
+
 
 ### Advanced Raw Visuals
 
 More advanced visuals which can be based on model object go here.
 
 ```{r advanced_raw_visuals}
+
+# Produce residuals histogram using Dr. Diaz's aov method.
+
+# Product residuals using your DA02 method
+
+# <UPDATE EVERYTHING BELOW>
+
+# Now that we have a formalized model we can use the residuals command to output the residuals with respect to the   
+# helping mean separated by haste condition. First we need to compute the residuals and then downselect the full   
+# array to subsets of residuals separated by haste condition  
+# NOTE: When applied to a formalized model listing a categorical variable as the predictor variable   
+#       (in this case, haste_names), the residuals function computes the residuals with respect to the means of each 
+#       condition (level). So the residuals for "early" scores are computed against the mean for all scores grouped as 
+#      "early," etc. This was confirmed via inspection.
+dats_helping$raw_help_resids_all <- residuals(raw_helping_model)
+raw_help_resids_early  <- dats_helping$raw_help_resids_all[dats_helping$haste == 1]
+raw_help_resids_ontime <- dats_helping$raw_help_resids_all[dats_helping$haste == 2]
+raw_help_resids_late   <- dats_helping$raw_help_resids_all[dats_helping$haste == 3]
+
+# We need to pack all of the residuals subsets into dataframes to be usable by ggplot
+df_early <- data.frame( raw_resids = raw_help_resids_early, helping = dats_helping$helping[dats_helping$haste == 1] )
+df_ontime <- data.frame(raw_resids = raw_help_resids_ontime, helping = dats_helping$helping[dats_helping$haste == 2]  )
+df_late <- data.frame(raw_resids = raw_help_resids_late, helping = dats_helping$helping[dats_helping$haste == 3]  )
+
+# We'll control x-limits so everything aligns nicely
+my_xlims = c(round( min(dats_helping$raw_help_resids_all) ) - 1, 
+             round( max(dats_helping$raw_help_resids_all) ) + 1)
+my_ylims = c(0, 1)
+font_color = "#4F81BD"
+
+# Early residuals histogram
+early_resids_fig <- ggplot( df_early, aes(x = raw_resids) ) + 
+                      geom_histogram( aes(y = ..density..),  binwidth = 0.5, color = "steelblue3", fill = "steelblue3") +
+                      geom_density(color = "steelblue4", size = 1) + 
+                      labs(x = "Likelihood of Helping (0 -6)", y = "Density") + 
+                      xlim(my_xlims) + 
+                      ylim(my_ylims) + 
+                      theme( axis.title.x = element_blank(),
+                             axis.title.y = element_text(color = font_color) 
+                            )
+
+# print(early_resids_fig)
+
+# On-Time residuals histogram
+ontime_resids_fig <- ggplot( df_ontime, aes(x = raw_resids) ) + 
+                       geom_histogram( aes(y = ..density..),  binwidth = 0.5, color = "purple3", fill = "purple3") +
+                       geom_density(color = "purple4", size = 1) + 
+                       labs(x = "Likelihood of Helping (0 -6)", y = "Density") + 
+                       xlim(my_xlims) +  
+                       ylim(my_ylims) + 
+                       theme( axis.title.x = element_blank(),
+                              axis.title.y = element_text(color = font_color) 
+                             )
+
+# print(ontime_resids_fig)
+
+# Late residuals histogram
+late_resids_fig <- ggplot( df_late, aes(x = raw_resids) ) + 
+                     geom_histogram( aes(y = ..density..),  binwidth = 0.5, color = "orange3", fill = "orange3") +
+                     geom_density(color = "orange4", size = 1) + 
+                     labs(x = "Likelihood of Helping (0-6)", y = "Density") + 
+                     xlim(my_xlims) + 
+                     ylim(my_ylims) + 
+                     theme( axis.title.x = element_text(color = font_color),
+                            axis.title.y = element_text(color = font_color)
+                            )
+
+# print(late_resids_fig)
+
+# Display residuals histograms in a subplot
+resids_title = ggplot() + 
+               ggtitle("Likelihood of Helping Residuals with respect to Mean Likelihood binned by Haste Condition") + 
+               theme_void() + 
+               theme(plot.title = element_text(size = 12, face = "italic", color = font_color) )
+resids_grid = plot_grid( early_resids_fig, ontime_resids_fig, late_resids_fig, 
+                         nrow = 4, ncol = 1,
+                         align = "h"
+                        )
+resids_figure = plot_grid( resids_title, resids_grid,
+                           ncol = 1,
+                           rel_heights = c(0.05, 1)
+                           )
+print( resids_figure)
 
 
 ```
