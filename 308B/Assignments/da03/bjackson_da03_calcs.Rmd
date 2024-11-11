@@ -283,11 +283,13 @@ print( resids_figure)
 
 ### Test of Variance for Raw Data
 
-[OPTIONAL] The following section checks the homogeneity of variance in all of   
+The following section checks the homogeneity of variance (sphericity) in all of   
 the raw data. This may or may not be necessary depending on what kinds of models  
 you're building.
 
-```{r levenes_raw}
+```{r mauchlys_raw}
+
+# Add checks for Mauchly's test from Dr. Diaz's example code.
 
 ```
 
