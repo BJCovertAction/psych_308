@@ -36,11 +36,15 @@ library(dplyr)
 library(tidyr)       # for pivot_longer
 # library(car)       # for leveneTest
 # library(stringr)   # for sub_str operations
-# library(psych)
+library(psych)
 # library(Hmisc)     # for fun.dat substitution
 # library(see)       # for outliers analysis 
 # library(magrittr)
 # library(AER)
+library(cowplot)   # for axis aligned grid plots
+library(afex)      # for pairwise confidence intervals
+library(emmeans)   # for pairwise confidence intervals
+library(pastecs)
 ```
 
 ## Investigation of Raw, Unprocessed Data
@@ -129,6 +133,43 @@ AOV function instead per Dr. Diaz's recommendations.
 # We define our model as object recognition percentage (recognition) being dependent on pic_type.
 bodies_model <- aov( recognition~pic_type, data=dats_bodies_long )
 
+# We're also going to define a Long form dataframe for the difference scores (not the raw scores), and we'll define
+# a second linear model that quantifies recognition_diff as a function of difference pairing
+dats_bodies_diff <- subset(dats_bodies, select = -c(inverted_women, upright_women, inverted_men, upright_men))
+dats_bodies_diff_long <- dats_bodies_diff %>% tidyr::pivot_longer(!id, names_to = "diff_pair", values_to = "recog_diff")
+
+# We'll cast the longform diffs categories as factors and add a column of print-friendly factor names
+# Add a column of "display names" to the long-form data so we can have some print friendly output when needed
+dats_bodies_diff_long$diff_disp_names = dats_bodies_diff_long$diff_pair
+dats_bodies_diff_long$diff_disp_names[dats_bodies_diff_long$diff_disp_names == "inverted_women_m_upright_women"] <- 'IW-UW'
+dats_bodies_diff_long$diff_disp_names[dats_bodies_diff_long$diff_disp_names == "inverted_women_m_inverted_men"] <- 'IW-IM'
+dats_bodies_diff_long$diff_disp_names[dats_bodies_diff_long$diff_disp_names == "inverted_women_m_upright_men"] <- 'IW-UM'
+dats_bodies_diff_long$diff_disp_names[dats_bodies_diff_long$diff_disp_names == "upright_women_m_inverted_men"] <- 'UW-IM'
+dats_bodies_diff_long$diff_disp_names[dats_bodies_diff_long$diff_disp_names == "upright_women_m_upright_men"] <- 'UW-UM'
+dats_bodies_diff_long$diff_disp_names[dats_bodies_diff_long$diff_disp_names == "inverted_men_m_upright_men"] <- 'IM-UM'
+
+# Cast both the display names and the pic_type columns as factors...I hate this, I need to get better about order
+# control in factor vars.
+dats_bodies_diff_long$diff_pair <- factor( dats_bodies_diff_long$diff_pair, levels = c( "inverted_women_m_upright_women",
+                                                                                        "inverted_women_m_inverted_men", 
+                                                                                        "inverted_women_m_upright_men",  
+                                                                                        "upright_women_m_inverted_men",  
+                                                                                        "upright_women_m_upright_men",   
+                                                                                        "inverted_men_m_upright_men" 
+                                                                                       )
+                                          )
+dats_bodies_diff_long$diff_disp_names <- factor(dats_bodies_diff_long$diff_disp_names, levels = c( "IW-UW",
+                                                                                                   "IW-IM",
+                                                                                                   "IW-UM",                                                                                                   
+                                                                                                   "UW-IM",
+                                                                                                   "UW-UM",
+                                                                                                   "IM-UM"
+                                                                                                  )
+                                                )
+
+
+# No we can define a second model as recognition differences dependent on difference pairs
+bodies_diff_model <- aov( recog_diff~diff_disp_names, data=dats_bodies_diff_long )
 ```
 
 ### Data Descriptives Stats and Visualization
@@ -137,14 +178,45 @@ bodies_model <- aov( recognition~pic_type, data=dats_bodies_long )
 
 ```{r raw_descriptives_and_visuals}
 
+# Define font color for plots
+font_color = "#4F81BD"
+
+# Get JMV descriptives of raw scores
+bodies_descr = jmv::descriptives( dats_bodies_long, 
+                                  vars = "recognition", 
+                                  splitBy="pic_disp_names", 
+                                  hist = TRUE,
+                                  dens = TRUE,
+                                  qq = TRUE,
+                                  sd = TRUE, 
+                                  variance = TRUE,
+                                  se = TRUE, 
+                                  skew = TRUE, 
+                                  kurt = TRUE,
+                                 missing = TRUE)
+print(bodies_descr)
+
+
 # Get JMV descriptives of difference scores
+bodies_diff_descr = jmv::descriptives( dats_bodies_diff_long, 
+                                       vars = "recog_diff", 
+                                       splitBy="diff_disp_names", 
+                                       hist = TRUE,
+                                       dens = TRUE,
+                                       qq = TRUE,
+                                       sd = TRUE, 
+                                       variance = TRUE,
+                                       se = TRUE, 
+                                       skew = TRUE, 
+                                       kurt = TRUE,
+                                       missing = TRUE)
+print(bodies_diff_descr)
 
-# Get JMV descriptives of long_scores
 
-# Try psych::describe for difference scores
-
-# Try psych::describe for long_scores
-
+# Try psych::describe. This should include descriptives for both raw scores and diff scores since we have both in the
+# meshgrid version of the table
+bodies_psych_descr <- psych::describe(dats_bodies, skew = TRUE)
+print(bodies_psych_descr)
 
 
 # Bar chart: We'll check the mean object recognition by picture type with 
@@ -157,7 +229,26 @@ ggplot(dats_bodies_long, aes( pic_disp_names, recognition) ) +
     labs( y = "Mean Object Recognition Fraciton",
           x = "Picture Type") +
     ggtitle('Impact of Picture Type on Object Recognition') +
-    theme_minimal()
+    theme_minimal() +
+    theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+           axis.title.x = element_text(color = font_color),
+           axis.title.y = element_text(color = font_color)
+          )
+# Bar chart: We'll check the mean differences in object recognition by picture pairwise types with 
+#            confidence intervals included.
+ggplot(dats_bodies_diff_long, aes( diff_disp_names, recog_diff) ) +
+    stat_summary(fun = mean, geom = "bar", position = "dodge", fill="forestgreen") +
+    stat_summary( fun.data = mean_cl_normal, geom = "errorbar",
+                  position = position_dodge(width = 0.90), width = 0.5
+                 ) +
+    labs( y = "Mean of Differences in Object Recognition Fraciton",
+          x = "Picture Type Pairs") +
+    ggtitle('Mean of Differences in Object Recognition Fraction') +
+    theme_minimal() +
+    theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+           axis.title.x = element_text(color = font_color),
+           axis.title.y = element_text(color = font_color)
+          )
 
 
 # Category-wise Scatter Plot 
@@ -173,7 +264,11 @@ cat_plot = ggplot(dats_bodies_long, aes(x = pic_disp_names, y = recognition) ) +
                                      values = c( "steelblue3", "red4", "red4"),
                                      labels = c("Recognition Fraction", "Upper Limit", "Lower Limit")
                                     ) +
-                 theme(legend.position = "right")
+                 theme(legend.position = "right") +
+    theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+           axis.title.x = element_text(color = font_color),
+           axis.title.y = element_text(color = font_color)
+          )
 cat_plot
 
 
@@ -195,81 +290,148 @@ More advanced visuals which can be based on model object go here.
 
 ```{r advanced_raw_visuals}
 
-# Produce residuals histogram using Dr. Diaz's aov method.
+# Residuals histogram of raw data
+resids_dats_bodies = bodies_model$residuals
+hist( resids_dats_bodies, 
+      main = "Histogram of Recognition Fraction Residuals", 
+      xlab = "Residuals of Recognition Fractions",
+      ylab = "Frequency"
+     )
 
-# Product residuals using your DA02 method
 
-# <UPDATE EVERYTHING BELOW>
+# Residuals histogram of difference scores
+resids_dats_diffs = bodies_diff_model$residuals
+hist( resids_dats_diffs, 
+      main = "Histogram of Recognition Difference Scores Residuals", 
+      xlab = "Residuals of Recognition Difference Scores",
+      ylab = "Frequency"
+     )
+dats_bodies_diff_long$resids_dats_diffs <- resids_dats_diffs
 
-# Now that we have a formalized model we can use the residuals command to output the residuals with respect to the   
-# helping mean separated by haste condition. First we need to compute the residuals and then downselect the full   
-# array to subsets of residuals separated by haste condition  
-# NOTE: When applied to a formalized model listing a categorical variable as the predictor variable   
-#       (in this case, haste_names), the residuals function computes the residuals with respect to the means of each 
-#       condition (level). So the residuals for "early" scores are computed against the mean for all scores grouped as 
-#      "early," etc. This was confirmed via inspection.
-dats_helping$raw_help_resids_all <- residuals(raw_helping_model)
-raw_help_resids_early  <- dats_helping$raw_help_resids_all[dats_helping$haste == 1]
-raw_help_resids_ontime <- dats_helping$raw_help_resids_all[dats_helping$haste == 2]
-raw_help_resids_late   <- dats_helping$raw_help_resids_all[dats_helping$haste == 3]
+
+# Groupwise residuals of difference scores using your DA02 method. I didn't do this for raw scores as it feels like
+# overkill
+
+# Now that we have a formalized model we can use the residuals command to output the residuals with respect to the
+# mean separated by predictor-variable condition. We'll downselect the full
+# array of residuals to subsets of residuals separated by haste condition
+# NOTE: When applied to a formalized model listing a categorical variable as the predictor variable
+#       (in this case, diff_disp_names), the residuals function computes the residuals with respect to the means of each
+#       condition (level). So the residuals for difference scores are computed against the mean for a given difference score
+resids_diffs_iw_uw  <- dats_bodies_diff_long$resids_dats_diffs[dats_bodies_diff_long$diff_disp_names == 'IW-UW']
+resids_diffs_iw_im  <- dats_bodies_diff_long$resids_dats_diffs[dats_bodies_diff_long$diff_disp_names == 'IW-IM']
+resids_diffs_iw_um  <- dats_bodies_diff_long$resids_dats_diffs[dats_bodies_diff_long$diff_disp_names == 'IW-UM']
+resids_diffs_uw_im  <- dats_bodies_diff_long$resids_dats_diffs[dats_bodies_diff_long$diff_disp_names == 'UW-IM']
+resids_diffs_uw_um  <- dats_bodies_diff_long$resids_dats_diffs[dats_bodies_diff_long$diff_disp_names == 'UW-UM']
+resids_diffs_im_um  <- dats_bodies_diff_long$resids_dats_diffs[dats_bodies_diff_long$diff_disp_names == 'IM-UM']
 
 # We need to pack all of the residuals subsets into dataframes to be usable by ggplot
-df_early <- data.frame( raw_resids = raw_help_resids_early, helping = dats_helping$helping[dats_helping$haste == 1] )
-df_ontime <- data.frame(raw_resids = raw_help_resids_ontime, helping = dats_helping$helping[dats_helping$haste == 2]  )
-df_late <- data.frame(raw_resids = raw_help_resids_late, helping = dats_helping$helping[dats_helping$haste == 3]  )
+df_iw_uw <- data.frame( diff_resids = resids_diffs_iw_uw )
+df_iw_im <- data.frame( diff_resids = resids_diffs_iw_im )
+df_iw_um <- data.frame( diff_resids = resids_diffs_iw_um )
+df_uw_im <- data.frame( diff_resids = resids_diffs_uw_im )
+df_uw_um <- data.frame( diff_resids = resids_diffs_uw_um )
+df_im_um <- data.frame( diff_resids = resids_diffs_im_um )
 
-# We'll control x-limits so everything aligns nicely
-my_xlims = c(round( min(dats_helping$raw_help_resids_all) ) - 1, 
-             round( max(dats_helping$raw_help_resids_all) ) + 1)
-my_ylims = c(0, 1)
-font_color = "#4F81BD"
+# # We'll control x-limits so everything aligns nicely
+# my_xlims = c(round( min(resids_dats_diffs) ) - 1,
+#              round( max(resids_dats_diffsl) ) + 1)
+# my_ylims = c(0, 1)
+my_xlims = c(-0.75, 0.75)
+my_ylims = c(0, 0.6)
+bw = 0.1
+# 
+# IW-UW Residuals Histogram
+iw_uw_resids_fig <- ggplot( df_iw_uw, aes(x = diff_resids) ) +
+                            geom_histogram( aes(y = ..count.. / sum(..count..) ),  binwidth = bw, color = "steelblue3", fill = "steelblue3") +
+                            geom_density( aes(y = ..density.. * bw), color = "steelblue4", size = 1) +
+                            labs(x = "Recognition Fraction Differences", y = "Density") +
+                            xlim(my_xlims) +
+                            ylim(my_ylims) +
+                            theme( axis.title.x = element_blank(),
+                                   axis.title.y = element_text(color = font_color)
+                                  ) + 
+                            annotate("text", x = 0.4, y = 0.4, label = "IW - UW", color = "steelblue4", size = 3)
 
-# Early residuals histogram
-early_resids_fig <- ggplot( df_early, aes(x = raw_resids) ) + 
-                      geom_histogram( aes(y = ..density..),  binwidth = 0.5, color = "steelblue3", fill = "steelblue3") +
-                      geom_density(color = "steelblue4", size = 1) + 
-                      labs(x = "Likelihood of Helping (0 -6)", y = "Density") + 
-                      xlim(my_xlims) + 
-                      ylim(my_ylims) + 
-                      theme( axis.title.x = element_blank(),
-                             axis.title.y = element_text(color = font_color) 
-                            )
 
-# print(early_resids_fig)
+# print(iw_uw_resids_fig)
 
-# On-Time residuals histogram
-ontime_resids_fig <- ggplot( df_ontime, aes(x = raw_resids) ) + 
-                       geom_histogram( aes(y = ..density..),  binwidth = 0.5, color = "purple3", fill = "purple3") +
-                       geom_density(color = "purple4", size = 1) + 
-                       labs(x = "Likelihood of Helping (0 -6)", y = "Density") + 
-                       xlim(my_xlims) +  
-                       ylim(my_ylims) + 
-                       theme( axis.title.x = element_blank(),
-                              axis.title.y = element_text(color = font_color) 
-                             )
+# IW-IM Residuals Histogram
+iw_im_resids_fig <- ggplot( df_iw_im, aes(x = diff_resids) ) +
+                            geom_histogram( aes(y = ..count.. / sum(..count..) ),  binwidth = bw, color = "purple3", fill = "purple3") +
+                            geom_density( aes(y = ..density.. * bw), color = "purple4", size = 1) +
+                            labs(x = "Recognition Fraction Differences", y = "Density") +
+                            xlim(my_xlims) +
+                            ylim(my_ylims) +
+                            theme( axis.title.x = element_blank(),
+                                   axis.title.y = element_text(color = font_color)
+                                  ) + 
+                            annotate("text", x = 0.4, y = 0.4, label = "IW - IM", color = "purple4", size = 3)
 
-# print(ontime_resids_fig)
+# print(iw_im_resids_fig)
 
-# Late residuals histogram
-late_resids_fig <- ggplot( df_late, aes(x = raw_resids) ) + 
-                     geom_histogram( aes(y = ..density..),  binwidth = 0.5, color = "orange3", fill = "orange3") +
-                     geom_density(color = "orange4", size = 1) + 
-                     labs(x = "Likelihood of Helping (0-6)", y = "Density") + 
-                     xlim(my_xlims) + 
-                     ylim(my_ylims) + 
-                     theme( axis.title.x = element_text(color = font_color),
-                            axis.title.y = element_text(color = font_color)
-                            )
+# IW-UM Residuals Histogram
+iw_um_resids_fig <- ggplot( df_iw_um, aes(x = diff_resids) ) +
+                            geom_histogram( aes(y = ..count.. / sum(..count..) ),  binwidth = bw, color = "orange3", fill = "orange3") +
+                            geom_density( aes(y = ..density.. * bw), color = "orange4", size = 1) +
+                            labs(x = "Recognition Fraction Differences", y = "Density") +
+                            xlim(my_xlims) +
+                            ylim(my_ylims) +
+                            theme( axis.title.x = element_blank(),
+                                   axis.title.y = element_text(color = font_color)
+                                  ) + 
+                            annotate("text", x = 0.4, y = 0.4, label = "IW - UM", color = "orange4", size = 3)
 
-# print(late_resids_fig)
+# print(iw_um_resids_fig)
+
+# UW-IM Residuals Histogram
+uw_im_resids_fig <- ggplot( df_uw_im, aes(x = diff_resids) ) +
+                            geom_histogram( aes(y = ..count.. / sum(..count..) ),  binwidth = bw, color = "orchid3", fill = "orchid3") +
+                            geom_density( aes(y = ..density.. * bw), color = "orchid4", size = 1) +
+                            labs(x = "Recognition Fraction Differences", y = "Density") +
+                            xlim(my_xlims) +
+                            ylim(my_ylims) +
+                            theme( axis.title.x = element_blank(),
+                                   axis.title.y = element_text(color = font_color)
+                                  ) + 
+                            annotate("text", x = 0.4, y = 0.4, label = "UW - IM", color = "orchid4", size = 3)
+
+# print(uw_im_resids_fig)
+
+# UW-UM Residuals Histogram
+uw_um_resids_fig <- ggplot( df_uw_um, aes(x = diff_resids) ) +
+                            geom_histogram( aes(y = ..count.. / sum(..count..) ),  binwidth = bw, color = "yellow3", fill = "yellow3") +
+                            geom_density( aes(y = ..density.. * bw), color = "yellow4", size = 1) +
+                            labs(x = "Recognition Fraction Differences", y = "Density") +
+                            xlim(my_xlims) +
+                            ylim(my_ylims) +
+                            theme( axis.title.x = element_text(color = font_color),
+                                   axis.title.y = element_text(color = font_color)
+                                  ) + 
+                            annotate("text", x = 0.4, y = 0.4, label = "UW - UM", color = "yellow4", size = 3)
+# print(uw_um_resids_fig)
+
+# IM-UM Residuals Histogram
+im_um_resids_fig <- ggplot( df_im_um, aes(x = diff_resids) ) +
+                            geom_histogram( aes(y = ..count.. / sum(..count..) ),  binwidth = bw, color = "firebrick3", fill = "firebrick3") +
+                            geom_density( aes(y = ..density.. * bw), color = "firebrick4", size = 1) +
+                            labs(x = "Recognition Fraction Differences", y = "Density") +
+                            xlim(my_xlims) +
+                            ylim(my_ylims) +
+                            theme( axis.title.x = element_text(color = font_color),
+                                   axis.title.y = element_text(color = font_color)
+                                  ) + 
+                            annotate("text", x = 0.4, y = 0.4, label = "IM - UM", color = "firebrick4", size = 3)
+# print(im_um_resids_fig)
+
 
 # Display residuals histograms in a subplot
-resids_title = ggplot() + 
-               ggtitle("Likelihood of Helping Residuals with respect to Mean Likelihood binned by Haste Condition") + 
-               theme_void() + 
+resids_title = ggplot() +
+               ggtitle("Recognition Fraction Pairwise Difference Score Residuals") +
+               theme_void() +
                theme(plot.title = element_text(size = 12, face = "italic", color = font_color) )
-resids_grid = plot_grid( early_resids_fig, ontime_resids_fig, late_resids_fig, 
-                         nrow = 4, ncol = 1,
+resids_grid = plot_grid( iw_uw_resids_fig, iw_im_resids_fig, iw_um_resids_fig, uw_im_resids_fig, uw_um_resids_fig, im_um_resids_fig,
+                         nrow = 3, ncol = 2,
                          align = "h"
                         )
 resids_figure = plot_grid( resids_title, resids_grid,
@@ -281,96 +443,61 @@ print( resids_figure)
 
 ```
 
-### Test of Variance for Raw Data
+### Test / Analysis of Results with Mauchly's Test Included
 
-The following section checks the homogeneity of variance (sphericity) in all of   
-the raw data. This may or may not be necessary depending on what kinds of models  
-you're building.
+Here we run the repeated measures analysis of variance. Mauchly's test, the final assumption check  
+which is a check of sphericity across the data, is included as an ouput
 
-```{r mauchlys_raw}
+```{r, rm_anova}
 
-# Add checks for Mauchly's test from Dr. Diaz's example code.
+# To conduct the repeated measures ANOVA we can use the meshgrid version of the datatable but we need to use
+# manually defined lists to clarify the levels of the predictor variable and which cells they are located in.
+bodies_anova <- anovaRM(
+  data = dats_bodies,
+  rm = list( list( label = 'recog_diff', levels = c('inverted_women', 'upright_women', 'inverted_men', 'upright_men') ) ),
+  rmCells = list( 
+    list(measure = 'inverted_women', cell = 'inverted_women'),
+    list(measure = 'upright_women', cell = 'upright_women'),
+    list(measure = 'inverted_men', cell = 'inverted_men'),
+    list(measure = 'upright_men', cell = 'upright_men')
+  ),
+  rmTerms = list('recog_diff'),
+  effectSize = c('partEta', 'eta'),
+  spherTests = TRUE,                          # Mauchly's test of sphericity: Recall - testing differences in variance of diff-scores
+  spherCorr = c('none', 'GG'),                # Sphericity corrections: no correction and GG
+  postHoc = list('recog_diff'),
+  postHocCorr = 'holm',                       # Since repeated measure (don't use Tukey)
+  emMeans = list('recog_diff'),
+  emmTables = TRUE)
 
-```
-
-### Test / Analysis of Raw Results
-
-Run the test / analysis you intend to conduct on the raw data (no outlier)  
-manipulation for the record.
-
-```{r, raw_t_test}
-
-```
-
-### Check Outliers Directly
-
-[OPTIONAL] Can use check_outliers function here as necessary
-
-
-```{r outlier_analysis}
-
-
-```
-
-### Decision to Handle Outliers
-
-Use this section to drop or modify outliers.
-
-```{r outlier_handling}
+print(bodies_anova)
 
 
 ```
 
-## Investigation of Processed Data
+### Compute Confidence Intervales on Means of Difference Scores in Pairwise Comparisons
 
-Replicate analysis post-outlier handling.
+Since the anovaRM function doesn't output the confidence intervals on the pairwise comparisons, we do that
+manually here.
 
-### Processed Data Descriptive Stats and Visualization
 
-```{r processed_descriptives_and_visuals}
+```{r pairwise_effects_and_CI}
 
+#
+# Contrast function gives us a pairwise t-test (holm's)
+# Summary w/ infer argument gives us Ci extracted from those holm's tests in Contrast
+# Mutate gives us a manual calc of Cohen's d
+# NOTE: comparisons are done in alphabetical order (base minus week3) so they're "negative" even though we should
+#       report it as positive since time increases
+
+#pairwise comparison results again but with confidence intervals and effect sizes, yay!
+pairwise_bodies <- 
+  emmeans(aov_ez(id = "id", dv = "recognition", within = "pic_type", data = dats_bodies_long), 
+          pairwise ~ pic_type, adjust = "holm") %>%
+  contrast(method = "pairwise", adjust = "holm") %>%
+  summary(infer = TRUE) %>%
+  mutate(Cohen_d = estimate / SE)
+
+# Print results
+print(pairwise_bodies)
 ```
-
-### Formalize Model of Processed Data
-
-Formalizing the processed model.
-
-```{r processed_model_definition}
-
-
-```
-
-### Advanced Processed Visuals
-
-Processed data and model visualizations
-
-```{r advanced_processed_visuals}
-
-
-```
-
-### Test of Variance for Processed Data
-
-[OPTIONAL] Hederoscedasticity check for processed data.
-
-```{r levenes_processed}
-
-```
-
-### Check Test / Analysis Results on Processed Data
-
-Run the Test / Analysis on processed data
-
-```{r, processed_t_test}
-
-
-```
-
-### Plot Residuals of Processed Data
-
-Residuals plots of processed data.
-
-```{r outlier_analysis_processed}
-
-```
-
