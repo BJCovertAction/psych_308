@@ -1,0 +1,212 @@
+---
+title: "308B DA4 CODE"
+author: "Kyra Warshaw"
+date: "2024-11-14"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(broom)
+library(jmv)
+library(datarium)
+library(magrittr)
+```
+
+Prompt RQ1: 
+
+A company was interested in identifying how an employee’s salary influences job satisfaction while holding the average monthly hours worked constant. 15,787 employees responded to a survey where they rated their salary (low, medium, or high), their job satisfaction (on a scale from 0 to 1) and their average monthly hours worked (ranges from 80-320). The company hypothesizes that there will be significantly different levels of job satisfaction between each of the three salary levels as long as the average monthly hours worked are held constant.
+
+Use the “ANCOVARQ1_clean.csv” data file to assess their research question: Does salary predict job satisfaction when holding average monthly hours worked constant?
+ 
+***Questions:***
+***1. What test would we use to determine whether an employee’s salary predicts their job satisfaction while holding average monthly hours worked constant? Test and report all assumptions that must be met for this analysis.***
+
+***2. Is there a main effect of the salary condition on job satisfaction when holding hours worked constant? Report AND INTERPRET the results for a journal according to APA format.***
+
+ 
+***3. Please report all differences in job satisfaction between each of the three salary levels while holding hours worked constant. Report and interpret the results for a journal according to APA format.***
+ 
+***Bonus (not graded): Provide your visualization (bar graph) for the test you ran.***  
+
+***4. Summarize your findings for someone who is not familiar with statistics.***
+
+```{r}
+#read in your data
+dat.salary <- read.csv("ANCOVARQ1_clean.csv")
+```
+
+```{r}
+#convert group to factor
+dat.salary$salary <- as.factor(dat.salary$salary)
+
+dat.salary <- dat.salary %>% rename(hours = average_monthly_hours, satisfaction = satisfaction_level)
+```
+
+```{r}
+#descriptive data by group so we can check out the original mean satisfaction by salary group
+desc <- jmv::descriptives(dat.salary, vars = c("salary", "satisfaction"), splitBy="salary", skew = TRUE, kurt = TRUE)
+desc
+```
+
+```{r}
+#creating a bar graph  
+bar <- ggplot(dat.salary, aes(salary, satisfaction))
+
+bar + stat_summary(fun = mean, geom = "bar", position = "dodge", fill = "lightcoral") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "salary level", y = "satisfaction") + ggtitle('Effect of Salary Level on Job Satisfaction')
+```
+
+**Assumption Checks**
+```{r}
+#Assumption 1. Linear relationship between covariate (hours worked) and outcome (job satisfaction) AND Assumption 2. homogeneity of regression
+
+ggscatter(dat.salary, x = "hours", y = "satisfaction", color = "salary", add = "reg.line")+stat_regline_equation(aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = salary))
+```
+
+```{r}
+#Assumption 3. Normality of Residuals
+model <- lm(satisfaction ~ hours + salary, data = dat.salary)
+res<-model$residuals
+hist(res, main="Histogram of residuals",xlab="Residuals")
+```
+
+```{r}
+#Assumption 4. Homogenity of variance. FYI this gives you slightly different results than the argument inside the ANCOVA function because it isn't accounting for the covariate
+levene_test(satisfaction ~ salary, data = dat.salary)
+```
+
+```{r}
+#Assumption 5. Covariate and IV are orthogonal (independent)
+
+#visualize
+ggscatter(dat.salary, x = "salary", y = "hours", color = "salary", add = "reg.line")+stat_regline_equation(aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = salary))
+
+#check statistically with an anova predicting the covariate (hours) from the IV (salary). This is just the regular One Way ANOVA code but we don't need to include post-hocs because we're just interested in whether the relationship is significant or not. 
+jmv::ANOVA(data = dat.salary, 
+           dep = 'hours', 
+           factors = c('salary'),
+           effectSize = 'partEta')
+```
+
+***ANCOVA***
+```{r}
+#Ancova code. Note that it also has arguments for checking homogeneity of variance (Levene's) and Normality (Shapiro Wilks Test) as well as a qq plot for visualizing multivariate normality
+
+model.ancova <- ancova(dat.salary, 
+                       dep = 'satisfaction', #dependent variable
+                       factors = c('salary'), #independent variable
+                       covs = c('hours'), #covariate (control variable)
+                       effectSize = 'partEta', #effect size
+                       homo = TRUE, #homogeneity of variance (Levene's Test) results
+                       norm = TRUE, #nomality (Shapiro Wilks Test) - tests if your data differs significantly from perfectly normal data
+                       qq = TRUE,  #returns a qq plot
+                       postHoc = c('salary'), #this is the variable 
+                       postHocCorr = 'tukey', #post-hoc correction
+                       postHocES = 'd', 
+                       emMeans = list('salary'), #generate the adjusted means
+                       emmTables = TRUE) #put the adjusted means in a table
+
+model.ancova
+```
+
+
+
+Prompt RQ2:
+
+In this research, we examine employee productivity across various working shifts—morning shift, afternoon shift, and night shift—and the influence of self-efficacy. Self-efficacy refers to an individual's belief in their ability to accomplish specific tasks. Initiated at the request of an employer aiming to enhance workforce efficiency, the study seeks to identify how productivity levels vary during these distinct working shifts, taking into account the influence of self-efficacy. We hypothesize that employee productivity levels are significantly different for the working shifts when self-efficacy is accounted for. Use “ANCOVARQ2.csv” to answer the following questions.
+
+***Questions:***
+***5. What test would we use to determine whether employees’ productivity levels are different across conditions when taking into account their self-efficacy levels? Test and report all assumptions that must be met for this analysis.***
+
+***6. Is there a main effect of the condition? Report AND INTERPRET the results for a journal according to APA format.***
+
+***7. Please report all differences between conditions and state which ones were significant. Report and interpret the results for a journal according to APA format.***
+
+***Bonus (not graded): Provide your visualization (bar graph) for the test you ran.***
+
+***8. Summarize your findings for someone who is not familiar with statistics.***
+
+```{r}
+#read in your data
+dat.productivity <- read.csv("ANCOVARQ2.csv")
+```
+
+```{r}
+dat.productivity$shift <- as.factor(dat.productivity$shift)
+
+dat.productivity <- dat.productivity %>% rename(efficacy = self_eff)
+```
+
+```{r}
+#descriptive data by group so we can check out the original mean productivity by shift time
+desc <- jmv::descriptives(dat.productivity, vars = c("shift", "prod"), splitBy="shift", skew = TRUE, kurt = TRUE)
+desc
+```
+
+```{r}
+#creating a bar graph  
+bar <- ggplot(dat.productivity, aes(shift, prod))
+
+bar + stat_summary(fun = mean, geom = "bar", position = "dodge", fill = "firebrick") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "shift timing", y = "prod") + ggtitle('Effect of Shift Time on Worker Productivity')
+```
+
+**Assumption Checks**
+```{r}
+#Assumption 1. Linear relationship between covariate (self-efficacy) and outcome (prouctivity) AND Assumption 2. homogeneity of regression
+
+ggscatter(dat.productivity, x = "efficacy", y = "prod", color = "shift", add = "reg.line")+stat_regline_equation(aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = shift))
+```
+
+```{r}
+#Assumption 3. Normality of Residuals
+
+#dit the model, the covariate goes first, then save residuals and plot them as a histogram
+model.prod <- lm(prod ~ efficacy + shift, data = dat.productivity)
+res<-model.prod$residuals
+hist(res, main="Histogram of residuals",xlab="Residuals")
+```
+
+```{r}
+#Assumption 4. Homogenity of variance
+levene_test(prod ~ shift, data = dat.productivity)
+```
+
+```{r}
+#Assumption 5. Covariate and IV are orthogonal (independent)
+
+#visualize
+ggscatter(dat.productivity, x = "shift", y = "efficacy", color = "shift", add = "reg.line")+stat_regline_equation(aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = shift))
+
+#check statistically with an anova predicting the covariate (self efficacy) from the IV (shift). This is just the regular One Way ANOVA code but we don't need to include post-hocs because we're just interested in whether the relationship is significant or not. 
+jmv::ANOVA(data = dat.productivity, 
+           dep = 'efficacy', 
+           factors = c('shift'),
+           effectSize = 'partEta')
+```
+
+***ANCOVA***
+```{r}
+#ancova code
+
+model.ancova <- ancova(dat.productivity, 
+                       dep = 'prod', #dependent variable
+                       factors = c('shift'), #independent variable
+                       covs = c('efficacy'), #covariate (control variable)
+                       effectSize = 'partEta', #effect size
+                       homo = TRUE, #homogeneity of variance (Levene's Test) results
+                       norm = TRUE, #nomality (Shapiro Wilks Test) - tests if your data differs significantly from perfectly normal data
+                       qq = TRUE,  #returns a qq plot
+                       postHoc = c('shift'), #this is the variable 
+                       postHocCorr = 'tukey', #post-hoc correction
+                       postHocES = 'd', 
+                       emMeans = list('shift'), #generate the adjusted means
+                       emmTables = TRUE) #put the adjusted means in a table
+
+model.ancova
+```
