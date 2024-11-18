@@ -1,0 +1,156 @@
+---
+title: "ANCOVA Demo"
+author: "Jessica Diaz"
+date: "2023-11-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(broom)
+library(jmv)
+library(datarium)
+library(magrittr)
+library(dplyr)
+library(multcomp)
+```
+
+```{r}
+#read in your data. The data is housed in R so no csv file
+dat.anxiety <- read.csv("anxiety.csv")
+```
+
+```{r}
+#create new data set with only the variables we need and also rename the t1 and t3 variables 
+#dat.anxiety <- dat.anxiety %>% select(id, group, t1, t3) %>% rename(pretest = t1, posttest = t3)
+dat.anxiety <- dat.anxiety %>% rename(pretest = t1, posttest = t3)
+
+#convert group to factor
+dat.anxiety$group <- as.factor(dat.anxiety$group)
+```
+
+```{r}
+#descriptive data by group so we can check out the original mean anxiety levels by exercise group
+desc <- jmv::descriptives(dat.anxiety, vars = c("group", "posttest"), splitBy="group", skew = TRUE, kurt = TRUE, hist = TRUE, dens = TRUE)
+desc
+```
+
+**Assumption Checks**
+```{r}
+#Assumption 1. Linear relationship between covariate (pretest anxiety) and outcome (posttest anxiety) AND Assumption 2. homogeneity of regression
+# NOTE: color = "group" is doing the splitBy lifting here.
+ggscatter(dat.anxiety, x = "pretest", y = "posttest", color = "group", add = "reg.line")+stat_regline_equation(aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group))
+```
+
+```{r}
+#Assumption 3. Normality of Residuals
+
+#fit the model, the covariate goes first, then save residuals and plot them as a histrogram
+# NOTE: the pretest + group is what defines pretest anxiety ( baseline ) as a covarite in the model.
+model <- lm(posttest ~ pretest + group, data = dat.anxiety)
+res<-model$residuals
+hist(res, main="Histogram of residuals",xlab="Residuals")
+```
+
+```{r}
+#Assumption 4. Homogenity of variance. FYI this gives you slightly different results than the argument inside the ANCOVA function because it isn't accounting for the covariate
+levene_test(posttest ~ group, data = dat.anxiety)
+```
+
+```{r}
+#Assumption 5. Covariate and IV are orthogonal (independent)
+# NOTE: Recall, if this is violated, it indicates that you didn't randomly assign participants between conditions
+
+#visualize
+ggscatter(dat.anxiety, x = "group", y = "pretest", color = "group", add = "reg.line")+stat_regline_equation(aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = group))
+
+#check statistically with an anova predicting the covariate (pretest) from the IV (exercise group). This is just the regular One Way ANOVA code but we don't need to include post-hocs because we're just interested in whether the relationship is significant or not. 
+#
+# NOTE: MODEL IS: group ---> pretest
+jmv::ANOVA(data = dat.anxiety, 
+           dep = 'pretest', 
+           factors = c('group'),
+           effectSize = 'partEta')
+```
+
+***ANCOVA***
+```{r}
+#Ancova code. Note that it also has arguments for checking homogeneity of variance (Levene's) and Normality (Shapiro Wilks Test) as well as a qq plot for visualizing multivariate normality
+
+model.ancova <- jmv::ancova( dat.anxiety, 
+                             dep = 'posttest', #dependent variable
+                             factors = c('group'), #independent variable
+                             covs = c('pretest'), #covariate (control variable)
+                             effectSize = 'partEta', #effect size
+                             homo = TRUE, #homogeneity of variance (Levene's Test) results
+                             norm = TRUE, #nomality (Shapiro Wilks Test) - tests if your data differs significantly from perfectly normal data
+                             qq = TRUE,  #returns a qq plot
+                             postHocES = 'd', 
+                             postHoc = c('group'), #this is the variable 
+                             postHocCorr = 'tukey', #post-hoc correction
+                             emMeans = list('group'), #generate the adjusted means
+                             emmTables = TRUE) #put the adjusted means in a table
+
+# NOTE: emmTables NOW required to get adjusted means
+
+
+model.ancova
+```
+
+
+***Post Hocs with CIs and Effect Sizes***
+```{r}
+# Fit ANCOVA model using lm
+# EXERCISE: Review this to understand all of this
+ancova_model <- lm(posttest ~ group + pretest, data = dat.anxiety)
+
+# Perform Tukey-adjusted pairwise comparisons
+posthoc_results <- summary(glht(ancova_model, linfct = mcp(group = "Tukey")))
+
+# Extract the mean differences, standard errors, and confidence intervals
+mean_diffs <- posthoc_results$test$coefficients
+se_diffs <- posthoc_results$test$sigma
+ci <- confint(posthoc_results)$confint
+
+# Calculate adjusted means for each group with covariate held at mean
+adjusted_means <- predict(ancova_model, newdata = dat.anxiety %>% 
+                            group_by(group) %>% 
+                            summarize(pretest = mean(pretest)))
+
+# Calculate Cohen's d using standard deviation of adjusted means
+cohens_d_values <- mean_diffs / sd(adjusted_means)
+
+# Compile results into a data frame
+results_df <- data.frame(
+  Comparison = names(mean_diffs),
+  Mean_Difference = mean_diffs,
+  SE = se_diffs,
+  Lower_CI = ci[, "lwr"],
+  Upper_CI = ci[, "upr"],
+  Cohen_d = cohens_d_values
+)
+
+# Display the results
+print(results_df)
+```
+
+
+
+***Lay Write Up***
+Considering people’s baseline anxiety scores, the more intense exercise people perform, the lower their anxiety. Indidivudals looking to reduce their anxiety should perform high intensity exercise. 
+
+***Journal (APA) Write Up***
+The present study tested the relationship between exercise intensity level and anxiety. Forty-five participants were randomly assigned to three exercise intensity levels (low, medium, high) Anxiety levels were measured at baseline and after six months of the exercise program. We specified an ANCOVA model to predict posttest anxiety based on exercise intensity group while controlling for pretest anxiety scores. 
+
+Prior to model specification, we confirmed the data met all assumptions of ANCOVA. A histogram of model residuals appeared normally distributed and skew and kurtosis levels of posttest anxiety were within 3 and 10 respectively for each exercise group. A Levene’s test confirmed the data met the homogeneity of variance assumption, *F*(2,42) = 0.26, *p* = .772. Scatterplots and correlations coefficient confirmed both a linear relationship between the covariate (pretest anxiety) and posttest anxiety, as well as homogeneity of regression amongst the groups. Finally, there was no significant relationship between the covariate (prettest) and the independent variable (exercise intensity), *F*(2,42) = 0.37, *p* = .693, $\eta$^2^ = .02.
+
+The ANCOVA model confirmed a significant difference in posttest anxiety based on exercise intensity group, *F*(2,41) = 151.26, *p* < .001, $\eta$^2^ = .88 as well as a significant relationship between pretest and posttest anxiety, *F*(1,41) = 404.29, *p* < .001, $\eta$^2^ = .91. There was a large effect of exercise intensity on post-test anxiety, while controlling for baseline anxiety levels, exercise intensity explained 91% of the variance in posttest anxiety levels. 
+
+Post-hoc testing using the Tukey’s procedure indicated individuals who did moderate exercise (Madj = 15. 79) for six months experience significantly less anxiety than those who performed light exercise (Madj = 16.34), *Mdiff* = 0.64, *t*(41) = 4.24, *p* < .001. Additionally, individuals who did high intensity exercise (Madj = 13.46) experienced lower anxiety than those who performed moderate exercise, *Mdiff* = 2.34, *t*(41) = 15.52, *p* < .001. Overall, when controlling for baseline anxiety scores, the more intense the exercise program, the lower one’s anxiety level. 
+
