@@ -2,14 +2,23 @@
 title: "308B DA4 CODE"
 author: "Kyra Warshaw"
 date: "2024-11-14"
-output: word_document
+output: 
+  html_document:
+    toc: true
+  word_document:
+    toc: true
+    
+# This option here enables output to both HTML and PDF formats
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding,
+  output_format = "all") })
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r package_loading, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(ggpubr)
 library(rstatix)
@@ -145,7 +154,7 @@ dat.productivity <- dat.productivity %>% rename(efficacy = self_eff)
 
 ```{r}
 #descriptive data by group so we can check out the original mean productivity by shift time
-desc <- jmv::descriptives(dat.productivity, vars = c("shift", "prod"), splitBy="shift", skew = TRUE, kurt = TRUE)
+desc <- jmv::descriptives(dat.productivity, vars = c("shift", "prod"), splitBy="shift", skew = TRUE, kurt = TRUE, qq=TRUE)
 desc
 ```
 
@@ -159,6 +168,8 @@ bar + stat_summary(fun = mean, geom = "bar", position = "dodge", fill = "firebri
 **Assumption Checks**
 ```{r}
 #Assumption 1. Linear relationship between covariate (self-efficacy) and outcome (prouctivity) AND Assumption 2. homogeneity of regression
+
+ggscatter(dat.productivity, x = "efficacy", y = "prod", add = "reg.line")+stat_regline_equation(aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")))
 
 ggscatter(dat.productivity, x = "efficacy", y = "prod", color = "shift", add = "reg.line")+stat_regline_equation(aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = shift))
 ```
