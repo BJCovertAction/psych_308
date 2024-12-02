@@ -1,7 +1,7 @@
 ---
-title: "PSYCH308B - Data Analysis __ (DA__)"
+title: "PSYCH308B - Data Analysis 05 (DA05)"
 author: "Brady C. Jackson"
-date: "2024/__/__"
+date: "2024/11/27"
 
 # Write document output to HTML, Word, and PDF output types with a Table of
 # contents included.
@@ -33,13 +33,14 @@ knitr::opts_chunk$set(echo = TRUE)
 library(jmv)       # for descriptive
 library(ggplot2)
 library(dplyr)
-# library(car)       # for leveneTest
+library(car)       # for leveneTest
 # library(stringr)   # for sub_str operations
 # library(psych)
 # library(Hmisc)     # for fun.dat substitution
 # library(see)       # for outliers analysis 
 # library(magrittr)
 # library(AER)
+library(pastecs)
 ```
 
 ## Investigation of Raw, Unprocessed Data
@@ -49,121 +50,248 @@ library(dplyr)
 First we need to load the data. 
 
 ```{r data_prep}
+# Load data
+dats_driving = read.csv("./308B.Data.DA5.csv")
+
+
+# We're going to create print-friendly name columns for both convo difficulty
+# and driving difficulty. This will enable both better figures and more useful
+# sorting in model definition later.
+dats_driving$convo_names <- dats_driving$convo
+dats_driving$drive_names <- dats_driving$drive
+
+# Perform the string substitutions here, first for the convo difficulty names
+# second for the driving difficulty names
+dats_driving$convo_names[dats_driving$convo_names == 'C'] <- "Control"
+dats_driving$convo_names[dats_driving$convo_names == 'E'] <- "Easy"
+dats_driving$convo_names[dats_driving$convo_names == 'D'] <- "Difficult"
+
+dats_driving$drive_names[dats_driving$drive_names == 'L'] <- "Low"
+dats_driving$drive_names[dats_driving$drive_names == 'M'] <- "Medium"
+dats_driving$drive_names[dats_driving$drive_names == 'D'] <- "Difficult"
+
+# Convert all "group" categories to factors
+dats_driving$convo <- factor(dats_driving$convo, levels = c("C", "E", "D") )
+dats_driving$convo_names <- factor(dats_driving$convo_names, levels = c("Control", "Easy", "Difficult") )
+
+dats_driving$drive <- factor(dats_driving$drive, levels = c("L", "M", "D") )
+dats_driving$drive_names <- factor(dats_driving$drive_names, levels = c("Low", "Medium", "Difficult") )
 
 ```
 
-### Raw Data Descriptive Stats and Visualization
-
-```{r raw_descriptives_and_visuals}
-
-
-```
 
 ### Formalize Model
 
-Model formalization for unprocessed data goes here.
+We formalize the model using the aov (analysis of variance) model before we  
+develop our descriptive stats as handling the model object will make the descriptives  
+plots and stats easier to produce in this case.
+
 
 ```{r raw_model_definition}
 
+# We use R's built-in aov function to define our model as driving errors being dependent  
+# on the interaction (product of) conversation and driving difficulty levels (3x3)
+driving_model <- aov( errors ~ convo_names * drive_names, data = dats_driving )
+model.tables(driving_model, type = "means")
+
 ```
 
-### Advanced Raw Visuals
 
-More advanced visuals which can be based on model object go here.
+### Raw Data Descriptive Stats and Visualization
+
+We'll make some basic visuals and descriptives tables here to help use visualize and analyze our data
+
+```{r raw_descriptives_and_visuals}
+
+# First we'll defines some meta-data to use in all of our plots so they're nice and clean
+font_color = "#4F81BD"
+grid_color_major = "#9BB7D9"
+grid_color_minor = "#C8D7EA"
+back_color = "gray95"
+
+# Use "by" function to get descriptives
+by(dats_driving$errors, list(dats_driving$drive_names, dats_driving$convo_names), basic = FALSE, norm = TRUE, stat.desc)
+
+
+# Bar chart: We'll check the mean driving errors by driving condition with 
+#            confidence intervals included.
+drive_bar_hand <- ggplot(dats_driving, aes( drive_names, errors, fill = convo_names) ) +
+                         stat_summary( fun = mean, geom = "bar", position = "dodge") +
+                         stat_summary( fun.data = mean_cl_normal, geom = "errorbar",
+                                       position = position_dodge(width = 0.90), width = 0.5
+                                      ) +
+                         scale_fill_manual( values = c("hotpink4", "seagreen3", "darkorange3") ) + 
+                         labs( y = "Mean Driving Errors Committed",
+                               x = "Driving Difficulty Level",
+                               fill = "Conversation Difficulty") +
+                         ggtitle('Driving Errors by Conversation & Driving Difficulty Condition') +
+                         theme_minimal() +
+                         theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+                                axis.title.x = element_text(color = font_color),
+                                axis.title.y = element_text(color = font_color),
+                                   axis.text.x = element_text(color = font_color),
+                                   axis.text.y = element_text(color = font_color),
+                                   legend.title = element_text(color = font_color),
+                                   legend.text = element_text(color = font_color),
+                                   panel.grid.minor = element_line(color = grid_color_minor),
+                                   panel.grid.major = element_line(color = grid_color_major),
+                                   panel.background = element_rect(fill = back_color, color = font_color)
+                               )
+
+print(drive_bar_hand)
+
+# Line Chart: Same divisions / levels as bar chart, but in line form
+drive_lines_hand <- ggplot( dats_driving, aes( drive_names, errors, color = convo_names) ) + 
+                            stat_summary(fun = mean, geom = "point") + 
+                            stat_summary(fun = mean, geom = "line", aes(group = convo_names) ) + 
+                            stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.2) +
+                            scale_color_manual("Conversation Difficulty", values = c("hotpink4", "seagreen3", "darkorange3") ) + 
+                            labs( y = "Mean Driving Errors Committed",
+                                  x = "Driving Difficulty Level",
+                                  color = "Conversation Difficulty") +
+                            ggtitle('Driving Error Trends by Conversation & Driving Difficulty Condition') +
+                            theme_minimal() +
+                            theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+                                   axis.title.x = element_text(color = font_color),
+                                   axis.title.y = element_text(color = font_color),
+                                   axis.text.x = element_text(color = font_color),
+                                   axis.text.y = element_text(color = font_color),
+                                   legend.title = element_text(color = font_color),
+                                   legend.text = element_text(color = font_color),
+                                   panel.grid.minor = element_line(color = grid_color_minor),
+                                   panel.grid.major = element_line(color = grid_color_major),
+                                   panel.background = element_rect(fill = back_color, color = font_color)
+                                  )
+
+print(drive_lines_hand)
+
+
+
+```
+
+### Assumption Checks
+
+We'll do our formal assumption checks here
 
 ```{r advanced_raw_visuals}
 
+# More Plot Metadata
+my_xlims = c(-10, 10)
+my_ylims = c(0, 0.2)
+bw = 2
 
-```
 
-### Test of Variance for Raw Data
+# Residuals Histogram
+model_df <- data.frame(driving_resids = driving_model$residuals)
+#hist(model_df$driving_resids, main = "Histogram of Residuals", xlab = "residuals")
 
-[OPTIONAL] The following section checks the homogeneity of variance in all of   
-the raw data. This may or may not be necessary depending on what kinds of models  
-you're building.
+resids_fig <- ggplot( model_df, aes(x = driving_resids) ) +
+                      geom_histogram( aes(y = ..count.. / sum(..count..) ),  binwidth = bw, color = "purple3", fill = "purple3") +
+                      geom_density( aes(y = ..density.. * bw), color = "purple4", size = 1) +
+                      labs(x = "Driving Errors", y = "Density") +
+                      ggtitle('Histogram of Driving Residuals Error') +
+                      xlim(my_xlims) +
+                      ylim(my_ylims) +
+                      theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+                                   axis.title.x = element_text(color = font_color),
+                                   axis.title.y = element_text(color = font_color),
+                                   axis.text.x = element_text(color = font_color),
+                                   axis.text.y = element_text(color = font_color),
+                                   legend.title = element_text(color = font_color),
+                                   legend.text = element_text(color = font_color),
+                                   panel.grid.minor = element_line(color = grid_color_minor),
+                                   panel.grid.major = element_line(color = grid_color_major),
+                                   panel.background = element_rect(fill = back_color, color = font_color))
+print(resids_fig)
 
-```{r levenes_raw}
+
+# Test homgeneity of variance using Levene's test.
+leveneTest(dats_driving$errors, interaction(dats_driving$drive_names, dats_driving$convo_names), center = mean)
 
 ```
 
 ### Test / Analysis of Raw Results
 
-Run the test / analysis you intend to conduct on the raw data (no outlier)  
-manipulation for the record.
+We can use JMV's anova function on our data to check main effects and interactive effects  
+simultaneously.
 
-```{r, raw_t_test}
+```{r, raw_test}
 
-```
-
-### Check Outliers Directly
-
-[OPTIONAL] Can use check_outliers function here as necessary
-
-
-```{r outlier_analysis}
-
-
-```
-
-### Decision to Handle Outliers
-
-Use this section to drop or modify outliers.
-
-```{r outlier_handling}
-
+jmv::ANOVA( data = dats_driving,
+            dep = 'errors',                                   # ANOVA - Evaluate helping likelihood as outcome var
+            factors = c('drive_names', 'convo_names'),        # ANOVA - split by haste condition
+            effectSize = 'partEta',                           # ANOVA - report fraction of variance, not Cohen's d
+            postHoc = c('drive_names', 'convo_names'),        # POST HOC - Also split post-hoc's by haste condition
+            postHocCorr = c('tukey'),                         # Include both Tukey's and Bonferroni's
+            postHocES = 'd',                                  # POST HOC
+            emMeans = list('drive_names', 'convo_names'),     # DESCRIPTIVES BECAUSE JESS IS LAZY
+            emmTables = TRUE,                                 # YES, MAKE ME A TABLE BECAUSE I'M LAZY
+            emmPlotError = 'ci',
+            emmPlotData = TRUE,
+            homo = TRUE
+           )
 
 ```
 
-## Investigation of Processed Data
+### Simple Effects Tests
 
-Replicate analysis post-outlier handling.
+We're going to need to run 3x ANOVAs for our simple effects tests. We'll subset by  
+driving difficulty level so that we're evaluating the perspective as:  
 
-### Processed Data Descriptive Stats and Visualization
+  For a given driving difficult level, what's the impact of participating in a given  
+  conversation difficulty level?  
 
-```{r processed_descriptives_and_visuals}
+```{r simp_effects}
+
+# Subset the data by driving difficulty level
+dats_drive_low <- subset(dats_driving, dats_driving$drive_names == "Low")
+dats_drive_med <- subset(dats_driving, dats_driving$drive_names == "Medium")
+dats_drive_dif <- subset(dats_driving, dats_driving$drive_names == "Difficult")
+
+# ANOVA for Low Driving Difficulty Level
+jmv::ANOVA( data = dats_drive_low,
+            dep = 'errors',                                   # ANOVA - Evaluate helping likelihood as outcome var
+            factors = c('convo_names'),                       # ANOVA - split by condition
+            effectSize = 'partEta',                           # ANOVA - report fraction of variance, not Cohen's d
+            postHoc = c('convo_names'),                       # POST HOC - Also split post-hoc's by haste condition
+            postHocCorr = c('tukey'),                         # Include both Tukey's and Bonferroni's
+            postHocES = 'd',                                  # POST HOC
+            emMeans = c('convo_names'),                       # DESCRIPTIVES BECAUSE JESS IS LAZY
+            emmTables = TRUE,                                 # YES, MAKE ME A TABLE BECAUSE I'M LAZY
+            emmPlotError = 'ci',
+            emmPlotData = TRUE,
+            homo = TRUE
+           )
+
+
+# ANOVA for Medium Driving Difficulty Level
+jmv::ANOVA( data = dats_drive_med,
+            dep = 'errors',                                   # ANOVA - Evaluate helping likelihood as outcome var
+            factors = c('convo_names'),                       # ANOVA - split by condition
+            effectSize = 'partEta',                           # ANOVA - report fraction of variance, not Cohen's d
+            postHoc = c('convo_names'),                       # POST HOC - Also split post-hoc's by haste condition
+            postHocCorr = c('tukey'),                         # Include both Tukey's and Bonferroni's
+            postHocES = 'd',                                  # POST HOC
+            emMeans = c('convo_names'),                       # DESCRIPTIVES BECAUSE JESS IS LAZY
+            emmTables = TRUE,                                 # YES, MAKE ME A TABLE BECAUSE I'M LAZY
+            emmPlotError = 'ci',
+            emmPlotData = TRUE,
+            homo = TRUE
+           )
+
+# ANOVA for Difficult Driving Difficulty Level
+jmv::ANOVA( data = dats_drive_dif,
+            dep = 'errors',                                   # ANOVA - Evaluate helping likelihood as outcome var
+            factors = c('convo_names'),                       # ANOVA - split by condition
+            effectSize = 'partEta',                           # ANOVA - report fraction of variance, not Cohen's d
+            postHoc = c('convo_names'),                       # POST HOC - Also split post-hoc's by haste condition
+            postHocCorr = c('tukey'),                         # Include both Tukey's and Bonferroni's
+            postHocES = 'd',                                  # POST HOC
+            emMeans = c('convo_names'),                       # DESCRIPTIVES BECAUSE JESS IS LAZY
+            emmTables = TRUE,                                 # YES, MAKE ME A TABLE BECAUSE I'M LAZY
+            emmPlotError = 'ci',
+            emmPlotData = TRUE,
+            homo = TRUE
+           )
 
 ```
-
-### Formalize Model of Processed Data
-
-Formalizing the processed model.
-
-```{r processed_model_definition}
-
-
-```
-
-### Advanced Processed Visuals
-
-Processed data and model visualizations
-
-```{r advanced_processed_visuals}
-
-
-```
-
-### Test of Variance for Processed Data
-
-[OPTIONAL] Hederoscedasticity check for processed data.
-
-```{r levenes_processed}
-
-```
-
-### Check Test / Analysis Results on Processed Data
-
-Run the Test / Analysis on processed data
-
-```{r, processed_t_test}
-
-
-```
-
-### Plot Residuals of Processed Data
-
-Residuals plots of processed data.
-
-```{r outlier_analysis_processed}
-
-```
-
