@@ -7,7 +7,7 @@ output: html_document
 library(knitr); opts_chunk$set(error=TRUE, cache=FALSE)
 ```
 
-```{r}
+```{r package_loading, message=FALSE, warning=FALSE}
 # Load packages
 library(psych)
 library(jmv)
