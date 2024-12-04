@@ -77,6 +77,21 @@ dats_driving$convo_names <- factor(dats_driving$convo_names, levels = c("Control
 dats_driving$drive <- factor(dats_driving$drive, levels = c("L", "M", "D") )
 dats_driving$drive_names <- factor(dats_driving$drive_names, levels = c("Low", "Medium", "Difficult") )
 
+# Add a combination names factor column
+dats_driving$drive_times_convo <- paste( as.character(dats_driving$drive), 
+                                         as.character(dats_driving$convo), 
+                                         sep=":"
+                                        )
+dats_driving$drive_times_convo <- as.factor(dats_driving$drive_times_convo)
+
+
+dats_driving$drive_times_convo_names <- paste( as.character(dats_driving$drive_names), 
+                                               as.character(dats_driving$convo_names), 
+                                               sep=":"
+                                        )
+dats_driving$drive_times_convo_names <- as.factor(dats_driving$drive_times_convo_names)
+
+
 ```
 
 
@@ -166,6 +181,34 @@ drive_lines_hand <- ggplot( dats_driving, aes( drive_names, errors, color = conv
 print(drive_lines_hand)
 
 
+# Category-wise Scatter Plot 
+#  This shows us that the predictor variable is, indeed, categorical.
+cat_plot = ggplot(dats_driving, aes(y = errors, x = drive_times_convo) ) + 
+                  geom_point( aes(color = "Driving:Conversation Difficulty Condition") ) + 
+                  labs(x = "Driving:Conversation Difficulty Condition", y = "Driving Errors Committed") + 
+                  ggtitle("Driving Errors Committed by Combined Difficulty Condition") + 
+                  geom_hline( aes( yintercept = 0, color = "Upper Limit" ), linetype = "dashed" ) + 
+                  geom_hline( aes( yintercept = max(dats_driving$errors), color = "Lower Limit" ), linetype = "dashed" ) + 
+                  scale_color_manual(
+                                     name = "Legend",
+                                     values = c(  "purple4", "red4", "red4"),
+                                     labels = c("Driving Errors", "Upper Limit",  "Lower Limit")
+                                    ) +
+                 theme(legend.position = "right") +
+                 theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+                        axis.title.x = element_text(color = font_color),
+                        axis.title.y = element_text(color = font_color),
+                        axis.text.x = element_text(color = font_color),
+                        axis.text.y = element_text(color = font_color),
+                        legend.title = element_text(color = font_color),
+                        legend.text = element_text(color = font_color),
+                        panel.grid.minor = element_line(color = grid_color_minor),
+                        panel.grid.major = element_line(color = grid_color_major),
+                        panel.background = element_rect(fill = back_color, color = font_color)
+                                  
+                      )
+cat_plot
+
 
 ```
 
@@ -222,8 +265,9 @@ jmv::ANOVA( data = dats_driving,
             factors = c('drive_names', 'convo_names'),        # ANOVA - split by haste condition
             effectSize = 'partEta',                           # ANOVA - report fraction of variance, not Cohen's d
             postHoc = c('drive_names', 'convo_names'),        # POST HOC - Also split post-hoc's by haste condition
-            postHocCorr = c('tukey'),                         # Include both Tukey's and Bonferroni's
+            postHocCorr = c('tukey'),                         # Include both Tukey's
             postHocES = 'd',                                  # POST HOC
+            postHocEsCi = TRUE,
             emMeans = list('drive_names', 'convo_names'),     # DESCRIPTIVES BECAUSE JESS IS LAZY
             emmTables = TRUE,                                 # YES, MAKE ME A TABLE BECAUSE I'M LAZY
             emmPlotError = 'ci',
@@ -256,6 +300,7 @@ jmv::ANOVA( data = dats_drive_low,
             postHoc = c('convo_names'),                       # POST HOC - Also split post-hoc's by haste condition
             postHocCorr = c('tukey'),                         # Include both Tukey's and Bonferroni's
             postHocES = 'd',                                  # POST HOC
+            postHocEsCi = TRUE,
             emMeans = c('convo_names'),                       # DESCRIPTIVES BECAUSE JESS IS LAZY
             emmTables = TRUE,                                 # YES, MAKE ME A TABLE BECAUSE I'M LAZY
             emmPlotError = 'ci',
@@ -272,6 +317,7 @@ jmv::ANOVA( data = dats_drive_med,
             postHoc = c('convo_names'),                       # POST HOC - Also split post-hoc's by haste condition
             postHocCorr = c('tukey'),                         # Include both Tukey's and Bonferroni's
             postHocES = 'd',                                  # POST HOC
+            postHocEsCi = TRUE,
             emMeans = c('convo_names'),                       # DESCRIPTIVES BECAUSE JESS IS LAZY
             emmTables = TRUE,                                 # YES, MAKE ME A TABLE BECAUSE I'M LAZY
             emmPlotError = 'ci',
@@ -287,6 +333,7 @@ jmv::ANOVA( data = dats_drive_dif,
             postHoc = c('convo_names'),                       # POST HOC - Also split post-hoc's by haste condition
             postHocCorr = c('tukey'),                         # Include both Tukey's and Bonferroni's
             postHocES = 'd',                                  # POST HOC
+            postHocEsCi = TRUE,
             emMeans = c('convo_names'),                       # DESCRIPTIVES BECAUSE JESS IS LAZY
             emmTables = TRUE,                                 # YES, MAKE ME A TABLE BECAUSE I'M LAZY
             emmPlotError = 'ci',
