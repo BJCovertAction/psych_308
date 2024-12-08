@@ -1,0 +1,390 @@
+---
+title: "PSY.308B.FACTORIAL.DEMO"
+output: html_document
+---
+
+```{r, echo=FALSE, results=FALSE, message=FALSE, cache=FALSE}
+library(knitr); opts_chunk$set(error=TRUE, cache=FALSE)
+```
+
+```{r package_loading, message=FALSE, warning=FALSE}
+# Load packages
+library(psych)
+library(jmv)
+library(ggplot2)
+library(car)
+library(pastecs)
+```
+
+***DEMO 1***
+Johnson, D. J., & Rusbult, C. E. (1989). Resisting temptation: Devaluation of alternative partners as a means of maintaining commitment in close relationships. Journal of personality and social Psychology, 57(6), 967.
+
+In their 1989 study, Johnson and Rusbult investigated the tendency for people to "devalue unselected alternatives." For example, when a student selects college A over college B, she will tend to devalue college B (see it as worse than before) as a way of justifying her decision. Johnson and Rusbult investigated this phenomenon in romantic relationships. To investigate this, they recruited 200 participants (100 in committed relationship and 100 single). All participants received a profile of a prospective romantic partner, but half randomly received a low attractiveness profile while the other half received a high attractiveness profile. 
+
+They expected that single people would rate a very attractive prospective partner higher than a prospective partner who was only moderately attractive. Their second prediction was that people in a committed relationship would not show this pattern. Like the student attending college A, people in a committed relationship have made their choice and will devalue the unselected alternative, who in this case is a very-attractive prospective romantic partner. 
+
+Variables:
+- Commitment: A factor set to either “No” or “Yes”, indicating whether the subject was in a committed relationship.
+- Attractiveness: Attractiveness of target prospective romantic partner, either “Low” or “High” (based on physical, mental, and personality attributes)
+- Rating: Average of several ratings. Higher scores indicate more attraction to the prospective partner.
+
+***INTERNALIZE THE RESEARCH***
+Identify Research Question and Design Model/Hypotheses
+Does relationship status and attractiveness of a potential partner impact your atttraction level? 
+Does the impact of attrativeness of a potential partner on attractiveness ratings depend on one's relationship status?
+- Is there a main effect of relationship status on attaction rating?
+- Is there a main effect of attraction level of potential partner on your attraction rating?
+- Do relationship status and attractiveness of a potential partner interact to impact the attraction rating?
+
+Attractiveness Rating = relationship status + attractiveness level + rel x att + error
+
+Design Study and Identify Appropriate Analysis
+IV: relationship status and profile attraction level 
+DV: attraction rating
+between group factorial design
+
+**COLLECT AND PREP DATA**
+```{r}
+# Read data
+dat.com <- read.csv("commit.csv")
+
+#convert both attractiveness profile and commitment to a factor (i.e. levels of a categorical variable) and order the levels so they'll show up in our preferred order in the graph
+dat.com$Attractiveness <- factor(dat.com$Attractiveness,levels = c("Low", "High"))
+dat.com$Commitment<-as.factor(dat.com$Commitment)
+```
+
+**VISUALIZE YOUR DATA**
+```{r}
+#Check your MEANS. This gives us all the possible means that we can use to preliminary determine what's happening in our data. 
+model.com<-aov(Rating~as.factor(Attractiveness)*as.factor(Commitment),data=dat.com)
+model.tables(model.com, type="means")
+```
+
+```{R}
+#creating a bar graph
+bar.com <- ggplot(dat.com, aes(Attractiveness, Rating, fill = Commitment))
+
+bar.com + stat_summary(fun.y = mean, geom = "bar", position = "dodge") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Attractivness", y = "Rating", fill = "Commitment") + ggtitle('Effect of Target Attractiveness and Commitment Status on Ratings of Attraction') + scale_fill_manual("Commitment", values = c("hotpink4", "seagreen3"))
+```
+
+```{r}
+#creating a line graph
+line.com <- ggplot(dat.com, aes(Attractiveness, Rating, colour = Commitment))
+
+line.com + stat_summary(fun.y = mean, geom = "point") + stat_summary(fun.y = mean, geom = "line", aes(group = Commitment)) + stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.2) + labs(x = "Attractiveness", y = "Rating", colour = "Commitment") + ggtitle('Effect of Target Attractiveness and Commitment Status on Ratings of Attraction') + scale_color_manual("Commitment", values = c("hotpink4", "seagreen3"))
+```
+
+**ASSUMPTIONS**
+The assumptions of factorial ANOVA are the same as one way ANOVA. The DV (residuals) in each condition (group) must be normally distributed and the variances must be homogeneous. You'll notice we're using a different code to check normality. The "descriptives" function is wonderful, but it can't check the histograms and skew/kurt of each condition (i.e. mean of group based on both variables) 
+
+```{r}
+#Run ONE histogram of all the residuals to visualize and then run ONE set of descriptives by all conditions to check skew and kurtosis. 
+
+#Histograms: This creates a "model" that includes the means of each condition and looks at how much each individual score varies from their respectiver means. You only need to check this one histogram!
+res.com<-model.com$residuals
+hist(res.com, main="Histogram of residuals",xlab="Residuals")
+
+#Descriptive: This easy code looks at descriptive stats for EACH condition. You just need to run this one code to look at all conditions by Room and Break. TIP - click the litte square in the top right corner of the ouput (should say Show in New Window) and it will be MUCH easier to read. 
+by(dat.com$Rating, list(dat.com$Attractiveness, dat.com$Commitment), basic = FALSE, norm = TRUE, stat.desc)
+
+```
+
+**Homogeneity of Variance**
+```{r}
+#Checking levene's using a separate code. Remember, you can always check Levene's in the actual ANOVA code by adding the argument home = TRUE
+leveneTest(dat.com$Rating, interaction(dat.com$Attractiveness, dat.com$Commitment), center = mean)
+```
+
+**FACTORIAL ANOVA**
+```{r}
+#Factorial ANOVA that includes all main effect and interaction, along with post hoc tests for the main effect. 
+jmv::ANOVA(data = dat.com, 
+           dep = 'Rating', 
+           factors = c('Attractiveness', 'Commitment'), 
+           effectSize = 'partEta', 
+           postHoc = c('Attractiveness', 'Commitment'), 
+           postHocCorr = 'tukey',
+           postHocES = 'd',
+           emMeans = c('Attractiveness', 'Commitment'),
+           emmTables = TRUE)
+```
+
+**SIMPLE EFFECTS ANALYSIS**
+```{r}
+#First you need to subset data in order to look at the effect of IV1 at a specific level of IV2. In the example below, we split the data by attractiveness level. 
+
+dat.low <- subset(dat.com, dat.com$Attractiveness == "Low")
+dat.high <- subset(dat.com, dat.com$Attractiveness == "High")
+
+# Test the simple effect of Commitment Status at each level of Attractiveness. Because we only have two levels of Commitmentment Status, we can do a t-test! 
+
+#Low Attractiveness
+ttestIS(data = dat.low, vars = 'Rating', group = 'Commitment', meanDiff = TRUE, ci = TRUE, effectSize = TRUE, desc = TRUE)
+
+#High Attractiveness
+ttestIS(data = dat.high, vars = 'Rating', group = 'Commitment', meanDiff = TRUE, ci = TRUE, effectSize = TRUE, desc = TRUE)
+```
+
+
+***EXAMPLE 2***
+Gonzalez, J. (2005). In-group/out-group dynamics of Native American mascot endorsement. The University of North Dakota.
+
+The use of Native American names and mascots by professional and college sports teams has become a controversial issue. However, very little research has investigated how individual's position regarding racial mascots impacts discrimination. This study proposed that the multiple social categories created by manipulating the support/opposition of Native mascots by Native and White college students at a university with a Native mascot (UND), would allow for the identification of discrimination. It was hypothesized that the manipulation of Native American Mascot Support in Native and White confederates would create a multiple in-group/out-group dynamic that would influence discriminatory behavior. 
+
+To study this, Gonzales recruited 192 White students from the University of North Dakota, whose mascot is (WAS) a Fighting Sioux. Each participant was given a one page description of an imaginary student (confederate) which had a photograph of the student attached. Participants then completed a questionnaire containing the following questions: how much they would like to meet this person if given the chance; overall reaction to the person; if they were in a managerial position how likely would they be to hire this person; and if they were applying for scholarship, how worthy would they be to receive it? The answers to these questions were aggregated into an "endorsement" measure, signaling a lack of discrimination. 
+
+To manipulate race, participants received the photograph of either a White or a Native confederate. To manipulate mascot endorsement, in the photograph, the conferedate was wearing one of three outfits. In the pro condition, the confederate wore a green Fighting Sioux t-shirt, which prominently displayed two Fighting Sioux logos on the front, suggesting endorsement of the Fighting Sioux logo and name. In the Anti condition, each confederate wore a white t-shirt that had two Fighting Sioux logos covered by the NOT symbol and contained the phrase “CHANGE THE NAME!” in red letters, suggesting opposition to the use of the Fighting Sioux logo and name. In the neutral condition, the confederate wore their own casual dress containing no support or opposition regalia to the Fighting Sioux team logo. 
+
+***INTERNALIZE THE RESEARCH***
+1. Identify Research Question and Design Model/Hypotheses
+2. Design Study and Identify Appropriate Analysis
+
+RQ: Does race and mascot stance impact discrimination
+Does the effect of mascot endorsement on discrimination depend on target race?
+Does the effect of target race on discrimination depend on mascot endorsement?
+- Is there a main effect of race (Native v. White)?
+- Is there a main effect of mascot stance (Pro v. Anti v. Neutral)
+- Do race and mascot stance interact to impact discrimination?
+
+2 x 3 ANOVA
+IV: student race and mascot stance
+DV: discrimination
+Between group factorial design
+
+**COLLECT AND PREP DATA**
+```{r}
+# Read data
+dat.mas <- read.csv("mascot.csv")
+
+#convert both Break and Room to a factor (i.e. levels of a categorical variable) and order the levels so they'll show up in our preferred order in the graph
+dat.mas$Position <- factor(dat.mas$Position,levels = c("Pro","Anti", "Neutral"))
+dat.mas$Race<-as.factor(dat.mas$Race)
+```
+
+**VISUALIZE YOUR DATA**
+```{r}
+#Check your MEANS. This gives us all the possible means that we can use to preliminary determine what's happening in our data. 
+model.mas<-aov(Endorsement~as.factor(Position)*as.factor(Race),data=dat.mas)
+model.tables(model.mas, type="means")
+```
+
+```{R}
+#creating a bar graph
+bar.mas <- ggplot(dat.mas, aes(Position, Endorsement, fill = Race))
+
+bar.mas + stat_summary(fun = mean, geom = "bar", position = "dodge") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Position", y = "Endorsement", fill = "Race") + ggtitle('Effect of Race and Mascot Position on Target Endorsement or Discrimination') + scale_fill_manual("Race", values = c("plum4", "steelblue2"))
+```
+
+```{r}
+#creating a line graph
+line.mas <- ggplot(dat.mas, aes(Position, Endorsement, colour = Race))
+
+line.mas + stat_summary(fun = mean, geom = "point") + stat_summary(fun.y = mean, geom = "line", aes(group = Race)) + stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.2) + labs(x = "Position", y = "Endorsement", colour = "Race") + ggtitle('Effect of Race and Mascot Position on Target Endorsement or Discrimination') + scale_color_manual("Race", values = c("plum4", "steelblue2"))
+```
+
+**ASSUMPTIONS**
+The assumptions of factorial ANOVA are the same as one way ANOVA. The DV (residuals) in each condition (group) must be normally distributed and the variances must be homogeneous. You'll notice we're using a different code to check normality. The "descriptives" function is wonderful, but it can't check the histograms and skew/kurt of each condition (i.e. mean of group based on both variables) 
+
+```{r}
+#Run ONE histogram of all the residuals to visualize and then run ONE set of descriptives by all conditions to check skew and kurtosis. 
+
+#Histograms: This creates a "model" that includes the means of each condition and looks at how much each individual score varies from their respectiver means. You only need to check this one histogram!
+res.mas<-model.mas$residuals
+hist(res.mas, main="Histogram of residuals",xlab="Residuals")
+
+#Descriptive: This easy code looks at descriptive stats for EACH condition. You just need to run this one code to look at all conditions by Room and Break. TIP - click the litte square in the top right corner of the ouput (should say Show in New Window) and it will be MUCH easier to read. 
+by(dat.mas$Endorsement, list(dat.mas$Position, dat.mas$Race), basic = FALSE, norm = TRUE, stat.desc)
+
+```
+
+**Homogeneity of Variance**
+```{r}
+#Checking levene's using a separate code. Remember, you can always check Levene's in the actual ANOVA code by adding the argument home = TRUE
+leveneTest(dat.mas$Endorsement, interaction(dat.mas$Position, dat.mas$Race))
+```
+
+**FACTORIAL ANOVA**
+```{r}
+#Factorial ANOVA that includes all main effect and interaction, along with post hoc tests for the main effect. 
+jmv::ANOVA(data = dat.mas, 
+           dep = 'Endorsement', 
+           factors = c('Position', 'Race'), 
+           effectSize = 'partEta', 
+           postHoc = c('Position', 'Race'), 
+           postHocCorr = 'tukey',
+           postHocES = 'd',
+           emMeans = c('Position', 'Race'),
+           emmTables = TRUE)
+```
+
+**SIMPLE EFFECTS ANALYSIS OPTION 1**
+```{r}
+#subset data by position
+
+dat.pro <- subset(dat.mas, dat.mas$Position == "Pro")
+dat.neutral <- subset(dat.mas, dat.mas$Position == "Neutral")
+dat.anti <- subset(dat.mas, dat.mas$Position == "Anti")
+
+# Test the simple effect of race at each level of position. Because we only have two levels of race, we can do a t-test! 
+
+#Pro Position
+ttestIS(data = dat.pro, vars = 'Endorsement', group = 'Race', meanDiff = TRUE, ci = TRUE, effectSize = TRUE, desc = TRUE)
+
+#Neutral Position
+ttestIS(data = dat.neutral, vars = 'Endorsement', group = 'Race', meanDiff = TRUE, ci = TRUE, effectSize = TRUE, desc = TRUE)
+
+#Anti Position
+ttestIS(data = dat.anti, vars = 'Endorsement', group = 'Race', meanDiff = TRUE, ci = TRUE, effectSize = TRUE, desc = TRUE)
+```
+
+**SIMPLE EFFECTS ANALYSIS OPTION 2**
+```{r}
+#Fsubset the data by race
+
+dat.native <- subset(dat.mas, dat.mas$Race == "Native")
+dat.white <- subset(dat.mas, dat.mas$Race == "White")
+
+#Test the simple effect of position at each level of race. Because we have three levels of position, we need to run an ANOVA followed by post-hoc testing. 
+
+#Native
+jmv::ANOVA(data = dat.native, 
+           dep = 'Endorsement', 
+           factors = 'Position', 
+           effectSize = 'partEta', 
+           postHoc = 'Position', 
+           postHocCorr = 'tukey',
+           postHocES = 'd',
+           emMeans = 'Position',
+           emmTables = TRUE)
+
+#White
+jmv::ANOVA(data = dat.white, 
+           dep = 'Endorsement', 
+           factors = 'Position', 
+           effectSize = 'partEta', 
+           postHoc = 'Position', 
+           postHocCorr = 'tukey',
+           postHocES = 'd',
+           emMeans = 'Position',
+           emmTables = TRUE)
+```
+
+
+***EXAMPLE 3***
+You were recently hired by the people experience team at Google to redesign some of their work space. As background research for the project, you design a study to investigate what type of environment is most conducive to intrinsic motivation for different kinds of people. Specifically, you are interested in effect of personality (introvert, ambivert, extrovert) and environment (home, cafe, office) on intrinsic motivation (1-10). Thanks to Google's budget, you are able to recruit 50 people in each condition! 
+
+***INTERNALIZE THE RESEARCH***
+1. Identify Research Question and Design Model/Hypotheses
+2. Design Study and Identify Appropriate Analysis
+
+**COLLECT AND PREP DATA**
+```{r}
+# Read data
+dat.env <- read.csv("environment.csv")
+
+#convert both Personality and Environment to a factor (i.e. levels of a categorical variable) and order the levels so they'll show up in our preferred order in the graph
+dat.env$Environment <- factor(dat.env$Environment,levels = c("Home", "Cafe", "Office"))
+dat.env$Personality <-factor(dat.env$Personality, levels = c("Introvert", "Ambivert", "Extrovert"))
+```
+
+**VISUALIZE YOUR DATA**
+```{r}
+#Check your MEANS. This gives us all the possible means that we can use to preliminary determine what's happening in our data. 
+model.env<-aov(Motivation~as.factor(Environment)*as.factor(Personality),data=dat.env)
+model.tables(model.env, type="means")
+```
+
+```{R}
+#creating a bar graph 
+bar.env <- ggplot(dat.env, aes(Environment, Motivation, fill = Personality))
+
+bar.env + stat_summary(fun = mean, geom = "bar", position = "dodge") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Environment", y = "Mean Motivation", fill = "Personality") + ggtitle('Effect of Environment and Personality on Intrinsic Motivaton') + scale_fill_manual("Personality", values = c("darkslateblue", "seagreen4", "orange2")) 
+```
+
+```{r}
+#creating a line graph
+line.env <- ggplot(dat.env, aes(Environment, Motivation, colour = Personality))
+
+line.env + stat_summary(fun = mean, geom = "point") + stat_summary(fun.y = mean, geom = "line", aes(group = Personality)) + stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.2) + labs(x = "Environment", y = "Mean Motivation", colour = "Personality") + ggtitle('Effect of Environment and Personality on Intrinsic Motivaton') + scale_color_manual("Personality", values = c("darkslateblue", "seagreen4", "orange2"))
+```
+
+**ASSUMPTIONS**
+The assumptions of factorial ANOVA are the same as one way ANOVA. The DV (residuals) in each condition (group) must be normally distributed and the variances must be homogeneous.
+
+**Normality**
+```{r}
+#Run ONE histogram of all the residuals to visualize and then run ONE set of descriptives by all conditions to check skew and kurtosis. 
+
+#Histograms: This creates a "model" that includes the means of each condition and looks at how much each individual score varies from their respectiver means
+res.env<-model.env$residuals
+hist(res.env, main="Histogram of residuals",xlab="Residuals")
+
+#Descriptive: This code looks at more detaled descriptive stats for EACH condition. You just need to run this one code to look at all conditions by environment and personality. 
+by(dat.env$Motivation, list(dat.env$Personality, dat.env$Environment), basic = FALSE, norm = TRUE, stat.desc)
+
+```
+
+**Homogeneity of Variance**
+```{r}
+#Checking levene's using a separate code. Remember, you can always check Levene's in the actual ANOVA code by adding the argument home = TRUE
+leveneTest(dat.env$Motivation, interaction(dat.env$Environment, dat.env$Personality))
+```
+
+**FACTORIAL ANOVA**
+```{r}
+#Factorial ANOVA that includes all main effect and interaction, along with post hoc tests for the main effect. 
+jmv::ANOVA(data = dat.env, 
+           dep = 'Motivation', 
+           factors = c('Environment', 'Personality'), 
+           homo = TRUE,
+           effectSize = 'partEta', 
+           postHoc = c('Environment', 'Personality'),
+           postHocCorr = 'tukey',
+           postHocES = 'd',
+           emMeans = c('Environment', 'Personality'), 
+           emmTables = TRUE)
+```
+
+**SIMPLE EFFECTS ANALYSIS**
+```{r}
+#First you need to subset data in order to look at the effect of IV1 at a specific level of IV2. In the example below, we split the data by personality, but you could also split by Environment! 
+
+dat.Int <- subset(dat.env, dat.env$Personality == "Introvert")
+dat.Amb <- subset(dat.env, dat.env$Personality == "Ambivert")
+dat.Ext <- subset(dat.env, dat.env$Personality == "Extrovert")
+
+# Test the simple effect of environment at each level of personality. Because we have more than two levels, we need to run ANOVAs will post-hoc testing. 
+
+jmv::ANOVA(data = dat.Int, 
+           dep = 'Motivation', 
+           factors = c('Environment'), 
+           effectSize = 'eta',
+           postHoc = c('Environment'),
+           postHocCorr = 'tukey',
+           postHocES = 'd',
+           emMeans = 'Environment', 
+           emmTables = TRUE)
+
+jmv::ANOVA(data = dat.Amb, 
+           dep = 'Motivation', 
+           factors = c('Environment'), 
+           effectSize = 'eta',
+           postHoc = c('Environment'),
+           postHocCorr = 'tukey',
+           postHocES = 'd',
+           emMeans = 'Environment', 
+           emmTables = TRUE)
+
+jmv::ANOVA(data = dat.Ext, 
+           dep = 'Motivation', 
+           factors = c('Environment'), 
+           effectSize = 'eta',
+           postHoc = c('Environment'),
+           postHocCorr = 'tukey',
+           postHocES = 'd',
+           emMeans = 'Environment', 
+           emmTables = TRUE)
+
+```
+
+
