@@ -1,0 +1,395 @@
+---
+title: "Mixed Factorial"
+author: "JD"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r, echo=FALSE, results=FALSE, message=FALSE, cache=FALSE, warning=FALSE}
+library(knitr); opts_chunk$set(error=TRUE, cache=FALSE)
+```
+
+```{r packages, include=FALSE}
+library(psych)
+library(reshape)
+library(jmv)
+library(car)
+library(heplots)
+library(ggplot2)
+library(pastecs)
+library(tidyr)
+library(forcats)
+```
+
+**Example 1 - MJ**
+Although numerous factors affect the accuracy of eyewitness memory (exposure time, racial similarity, weapon presence), some argue that these factors do not affect the accuracy of identifications by eyewitnesses who are highly confident when they identify an alleged perpetrator. This is critical because legal cases are more likely to be prosecuted if they involve eyewitnesses who are highly confident in their identifications. In this study, Pezdek et al., (2020) examined the effect of marijuana (cannabis) on the confidence–accuracy relationship. 
+
+In our study, 114 marijuana users (95 after cleaning) were randomly assigned to a marijuana or control condition and participated in an old/new face recognition memory test. In the first part of the exercise, participants were exposed to a series of 24 faces, half of which (randomized) they saw for 1.5 seconds and half of which they saw for 5.0 seconds. In part two, we tested recall accuracy by showing participants 48 faces (24 old, 24 new) and asking them to indicate if they'd see that face in part one. They also provided a confidence rating for each judgment. 
+
+Given our interest in the confidence–accuracy characteristic, we only examined judgements that participants rated as 5 (highly confident) on as scale of 1 to 5. Their confidence-accuracy score is the proportion of correctly identified faces compared to missed identifications and false alarms (claiming they saw a face they didn't see).
+
+Between Groups IV: MJ (0 = Sober, 1 = Marijuana) 
+Within Groups IV: Exposure Time (1.5 sec, 5 sec) 
+DV: confidence-accuracy ratio
+
+**Prep your data**
+```{r}
+datmj <- read.csv("mj2.csv")
+
+#convert marijuana condition to factor. Order the levels so they are your desired order on graph
+datmj$MJ <- factor(datmj$MJ, levels = c("0", "1"))
+```
+
+```{r}
+datmj_long <- datmj %>% pivot_longer(!1:2, names_to = "Exposure", values_to = "Score")
+
+datmj_long$MJ <- factor(datmj_long$MJ,levels = c("0", "1"))
+datmj_long$Exposure <- factor(datmj_long$Exposure,levels = c("Sec1.5", "Sec5"))
+```
+
+**Get to Know Your Data: What's the Story**
+```{r}
+#creating a bar graph 
+barmj <- ggplot(datmj_long, aes(Exposure, Score, fill = MJ))
+
+barmj + stat_summary(fun = mean, geom = "bar", position = "dodge") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Exposure", y = "Accuracy", fill = "MJ") + ggtitle('Effect of MJ and Exposure Time on Accuracy Levels for Highly Confident Witnesses') + scale_fill_manual("MJ", values = c("aquamarine3", "deeppink3")) + theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+#create a line graph
+linemj <- ggplot(datmj_long, aes(Exposure, Score, colour = MJ))
+
+linemj + stat_summary(fun = mean, geom = "point") + stat_summary(fun.y = mean, geom = "line", aes(group = MJ)) + stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.2) + labs(x = "Exposure", y = "Accuracy", colour = "MJ") + ggtitle('Effect of MJ and Exposure Time on Accuracy Levels for Highly Confident Witnesses') + scale_color_manual("MJ", values = c("aquamarine3", "deeppink3")) + theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+#This code specifies your model...
+modelmj<-aov(Score~as.factor(Exposure)*as.factor(MJ),data=datmj_long)
+
+#....and this one returns all of the means (cell, marginal, and grand) for the model you specified 
+model.tables(modelmj, type="means")
+```
+
+**Check Assumptions**
+```{r}
+#Histograms: You already specified your model above, so in the code below we're just plotting the residuals (how much the model over or underestimates someones self control score.You only need to check this one histogram!
+resmj<-modelmj$residuals
+hist(resmj, main="Histogram of residuals",xlab="Residuals")
+
+#confirm skew and kurtosis
+by(datmj_long$Score, list(datmj_long$Exposure, datmj_long$MJ), basic = FALSE, norm = TRUE, stat.desc)
+```
+
+```{r}
+#This code run Box's test to check homogeneity of the co-variance matrices. Box's M follows the chi square distribution, so we report is as x2(df) = X.XX, p = .XXX. Note that it uses the wide data
+BoxResultmj<-boxM(datmj[,3:4],datmj$MJ)
+BoxResultmj$cov
+BoxResultmj
+```
+
+**Mixed Factorial ANOVA (Includes Levene's Test [homogeneity of variance assumption], Mauchly's Test [sphericity], and Main Effect Post Hoc Tests with corrections**
+```{r}
+model.mj <- anovaRM(data = datmj, 
+                 rm = list(list(label = 'Exposure',
+                                levels = c('Sec1.5', 'Sec5'))), 
+                 rmCells = list(list(measure = 'Sec1.5', cell = 'Sec1.5'),
+                                list(measure = 'Sec5', cell = 'Sec5')),
+                 rmTerms = list('Exposure'),
+                 bs = 'MJ',
+                 bsTerms = list('MJ'),
+                 effectSize = c('partEta'),
+                 leveneTest = TRUE,
+                 spherTests = TRUE,
+                 spherCorr = c('none','GG'), #no correction and gg correction
+                 postHoc = list('Exposure', 'MJ'),
+                 postHocCorr = list('holm','tukey'),
+                 emMeans = ~ Exposure + MJ + Exposure:MJ,
+                 emmTables = T)
+model.mj
+```
+
+**Example 2 - Soccer**
+Building on reseach that has shown pyschoeducational of self-help books to be effective in reducing perfectionism and anxiety outside of sport, Donachie &  Hill (2020) explored the effectiveness of a self-help book intervention on reducing perfectionism in soccer players, who were randomly assigned to the intervention or a control group. Athletes in the self-help condition read "When Perfect Isn't Good Enough" while the control condition did not read anything. The participants completed perfectionism and anxiety measures at three time points (time 1: pre-intervention, time 2: 8-weeks later and time 3: 13 weeks later.
+
+Between Groups IV: Group (Intervention, Control)
+Within Groups IV: Time (Time1, Time2, Time3)
+DV: Anxiety (scored)
+
+**Prep your data**
+```{r}
+datsc <- read.csv("soccer.csv")
+
+#convert Group to factors. Order the levels so they are your desired order on graph
+datsc$Group <- factor(datsc$Group, levels = c("Int", "Cont"))
+```
+
+```{r}
+dat_sc_long <- datsc %>% pivot_longer(!1:2, names_to = "time", values_to = "anxiety")
+
+dat_sc_long$time <- factor(dat_sc_long$time,levels = c("Time1", "Time2", "Time3"))
+```
+
+**Get to Know Your Data: What's the Story**
+```{R}
+#creating a bar graph 
+barsc <- ggplot(dat_sc_long, aes(time, anxiety, fill = Group))
+
+barsc + stat_summary(fun.y = mean, geom = "bar", position = "dodge") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2)+ labs(x = "time", y = "anxiety", fill = "Group") + ggtitle('Effect of Time and Intervention on Anxiety') + scale_fill_manual("Group", values = c("gold2", "purple4")) + theme(plot.title = element_text(hjust = 0.5))
+```
+**
+```{r}
+#create a line graph
+linesc <- ggplot(dat_sc_long, aes(time, anxiety, colour = Group))
+
+linesc + stat_summary(fun.y = mean, geom = "point") + stat_summary(fun.y = mean, geom = "line", aes(group = Group)) + stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.2) + labs(x = "time", y = "anxiety", colour = "Group") + ggtitle('Effect of Time and Intervention on Anxiety') + scale_color_manual("Group", values = c("gold2", "purple4")) + theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+#This code specifies your model...
+modelsc<-aov(anxiety~as.factor(time)*as.factor(Group),data=dat_sc_long)
+
+#....and this one returns all of the means (cell, marginal, and grand) for the model you specified 
+model.tables(modelsc, type="means")
+```
+
+**Check Assumptions**
+```{r}
+#Histograms: You already specified your model above, so in the code below we're just plotting the residuals (how much the model over or underestimates someones self control score.You only need to check this one histogram!
+ressc<-modelsc$residuals
+hist(ressc, main="Histogram of residuals",xlab="Residuals")
+
+#confirm skew and kurtosis
+by(dat_sc_long$anxiety, list(dat_sc_long$time, dat_sc_long$Group), basic = FALSE, norm = TRUE, stat.desc)
+```
+
+```{r}
+#This code run Box's test to check homogeneity of the co-variance matrices. Box's M follows the chi square distribution, so we report is as x2(df) = X.XX, p = .XXX. Note that it uses the wide data
+BoxResultsc<-boxM(datsc[,3:5],datsc$Group)
+BoxResultsc$cov
+BoxResultsc
+```
+
+**Mixed Factorial ANOVA (Includes Levene's Test [homogeneity of variance assumption], Mauchly's Test [sphericity], and Main Effect Post Hoc Tests with corrections**
+```{r}
+model.sc <- anovaRM(data = datsc, 
+                 rm = list(list(label = 'Time',
+                                levels = c('Time1', 'Time2', 'Time3'))), 
+                 rmCells = list(list(measure = 'Time1', cell = 'Time1'),
+                                list(measure = 'Time2', cell = 'Time2'),
+                                list(measure = 'Time3', cell = 'Time3')),
+                 rmTerms = list('Time'),
+                 bs = 'Group',
+                 bsTerms = list('Group'),
+                 effectSize = c('partEta'),
+                 leveneTest = TRUE,
+                 spherTests = TRUE,
+                 spherCorr = c('none','GG'),
+                 postHoc = list('Time', 'Group'),
+                 postHocCorr = list('holm','tukey'),
+                 emMeans = ~ Time + Group + Time:Group,
+                 emmTables = T)
+model.sc
+```
+
+**Simple Effect Analysis**
+```{r}
+#Subset your data by whether the participant is in the intervention or control group
+Int <- subset(datsc, datsc$Group == "Int")
+
+Cont <- subset(datsc, datsc$Group == "Cont")
+```
+
+```{r}
+#Because time is our within-subject variable and we have three levels, our simple effects analysis will be two steps. A repeated measures ANOVA looking at the effect of time at each level of group, followed by post-hoc testing with a Holm correction)
+model_Int <- anovaRM(data = Int, 
+                 rm = list(list(label = 'Time', 
+                                levels = c('Time1', 'Time2', 'Time3'))), 
+                 rmCells = list(list(measure = 'Time1', cell = 'Time1'),
+                                list(measure = 'Time2', cell = 'Time2'),
+                                list(measure = 'Time3', cell = 'Time3')),
+                 rmTerms = list('Time'),
+                 effectSize = c('partEta', 'eta'),
+                 spherTests = TRUE,
+                 spherCorr = c('none','GG'),
+                 postHoc = list('Time'),
+                 postHocCorr = 'holm')
+
+model_Int
+
+model_Cont <- anovaRM(data = Cont, 
+                 rm = list(list(label = 'Time', 
+                                levels = c('Time1', 'Time2', 'Time3'))), 
+                 rmCells = list(list(measure = 'Time1', cell = 'Time1'),
+                                list(measure = 'Time2', cell = 'Time2'),
+                                list(measure = 'Time3', cell = 'Time3')),
+                 rmTerms = list('Time'),
+                 effectSize = c('partEta', 'eta'),
+                 spherTests = TRUE,
+                 spherCorr = c('none','GG'),
+                 postHoc = list('Time'),
+                 postHocCorr = 'holm')
+
+model_Cont
+```
+
+**Example 3 - Positive Psychology Interventions**
+Mongrain and Anselmo-Matthews (2012) replicated Seligman and colleagues' (2005) landmark study that demonstrated the long-term benefits of positive psychology exercises. In the present study, they randomly assigned individuals to the same three conditions as Seligman's original study (1) control  (2) the three good things exercise, and (3) a signature strengths exercise. They also added a fourth (4) placebo condition. Participants were assigned to one of the four conditions and then completed the Steen Happiness Index at three time points (baseline, one month, and three months).
+
+Between Groups IV: Intervention (M, G, S, C)
+Within Groups IV: Time (BL, M1, M3)
+DV: Happiness 
+
+**Prep your data**
+```{r}
+datpos <- read.csv("posintdemo.csv")
+
+#convert intervention and time to factors. Order the levels of sign and source so they are your desired order on graph
+datpos$Int <- factor(datpos$Int, levels = c("C", "M", "G", "S"))
+datpos$Time <- factor(datpos$Time, levels = c("BL", "M1", "M3"))
+
+```
+
+```{r}
+#convert data from long to wide so you have it ready for the ANOVA code
+datpos_wide <- pivot_wider(datpos, names_from = Time, values_from = Happ)
+```
+
+**Get to Know Your Data: What's the Story**
+```{R}
+#creating a bar graph 
+barpos <- ggplot(datpos, aes(Time, Happ, fill = Int))
+
+barpos + stat_summary(fun = mean, geom = "bar", position = "dodge") + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.90), width = 0.2) + labs(x = "Time", y = "Happiness", fill = "Intervention") + ggtitle('Effect of Time and Intervention on Happiness') + scale_fill_manual("Int", values = c("green", "blue", "purple", "orange1"))
+```
+
+```{r}
+#create a line graph
+linepos <- ggplot(datpos, aes(Time, Happ, colour = Int))
+
+linepos + stat_summary(fun = mean, geom = "point") + stat_summary(fun.y = mean, geom = "line", aes(group = Int)) + stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.2) + labs(x = "Time", y = "Happiness", colour = "Intervention") + ggtitle('Effect Time and Intervention on Happiness') + scale_color_manual("Int", values = c("green", "blue", "purple", "orange1"))
+```
+
+```{r}
+#This code specifies your model...
+modelpos<-aov(Happ~as.factor(Int)*as.factor(Time),data=datpos)
+
+#....and this one returns all of the means (cell, marginal, and grand) for the model you specified 
+model.tables(modelpos, type="means")
+```
+
+**Check Assumptions**
+```{r}
+#Histograms: You already specified your model above, so in the code below we're just plotting the residuals (how much the model over or underestimates someones feedback score.You only need to check this one histogram!
+respos<-modelpos$residuals
+hist(respos, main="Histogram of residuals",xlab="Residuals")
+
+#confirm skew and kurtosis
+by(datpos$Happ, list(datpos$Int, datpos$Time), basic = FALSE, norm = TRUE, stat.desc)
+```
+
+```{r}
+#This code run Box's test to check homogeneity of the co-variance matrices. Box's M follows the chi square distribution, so we report is as x2(df) = X.XX, p = .XXX. Note that it uses the wide data
+BoxResultpos<-boxM(datpos_wide[,3:5],datpos_wide$Int)
+BoxResultpos$cov
+BoxResultpos
+```
+
+**Mixed Factorial ANOVA (Includes Levene's Test [homogeneity of variance assumption], Mauchly's Test [sphericity], and Main Effect Post Hoc Tests with corrections**
+```{r}
+model.pos <- anovaRM(data = datpos_wide, 
+                 rm = list(list(label = 'Time',
+                                levels = c('BL', 'M1', 'M3'))), 
+                 rmCells = list(list(measure = 'BL', cell = 'BL'),
+                                list(measure = 'M1', cell = 'M1'),
+                                list(measure = 'M3', cell = 'M3')),
+                 rmTerms = list('Time'),
+                 bs = 'Int',
+                 bsTerms = list('Int'),
+                 effectSize = c('partEta'),
+                 leveneTest = TRUE,
+                 spherTests = TRUE,
+                 spherCorr = c('none','GG'),
+                 postHoc = list('Time', 'Int'),
+                 postHocCorr = list('holm','tukey'),
+                 emMeans = ~ Time + Int + Time:Int,
+                 emmTables = T)
+model.pos
+```
+
+***Simple Effects Analysis***
+```{r}
+#First you need to subset data in order to look at the effect of IV1 at a specific level of IV2. In the example below, we split the data by intervention.
+
+#change control
+datpos_con <- subset(datpos_wide[-1], datpos_wide$Int == "C")
+datpos_mem <- subset(datpos_wide[-1], datpos_wide$Int == "M")
+datpos_good <- subset(datpos_wide[-1], datpos_wide$Int == "G")
+datpos_strength <- subset(datpos_wide[-1], datpos_wide$Int == "S")
+```
+
+```{r}
+model.con <- anovaRM(data = datpos_con, 
+                 rm = list(list(label = 'Time',
+                                levels = c('BL', 'M1', 'M3'))), 
+                 rmCells = list(list(measure = 'BL', cell = 'BL'),
+                                list(measure = 'M1', cell = 'M1'),
+                                list(measure = 'M3', cell = 'M3')),
+                 rmTerms = list('Time'),
+                 effectSize = c('partEta'),
+                 spherTests = TRUE,
+                 spherCorr = c('none', 'GG'),
+                 postHoc = list('Time'),
+                 postHocCorr = list('holm'))
+model.con
+```
+
+```{r}
+model.mem <- anovaRM(data = datpos_mem, 
+                 rm = list(list(label = 'Time',
+                                levels = c('BL', 'M1', 'M3'))), 
+                 rmCells = list(list(measure = 'BL', cell = 'BL'),
+                                list(measure = 'M1', cell = 'M1'),
+                                list(measure = 'M3', cell = 'M3')),
+                 rmTerms = list('Time'),
+                 effectSize = c('partEta'),
+                 spherTests = TRUE,
+                 spherCorr = c('none', 'GG'),
+                 postHoc = list('Time'),
+                 postHocCorr = list('holm'))
+model.mem
+```
+
+```{r}
+model.good <- anovaRM(data = datpos_good, 
+                 rm = list(list(label = 'Time',
+                                levels = c('BL', 'M1', 'M3'))), 
+                 rmCells = list(list(measure = 'BL', cell = 'BL'),
+                                list(measure = 'M1', cell = 'M1'),
+                                list(measure = 'M3', cell = 'M3')),
+                 rmTerms = list('Time'),
+                 effectSize = c('partEta'),
+                 spherTests = TRUE,
+                 spherCorr = c('none','GG'),
+                 postHoc = list('Time'),
+                 postHocCorr = list('holm'))
+model.good
+```
+
+```{r}
+model.strength <- anovaRM(data = datpos_strength, 
+                 rm = list(list(label = 'Time',
+                                levels = c('BL', 'M1', 'M3'))), 
+                 rmCells = list(list(measure = 'BL', cell = 'BL'),
+                                list(measure = 'M1', cell = 'M1'),
+                                list(measure = 'M3', cell = 'M3')),
+                 rmTerms = list('Time'),
+                 effectSize = c('partEta'),
+                 spherTests = TRUE,
+                 spherCorr = c('none','GG'),
+                 postHoc = list('Time'),
+                 postHocCorr = list('holm'))
+model.strength
+```
+
