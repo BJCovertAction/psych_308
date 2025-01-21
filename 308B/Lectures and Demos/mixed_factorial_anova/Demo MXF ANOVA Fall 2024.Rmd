@@ -2,9 +2,15 @@
 title: "Mixed Factorial"
 author: "JD"
 output:
-  word_document: default
   html_document:
-    df_print: paged
+    toc: true
+  word_document:
+    toc: true
+    
+# This option here enables output to both HTML and PDF formats    
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding,
+  output_format = "all") })
 ---
 
 ```{r, echo=FALSE, results=FALSE, message=FALSE, cache=FALSE, warning=FALSE}
