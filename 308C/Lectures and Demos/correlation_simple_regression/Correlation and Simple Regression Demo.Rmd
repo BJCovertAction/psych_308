@@ -103,6 +103,7 @@ scatter.se + geom_point() + geom_smooth(method = "lm", colour = "Red") + ggtitle
 model.se <- lm(desire.to.lead~self.efficacy, data = dat)
 
 #fitted values vs. residuals to examine homoscedasticity
+# NOTE use of .resid to plot residuals
 ggplot(model.se, aes(.fitted, .resid))+geom_point()+geom_hline(yintercept=0, col="green", linetype="dashed")+xlab("Fitted Values")+ylab("Residuals")+ggtitle("Residual vs. Fitted Plot")+theme_bw()
 
 #Breusch Pagan Test of homoscedasticity
@@ -112,6 +113,7 @@ ncvTest(model.se)
 ***Simple Regression***
 ```{r}
 #simple regression looking at self-efficacy as a predictor of desire to lead in a group (e.g. self-efficacy regressed on desire to lead)
+# stdEst gives us Beta
 model.se.uc <- linReg(data = dat, 
                  dep = 'desire.to.lead', 
                  covs = c('self.efficacy'), #all the predictors you want available
