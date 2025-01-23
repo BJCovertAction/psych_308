@@ -24,24 +24,87 @@ knit: (function(inputFile, encoding) {
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-**Prompt**
-A local business has implemented a new program to encourage employees to take more control over their workday. According to the program, employees are allowed to take their break at any point during the day for as long as they want between 1 and 60 minutes. As businesses do, they were wondering how this program may relate to productivity on a 1-100 scale. At the end of the first month, the business conducted a short survey which had all 205 employees report the average length of their break. The business employed you to investigate how break length may relate to productivity.
+## Prompt
+A local business has implemented a new program to encourage employees to take more control over their workday. According   
+to the program, employees are allowed to take their break at any point during the day for as long as they want between 1   
+and 60 minutes. As businesses do, they were wondering how this program may relate to productivity on a 1-100 scale. At   
+the end of the first month, the business conducted a short survey which had all 205 employees report the average length   
+of their break. The business employed you to investigate how break length may relate to productivity.
 
-**Variables:**
-Length - numeric; length of break in minutes (range 1-60).
-Enjoy - numeric; self-reported level of enjoyment of break period (scale average; range 1-10).
-Product (Productivity) - numeric; percentage of time meeting weekly goals (range 1-100; represented as whole number).
+## Variables 
 
-**Assignment:**
-**Part 1:** Run the appropriate assumptions and analyses and report your findings in an APA format results section. Include tables and figures as necessary. 
+| Variable | Type | Description |
+|:-----|:---|:------------------|
+| `Length` | numeric | length of break in minutes (range 1-60). |
+| `Enjoy` | numeric | self-reported level of enjoyment of break period (scale average; range 1-10). |
+| `Product (Productivity)` | numeric | percentage of time meeting weekly goals (range 1-100; represented as whole number). |
 
-**Part 2:** Respond to the following questions.
-1. Share your findings with the owner of the business. Be sure to provide a recommendation informed by your results.
-2. Condense your findings and share them as you would to a statistics-saavy audience. 
-3. If someone took an average-length break, what is their predicted productivity score?
-4. Find one empirical article in your concentration that uses some form of regression. Please read through and outline the information reported in the results section only. Please include an APA format citation of the article you chose.
+## Assignment
+
+### Part 1
+
+Run the appropriate assumptions and analyses and report your findings in an APA format results section.   
+Include tables and figures as necessary. 
+
+### Part 2
+
+*Respond to the following questions.*
+
+1. Share your findings with the owner of the business. Be sure to provide a recommendation informed by your results.  
+2. Condense your findings and share them as you would to a statistics-saavy audience.   
+3. If someone took an average-length break, what is their predicted productivity score?  
+4. Find one empirical article in your concentration that uses some form of regression. Please read through and outline 
+   the information reported in the results section only. Please include an APA format citation of the article you chose.
 
 Please submit both your response to the above prompts AND your knitted code on Canvas. 
 
-
 ---ONLY WRITE CODE BELOW THIS LINE---
+
+## Code
+
+### Libraries
+
+Load all requisite libraries here.
+
+```{r package_loading, message=FALSE, warning=FALSE}
+# Load packages. Set messages and warnings to FALSE so I don't have to see the
+# masking messages in the output.
+library(jmv)       # for descriptive
+library(ggplot2)
+library(dplyr)
+# library(car)       # for leveneTest
+# library(stringr)   # for sub_str operations
+# library(psych)
+# library(Hmisc)     # for fun.dat substitution
+# library(see)       # for outliers analysis 
+# library(magrittr)
+# library(AER)
+```
+
+### Load and View data
+
+```{r load_raw_data}
+# Stuff goes here
+breaks_raw_dat = read.csv("./da01.csv")
+
+# Rename columns to lower because why not
+colnames(breaks_raw_dat) <- tolower( colnames(breaks_raw_dat) )
+
+# View data
+glimpse(breaks_raw_dat)
+
+# Ensure that the employee numbers of each subject in the study are unique to prevent any duplicate data
+# if the size of the unique-entries only is the same as the whole vector then there are no duplicate subjects
+test_unique = (length(unique(breaks_raw_dat$subject)) == length(breaks_raw_dat$subject))
+if(!test_unique){
+    print("WARNING: There are duplicate data entries in the raw data")
+}else{
+    print("No duplicate entries detected in raw data")
+}
+```
+
+### Descriptive Statistics - Raw Data
+
+
+### Correlation Plots - Raw Data
+
