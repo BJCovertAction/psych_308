@@ -1,0 +1,218 @@
+---
+title: "Correlation and Simple Regression Demo"
+author: "Jessica Diaz"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(car)
+library(psych)
+library(jmv)
+library(ggplot2)
+library(tidyverse)
+library(magrittr)
+library(praise)
+library(apaTables)
+library(broom)
+```
+
+**Example 1**
+Using participants who self-identified as active in one or more Reddit groups, this study examined the relationships between several group and individual variables, individuals desire to lead, and their actual decision to pursue a leadership opportunity. 
+
+Variables:
+
+-Participant: ID Number
+-Group ID: Level of Group Identification (Low/High)
+-Support: Level of Support from Group (Low/High)
+-Group.Support: Level of Support from the Group (Continuous)
+-Desire to Lead: Desire to lead the group
+-Self Efficacy: Belief in their ability to lead the group
+-MTL Affective: General affective motivation to lead ("I like to be in charge")
+-MTL Socio Normative: General socio-normative to lead ("I will lead when asked")
+-Dominance: Influence via threat/power
+-Prestige: Influence via specialist knowledge
+-Leader Identity: Degree to which they view themselves as a leader
+-LdrBehavResponse: Decision to Lead (Yes/No)
+-Age: Age
+-Gender: Gender
+
+*Run the appropriate analyses and report relevant statistics in APA format. Please interpret the results for both someone who is knowledgable in statistics and for someone who is not.*
+
+```{r}
+#Get some praise to start the day
+praise()
+```
+
+```{r}
+#Read in your data. As long as its in the same folder as the RMD file, this is the only code you need. 
+dat <- read.csv("lead.csv")
+
+#make the column names lowercase
+colnames(dat) %<>% tolower()
+
+#Take a quick glimpse at your data to see how its categorized (or you can open the data from your environment)
+glimpse(dat)
+```
+
+```{r}
+#descriptives of your data
+desc <- descriptives(data = dat[-c(1:3,12:13,15)], hist = TRUE, sd = TRUE, range = TRUE, skew = TRUE, kurt = TRUE)
+desc
+
+#if you have a lot of variables, it can be helpful to run descriptives using psych's describe function rather than jmv's descriptives function because it organizes them vertically.
+desc2 <- describe(dat[-c(1:3,12:13,15)])
+desc2
+```
+
+```{r}
+#all of the Correlation Options
+
+#Option 1 (cor function in stats package --> ask it to round to 2 decimal plances)
+cor <- cor(dat[c(4:8)]) %>% round(2)
+cor
+
+#make it visual
+library(corrplot)
+corrplot(cor, method="circle")
+corrplot(cor, method="color", type = "lower")
+corrplot(cor, method="number", type = "lower")
+
+#Option 2 (corrMatrix function in jmv package) - this is my preferred function!
+cor2 <- corrMatrix(dat[-c(1:3,12:13,15)], flag = TRUE)
+cor2
+
+#Option 3 (APA Table using the apaTables package)
+#note that the confidence interval argument has been depricated and they must be manually removed if not desired
+apa.cor.table(dat[-c(1:3,12:13,15)], filename = "MTL Correlation Table.doc", table.number = 1, show.sig.stars = TRUE, landscape = TRUE)
+```
+
+**Self-Efficacy**
+```{r}
+#create a scatter plot of self efficacy and desire to lead to confirm linearity
+scatter.se <- ggplot(dat, aes(self.efficacy, desire.to.lead))
+
+#make that scatterplot relationship visually appealing
+scatter.se + geom_point() + geom_smooth(method = "lm", colour = "Red") + ggtitle("Self-Efficacy Predicting Desire to Lead") + labs(x = "Self Efficacy", y = "Desire to Lead") + theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+model.se <- lm(desire.to.lead~self.efficacy, data = dat)
+
+#fitted values vs. residuals to examine homoscedasticity
+ggplot(model.se, aes(.fitted, .resid))+geom_point()+geom_hline(yintercept=0, col="green", linetype="dashed")+xlab("Fitted Values")+ylab("Residuals")+ggtitle("Residual vs. Fitted Plot")+theme_bw()
+
+#Breusch Pagan Test of homoscedasticity
+ncvTest(model.se)
+```
+
+***Simple Regression***
+```{r}
+#simple regression looking at self-efficacy as a predictor of desire to lead in a group (e.g. self-efficacy regressed on desire to lead)
+model.se.uc <- linReg(data = dat, 
+                 dep = 'desire.to.lead', 
+                 covs = c('self.efficacy'), #all the predictors you want available
+                 blocks = list(c('self.efficacy')), 
+                 modelTest = TRUE, 
+                 stdEst = TRUE,
+                 ci = TRUE)
+model.se.uc
+```
+
+***Same Simple Regression but Centered***
+```{r}
+#center your predictors for interpretability
+dat$self.efficacy.c <- dat$self.efficacy - mean(dat$self.efficacy)
+
+#simple regression looking at self-efficacy (centered) as a predictor of desire to lead in a group (e.g. self-efficacy (centered) regressed on desire to lead)
+model.se.c <- linReg(data = dat, 
+                 dep = 'desire.to.lead', 
+                 covs = c('self.efficacy.c'), 
+                 blocks = list(c('self.efficacy.c')), 
+                 modelTest = TRUE, 
+                 stdEst = TRUE,
+                 ci = TRUE)
+model.se.c
+```
+
+```{r}
+#APA Regression Table - not perfect, but a start if you want it
+
+#specify model using regular lm function first
+model.se <- lm(desire.to.lead ~ self.efficacy.c, data = dat)
+#generate APA regression table
+apa.reg.table(model.se,filename="se_on_dtl.doc", table.number=2)
+```
+
+**Leader Identity**
+```{r}
+#create a scatter plot of leader identity and desire to lead
+scatter.li <- ggplot(dat, aes(leader.identity, desire.to.lead))
+
+#make that scatterplot relationship visually appealing
+scatter.li + geom_point() + geom_smooth(method = "lm", colour = "Red") + ggtitle("Leader Identity Predicting Desire to Lead") + labs(x = "Leader Identity", y = "Desire to Lead") + theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+model.li <- lm(desire.to.lead~leader.identity, data = dat)
+
+#fitted values vs. residuals to examine homoscedasticity
+ggplot(model.li, aes(.fitted, .resid))+geom_point()+geom_hline(yintercept=0, col="green", linetype="dashed")+xlab("Fitted Values")+ylab("Residuals")+ggtitle("Residual vs. Fitted Plot")+theme_bw()
+
+#Breusch Pagan Test of homoscedasticity
+ncvTest(model.li)
+```
+
+```{r}
+#center your predictors for interpretability
+dat$leader.identity.c <- dat$leader.identity - mean(dat$leader.identity)
+
+#simple regression looking at leader identity (centered) as a predictor of desire to lead in a group (e.g. leader identity (centered) regressed on desire to lead)
+model.li.c <- linReg(data = dat, 
+                 dep = 'desire.to.lead', 
+                 covs = c('leader.identity'), 
+                 blocks = list(c('leader.identity')), 
+                 modelTest = TRUE, 
+                 stdEst = TRUE,
+                 ci = TRUE)
+model.li.c
+```
+
+**Group Support**
+```{r}
+#create a scatter plot of group support and desire to lead
+scatter.gs <- ggplot(dat, aes(group.support, desire.to.lead))
+
+#make that scatterplot relationship visually appealing
+scatter.gs + geom_point() + geom_smooth(method = "lm", colour = "Red") + ggtitle("Group Support Predicting Desire to Lead") + labs(x = "Group Support", y = "Desire to Lead") + theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+model.gs <- lm(desire.to.lead~group.support, data = dat)
+
+#fitted values vs. residuals to examine homoscedasticity
+ggplot(model.gs, aes(.fitted, .resid))+geom_point()+geom_hline(yintercept=0, col="green", linetype="dashed")+xlab("Fitted Values")+ylab("Residuals")+ggtitle("Residual vs. Fitted Plot")+theme_bw()
+
+#Breusch Pagan Test of homoscedasticity
+ncvTest(model.gs)
+```
+
+```{r}
+#center your predictors for interpretability
+dat$group.support.c <- dat$group.support - mean(dat$group.support) 
+
+#simple regression looking at group support (centered) as a predictor of desire to lead in a group (e.g. group support  (centered) regressed on desire to lead)
+model.gs.c <- linReg(data = dat, 
+                 dep = 'desire.to.lead', 
+                 covs = c('group.support'), 
+                 blocks = list(c('group.support')), 
+                 modelTest = TRUE, 
+                 stdEst = TRUE,
+                 ci = TRUE)
+model.gs.c
+```
+
+
