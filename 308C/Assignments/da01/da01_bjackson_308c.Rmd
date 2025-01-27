@@ -128,7 +128,7 @@ normality of predictor variables (break length - minutes)
 # Get JMV descriptives of raw productivity, enjoyment, and break length
 # Tabulate mean, variance, skew, and kurtosis so we can check normality.
 # Output histograms and qq plots so we can spot outliers and review distribution shape
-bodies_descr = jmv::descriptives( breaks_raw_dat[c(2:4)],
+breaks_descr = jmv::descriptives( breaks_raw_dat[c(2:4)],
                                   hist = TRUE,
                                   dens = TRUE,
                                   qq = TRUE,
@@ -138,7 +138,7 @@ bodies_descr = jmv::descriptives( breaks_raw_dat[c(2:4)],
                                   skew = TRUE, 
                                   kurt = TRUE,
                                   missing = TRUE)
-print(bodies_descr)
+print(breaks_descr)
 
 ```
 
@@ -252,17 +252,50 @@ breaks_cent_scatter +
 # To compute residuals we need to define the model as productivity regressed onto break length in a linear fashion
 breaks_model_lin <- lm(product ~ length, data = breaks_dat)
 
-#fitted values vs. residuals to examine homoscedasticity
+# Fitted values vs. residuals to examine homoscedasticity
 # NOTE use of .resid to plot residuals
 breaks_resid_fig = ggplot( breaks_model_lin, aes(.fitted, .resid) )
 
 breaks_resid_fig + 
-    geom_point() +
-    geom_hline(yintercept=0, col="green", linetype="dashed") +
-    xlab("Fitted Values") +
-    ylab("Residuals") +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Productivity Values (0 - 100)") +
+    ylab("Productivity Residuals (0 - 100)") +
     ggtitle("Residual vs. Fitted Plot") +
-    theme_bw()
+    theme_minimal() +
+    theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+           axis.title.x = element_text(color = font_color),
+           axis.title.y = element_text(color = font_color),
+           axis.text.x = element_text(color = font_color),
+           axis.text.y = element_text(color = font_color),
+           legend.title = element_text(color = font_color),
+           legend.text = element_text(color = font_color),
+           panel.grid.minor = element_line(color = grid_color_minor),
+           panel.grid.major = element_line(color = grid_color_major),
+           panel.background = element_rect(fill = back_color, color = font_color)
+         )
+
+# I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+breaks_resid_sd_fig = ggplot( breaks_model_lin, aes(.fitted , .resid / breaks_descr$descriptives$asDF$`product[sd]` ) )
+
+breaks_resid_sd_fig + 
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Productivity Values") +
+    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+    ggtitle("Productivity Residual vs. Fitted Plot") +
+    theme_minimal() +
+    theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+           axis.title.x = element_text(color = font_color),
+           axis.title.y = element_text(color = font_color),
+           axis.text.x = element_text(color = font_color),
+           axis.text.y = element_text(color = font_color),
+           legend.title = element_text(color = font_color),
+           legend.text = element_text(color = font_color),
+           panel.grid.minor = element_line(color = grid_color_minor),
+           panel.grid.major = element_line(color = grid_color_major),
+           panel.background = element_rect(fill = back_color, color = font_color)
+         )  
 
 # Run a Breusch Pagan Test of homoscedasticity
 car::ncvTest(breaks_model_lin)
@@ -294,8 +327,14 @@ breaks_model_lin_reg
 ```
 
 ### APA Tables
+
 Practice outputting APA tables to a word doc just to see if that's easier than your notepad++ workflow
 ```{r apa_tables}
+# We'll define a new linear model using the centered data.
+breaks_model_lin_centered <- lm(product ~ length_centered, data = breaks_dat)
+
+# Use reg.table method in APA package to generate regression table
+apa.reg.table( breaks_model_lin_centered, filename="prod_regressed_to_breaks.doc", table.number = 2 )
 
 ```
 
