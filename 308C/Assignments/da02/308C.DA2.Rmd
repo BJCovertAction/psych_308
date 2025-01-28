@@ -1,0 +1,44 @@
+---
+title: "PSY 308C DA2"
+author: "SM"
+date: "1/22/2023"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+*Prompt*
+A university wants to offer courses to their students that will maximize their success after college. Their first step is determining which qualities are important to consider in determining the success of college students transitioning to the work force. In their final semester of college, each participants' advisor rated them on professionalism, competence, and motivation. Six months after graduation, each participants' supervisor rated their success in their role thus far. After collecting data on 278 participants, it is time to test the research team's models! Researcher 1 predicts that a model including professionalism and competence will predict their success. Researcher 2 predicts that professionalism, competence, and motivation will predict success. Take the necessary steps to run both model 1 (professionalism and competence) and model 2 (professionalism, competence, and motivation). 
+
+*Variables*
+Professionalism - score on professionalism rated by advisor, 1-7 scale.
+Competence - score on competence rated by advisor, 1-7 scale.
+Motivation - score on motivation rated by advisor, 1-7 scale.
+Success - score on success rated by supervisor, 1-100 scale.
+
+*Assignment:*
+
+*Part 1:*
+Conduct the appropriate analyses and write a results section for an APA journal. Be sure to check assumptions and report if they are violated or not, for any violations note the implications on your model. Include all necessary tables and figures. 
+
+*Part 2:*
+1. Mark is a senior with a professionalism score of 3.3, a competence rating of 5.9, and a motivation score of 6. Utilizing model 2, find Mark's predicted success rating. (Keep in mind: is your data centered or uncentered?) 
+
+2. Rerun model 1 - if you did not center, center your data and rerun; if you did center, run the model uncentered. What is different about your 2 models? Interpret the unique element from both. 
+
+3. Compare the betas for professionalism from model 1 and model 2. Why is the value drastically lower in model 2?
+
+4. Which of the two models is better? Provide statistical evidence. 
+
+
+----START CODE BELOW THIS LINE----
+
+
+
+
+
+
+
+
+
