@@ -26,23 +26,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ---
 
-```{r package_loading, message=FALSE, warning=FALSE}
-
-# Load packages. Set messages and warnings to FALSE so I don't have to see the
-# masking messages in the output.
-library(car)
-library(psych)
-library(jmv)
-library(magrittr)
-library(rlang)
-library(mvnTest)
-library(dplyr)
-library(easystats)
-library(patchwork)
-library(mvtnorm)
-library(ggplot2)
-```
-
 ## Prompt
 
 A university wants to offer courses to their students that will maximize their success after college. Their first step   
@@ -294,46 +277,94 @@ success_scatter_svc +
 
 
 ```
+### Simple Linear Model Defintion
+
+We need to create two simple linear models for various data visualization and analysis efforts. The following code   
+creates these two models:
+
+Model 1: success ~ professionalism + competence
+Model 2: success ~ professionalism + competence + motivation
+
+```{r simple_model_definition}
+# We create the linear models using separate datasets simply for clarity of code and readability  
+success_simple_mod_m1 <- lm(success ~ profes + comp, data = success_dat_m1)
+success_simple_mod_m2 <- lm(success ~ profes + comp + motivation, data = success_dat_m2)
+
+# Model performance checks for both
+performance::check_model(success_simple_mod_m1)
+performance::check_model(success_simple_mod_m2)
+
+```
 
 
-### Assumptions, Figures, and Plots - Raw Data
+### Residuals & Assumptions - Raw Data
 
 Descriptives section already checked normality so here we need to focus on linearity and homoscedasticity. We're  
 going to center the data outright because I don't want to run everything multiple times.
 
 ```{r assumptions_and_figures_raw}
 
-# SAMPLE CODE
+# Check Residuals plot (Heteroscedasticity)
+# Fitted values vs. residuals to examine homoscedasticity
+# NOTE use of .resid to plot residuals
 
-# # Check Residuals plot (Heteroscedasticity)
-# # To compute residuals we need to define the model as productivity regressed onto break length in a linear fashion
-# success_model_lin <- lm(product ~ length, data = success_dat)
-# 
-# # Fitted values vs. residuals to examine homoscedasticity
-# # NOTE use of .resid to plot residuals
-# success_resid_fig = ggplot( success_model_lin, aes(.fitted, .resid) )
-# 
-# success_resid_fig + 
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Productivity Values (0 - 100)") +
-#     ylab("Productivity Residuals (0 - 100)") +
-#     ggtitle("Residual vs. Fitted Plot") +
-#     my_gg_theme
-# 
-# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-# success_resid_sd_fig = ggplot( success_model_lin, aes(.fitted , .resid / success_descr$descriptives$asDF$`product[sd]` ) )
-# 
-# success_resid_sd_fig + 
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Productivity Values") +
-#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
-#     ggtitle("Productivity Residual vs. Fitted Plot") +
-#     my_gg_theme
-# 
-# # Run a Breusch Pagan Test of homoscedasticity
-# car::ncvTest(success_model_lin)
+# MODEL 1 RESIDUALS
+success_resid_m1_fig = ggplot( success_simple_mod_m1, aes(.fitted, .resid) )
+
+success_resid_m1_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Success Values (0 - 100)") +
+    ylab("Success Residuals (0 - 100)") +
+    ggtitle("Model 1 Success Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+success_resid_sd_m1_fig = ggplot( success_simple_mod_m1, 
+                                  aes(.fitted , .resid / success_descr$descriptives$asDF$`success[sd]` ) 
+                                )
+
+success_resid_sd_m1_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Success Values") +
+    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+    ggtitle("Model 1 Success Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# MODEL 2 RESIDUALS
+success_resid_m2_fig = ggplot( success_simple_mod_m2, aes(.fitted, .resid) )
+
+success_resid_m2_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Success Values (0 - 100)") +
+    ylab("Success Residuals (0 - 100)") +
+    ggtitle("Model 2 Success Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+success_resid_sd_m2_fig = ggplot( success_simple_mod_m2, 
+                                  aes(.fitted , .resid / success_descr$descriptives$asDF$`success[sd]` ) 
+                                )
+
+success_resid_sd_m2_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Success Values") +
+    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+    ggtitle("Model 2 Success Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# Run a Breusch Pagan Test of homoscedasticity for both models
+print("    ")
+print("---- Breusch-Pagan MODEL 2 ----")
+print("    ")
+car::ncvTest(success_simple_mod_m1)
+print("    ")
+print("---- Breusch-Pagan MODEL 2 ----")
+print("    ")
+car::ncvTest(success_simple_mod_m2)
 ```
 
 ### Data Cleaning - OPTIONAL
