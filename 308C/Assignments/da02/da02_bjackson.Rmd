@@ -114,7 +114,7 @@ normality of predictor variables (break length - minutes)
 # # Get JMV descriptives of raw productivity, enjoyment, and break length
 # # Tabulate mean, variance, skew, and kurtosis so we can check normality.
 # # Output histograms and qq plots so we can spot outliers and review distribution shape
-# breaks_descr = jmv::descriptives( breaks_raw_dat[c(2:4)],
+# success_descr = jmv::descriptives( success_raw_dat[c(2:4)],
 #                                   hist = TRUE,
 #                                   dens = TRUE,
 #                                   qq = TRUE,
@@ -124,7 +124,7 @@ normality of predictor variables (break length - minutes)
 #                                   skew = TRUE, 
 #                                   kurt = TRUE,
 #                                   missing = TRUE)
-# print(breaks_descr)
+# print(success_descr)
 
 ```
 
@@ -139,22 +139,22 @@ Visualize the covariance matrix to understand correlation between break length a
 # # Given that we're working explicitly on break length and productivity, I want to create a second dataframe that 
 # # consists only of those columns for simplicity. I'll maintain the original as well so I can get some insight into
 # # employee enjoyment as well, but since that's not the focus I want a clean dataset as well.
-# breaks_dat <- breaks_raw_dat
-# breaks_dat$subject <- NULL
-# breaks_dat$enjoy <- NULL
+# success_dat <- success_raw_dat
+# success_dat$subject <- NULL
+# success_dat$enjoy <- NULL
 # 
 # # Produce a correlation matrix plot that includes the numbers printed with a color gradient for easy reading.
 # # par(bg = "lightgrey")
-# breaks_full_cor <- stats::cor(breaks_raw_dat)
-# corrplot( breaks_full_cor, 
+# success_full_cor <- stats::cor(success_raw_dat)
+# corrplot( success_full_cor, 
 #           method="color", 
 #           type = "full", 
 #           addCoef.col = "black", 
 #           col = rb_colmap, 
 #           tl.col = font_color )
 # 
-# breaks_short_cor <- stats::cor(breaks_dat)
-# corrplot( breaks_short_cor, 
+# success_short_cor <- stats::cor(success_dat)
+# corrplot( success_short_cor, 
 #           method="color", 
 #           type = "full",  
 #           addCoef.col = "black", 
@@ -164,22 +164,22 @@ Visualize the covariance matrix to understand correlation between break length a
 # 
 # # Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
 # # 1 for tables, but oh well)
-# breaks_full_cor_tab <- jmv::corrMatrix(breaks_raw_dat[2:4], flag = TRUE)
-# print(breaks_full_cor_tab)
+# success_full_cor_tab <- jmv::corrMatrix(success_raw_dat[2:4], flag = TRUE)
+# print(success_full_cor_tab)
 # 
-# breaks_short_cor_tab <- jmv::corrMatrix(breaks_dat, flag = TRUE)
-# print(breaks_short_cor_tab)
+# success_short_cor_tab <- jmv::corrMatrix(success_dat, flag = TRUE)
+# print(success_short_cor_tab)
 # 
 # # Finally dump a correlation table to Word Doc format for easy table formatting / to save time in writing
 # # the assignment
-# apa.cor.table( breaks_raw_dat[2:4], 
-#                filename = "full_corr_table_breaks_v_prod.doc", 
+# apa.cor.table( success_raw_dat[2:4], 
+#                filename = "full_corr_table_success_v_prod.doc", 
 #                table.number = 1, 
 #                show.sig.stars = TRUE, 
 #                landscape = TRUE)
 # 
-# apa.cor.table( breaks_dat, 
-#                filename = "short_corr_table_breaks_v_prod.doc", 
+# apa.cor.table( success_dat, 
+#                filename = "short_corr_table_success_v_prod.doc", 
 #                table.number = 1, 
 #                show.sig.stars = TRUE, 
 #                landscape = TRUE)
@@ -195,13 +195,13 @@ going to center the data outright because I don't want to run everything multipl
 
 # SAMPLE CODE
 # # Centering the data
-# breaks_dat$length_centered <- breaks_dat$length - mean(breaks_dat$length)
+# success_dat$length_centered <- success_dat$length - mean(success_dat$length)
 # 
 # 
 # # Check Scatterplot of Centered data: Break Length is PV, Productivity is OV
-# breaks_raw_scatter <- ggplot(breaks_dat, aes(length, product) )
+# success_raw_scatter <- ggplot(success_dat, aes(length, product) )
 # 
-# breaks_raw_scatter + 
+# success_raw_scatter + 
 #     geom_point() + 
 #     geom_smooth(method = "lm", colour = "Red") + 
 #     ggtitle("Break Length Relation to Employee Productivity") + 
@@ -219,9 +219,9 @@ going to center the data outright because I don't want to run everything multipl
 #            panel.background = element_rect(fill = back_color, color = font_color)
 #          )
 # 
-# breaks_cent_scatter <- ggplot(breaks_dat, aes(length_centered, product) )
+# success_cent_scatter <- ggplot(success_dat, aes(length_centered, product) )
 # 
-# breaks_cent_scatter + 
+# success_cent_scatter + 
 #     geom_point() + 
 #     geom_smooth(method = "lm", colour = "Red") + 
 #     ggtitle("Break Length Relation to Employee Productivity") + 
@@ -242,13 +242,13 @@ going to center the data outright because I don't want to run everything multipl
 # 
 # # Check Residuals plot (Heteroscedasticity)
 # # To compute residuals we need to define the model as productivity regressed onto break length in a linear fashion
-# breaks_model_lin <- lm(product ~ length, data = breaks_dat)
+# success_model_lin <- lm(product ~ length, data = success_dat)
 # 
 # # Fitted values vs. residuals to examine homoscedasticity
 # # NOTE use of .resid to plot residuals
-# breaks_resid_fig = ggplot( breaks_model_lin, aes(.fitted, .resid) )
+# success_resid_fig = ggplot( success_model_lin, aes(.fitted, .resid) )
 # 
-# breaks_resid_fig + 
+# success_resid_fig + 
 #     geom_point(col = font_color) +
 #     geom_hline(yintercept=0, col="green3", linetype="dashed") +
 #     xlab("Fitted Productivity Values (0 - 100)") +
@@ -268,9 +268,9 @@ going to center the data outright because I don't want to run everything multipl
 #          )
 # 
 # # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-# breaks_resid_sd_fig = ggplot( breaks_model_lin, aes(.fitted , .resid / breaks_descr$descriptives$asDF$`product[sd]` ) )
+# success_resid_sd_fig = ggplot( success_model_lin, aes(.fitted , .resid / success_descr$descriptives$asDF$`product[sd]` ) )
 # 
-# breaks_resid_sd_fig + 
+# success_resid_sd_fig + 
 #     geom_point(col = font_color) +
 #     geom_hline(yintercept=0, col="green3", linetype="dashed") +
 #     xlab("Fitted Productivity Values") +
@@ -290,7 +290,7 @@ going to center the data outright because I don't want to run everything multipl
 #          )  
 # 
 # # Run a Breusch Pagan Test of homoscedasticity
-# car::ncvTest(breaks_model_lin)
+# car::ncvTest(success_model_lin)
 ```
 
 ### Data Cleaning - OPTIONAL
@@ -309,14 +309,14 @@ Now we can build the regression model.
 
 # SAMPLE CODE
 # #simple regression looking at self-efficacy (centered) as a predictor of desire to lead in a group (e.g. self-efficacy (centered) regressed on desire to lead)
-# breaks_model_lin_reg <- linReg( data = breaks_dat, 
+# success_model_lin_reg <- linReg( data = success_dat, 
 #                                 dep = 'product', 
 #                                 covs = c('length_centered'), 
 #                                 blocks = list( c( 'length_centered') ), 
 #                                 modelTest = TRUE, 
 #                                 stdEst = TRUE,
 #                                 ci = TRUE)
-# breaks_model_lin_reg
+# success_model_lin_reg
 
 
 ```
@@ -330,9 +330,9 @@ Output regression tables to an APA formatted (almost) word doc in case that's us
 
 # SAMPLE CODE:
 # Define a linear model
-# breaks_model_lin_centered <- lm(product ~ length_centered, data = breaks_dat)
+# success_model_lin_centered <- lm(product ~ length_centered, data = success_dat)
 
 # Use reg.table method in APA package to generate regression table
-# apa.reg.table( breaks_model_lin_centered, filename="prod_regressed_to_breaks.doc", table.number = 2 )
+# apa.reg.table( success_model_lin_centered, filename="prod_regressed_to_breaks.doc", table.number = 2 )
 
 ```
