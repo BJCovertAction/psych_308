@@ -26,22 +26,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ---
 
-```{r package_loading, message=FALSE, warning=FALSE}
-
-# Load packages. Set messages and warnings to FALSE so I don't have to see the
-# masking messages in the output.
-library(jmv)       # for descriptive
-library(ggplot2)
-library(dplyr)
-# library(car)       # for leveneTest
-# library(stringr)   # for sub_str operations
-# library(psych)
-# library(Hmisc)     # for fun.dat substitution
-# library(see)       # for outliers analysis 
-# library(magrittr)
-# library(AER)
-```
-
 ## Prompt
 Input Prompt Here
 
