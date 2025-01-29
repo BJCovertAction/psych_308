@@ -110,21 +110,20 @@ normality of predictor variables (break length - minutes)
 
 ```{r descriptive_stats_raw}
 
-# SAMPLE CODE
-# # Get JMV descriptives of raw productivity, enjoyment, and break length
-# # Tabulate mean, variance, skew, and kurtosis so we can check normality.
-# # Output histograms and qq plots so we can spot outliers and review distribution shape
-# success_descr = jmv::descriptives( success_raw_dat[c(2:4)],
-#                                   hist = TRUE,
-#                                   dens = TRUE,
-#                                   qq = TRUE,
-#                                   sd = TRUE, 
-#                                   variance = TRUE,
-#                                   se = TRUE, 
-#                                   skew = TRUE, 
-#                                   kurt = TRUE,
-#                                   missing = TRUE)
-# print(success_descr)
+# Get JMV descriptives of raw success, professionalism, competence, and motivation,
+# Tabulate mean, variance, skew, and kurtosis so we can check normality.
+# Output histograms and qq plots so we can spot outliers and review distribution shape
+success_descr = jmv::descriptives( success_raw_dat[c(2:5)],
+                                  hist = TRUE,
+                                  dens = TRUE,
+                                  qq = TRUE,
+                                  sd = TRUE,
+                                  variance = TRUE,
+                                  se = TRUE,
+                                  skew = TRUE,
+                                  kurt = TRUE,
+                                  missing = TRUE)
+print(success_descr)
 
 ```
 
@@ -323,16 +322,25 @@ Now we can build the regression model.
 
 ### APA Tables
 
-Output regression tables to an APA formatted (almost) word doc in case that's useful
+Output regression tables to an APA formatted (almost) word doc in case that's useful for both models
 
 ```{r apa_tables}
-# We'll define a new linear model using the centered data.
+# We'll define a two multiple linear models using the centered data for each so we can compare them.
 
-# SAMPLE CODE:
-# Define a linear model
-# success_model_lin_centered <- lm(product ~ length_centered, data = success_dat)
+# SAMPLE CODE for 1 model:
+
+# Define linear model 1: success ~ professionalism, competence
+# TODO: Adjust to centered varnames
+# success_model_lin_centered <- lm(success ~ profes + comp, data = success_dat)
 
 # Use reg.table method in APA package to generate regression table
-# apa.reg.table( success_model_lin_centered, filename="prod_regressed_to_breaks.doc", table.number = 2 )
+# apa.reg.table( success_model_lin_centered, filename="success_reg_to_prof_and_comp.doc", table.number = 2 )
+
+# Define linear model 2: success ~ professionalism, competence, motivation
+# TODO: Adjust to centered varnames
+# success_model_lin_centered <- lm(success ~ profes + comp + motivation, data = success_dat)
+
+# Use reg.table method in APA package to generate regression table
+# apa.reg.table( success_model_lin_centered, filename="success_reg_to_prof_and_comp_and_mot.doc", table.number = 3 )
 
 ```
