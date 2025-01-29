@@ -65,6 +65,53 @@ professionalism, competence, and motivation will predict success. Take the neces
 
 ## Assignment
 
+### Part 1
+
+Conduct the appropriate analyses and write a results section for an APA journal. Be sure to check assumptions and report   
+if they are violated or not, for any violations note the implications on your model. Include all necessary tables and    
+figures. 
+
+### Part 2
+| 1. Mark is a senior with a professionalism score of 3.3, a competence rating of 5.9, and a motivation score of 6.   
+|    Utilizing model 2, find Mark's predicted success rating. (Keep in mind: is your data centered or uncentered?) 
+|  
+| 2. Rerun model 1 - if you did not center, center your data and rerun; if you did center, run the model uncentered.   
+|    What is different about your 2 models? Interpret the unique element from both. 
+|  
+| 3. Compare the betas for professionalism from model 1 and model 2. Why is the value drastically lower in model 2?
+|      
+| 4. Which of the two models is better? Provide statistical evidence. 
+    
+---ONLY WRITE CODE BELOW THIS LINE---
+
+## Code
+
+### Libraries
+
+Load all requisite libraries here.
+
+```{r package_loading, message=FALSE, warning=FALSE}
+# Load packages. Set messages and warnings to FALSE so I don't have to see the
+# masking messages in the output.
+library(jmv)       # for descriptive
+library(ggplot2)
+library(dplyr)
+library(corrplot)    # For fancy covariance matrix plots
+library(apaTables)   # For Word formatted tables
+library(car)         # for ncvTest (Breusch Pagan)
+# library(stringr)   # for sub_str operations
+library(psych)
+# library(Hmisc)     # for fun.dat substitution
+# library(see)       # for outliers analysis 
+library(magrittr)
+# library(AER)
+library(rlang)
+library(mvnTest)
+library(easystats)
+library(patchwork)
+library(mvtnorm)
+```
+
 
 ### Metadata
 
@@ -77,6 +124,21 @@ grid_color_major = "#9BB7D9"
 grid_color_minor = "#C8D7EA"
 back_color = "gray95"
 rb_colmap = colorRampPalette( c("firebrick", "grey86", "dodgerblue3") )(200)
+
+# I'm going to try to save off my preferred ggplot theme combinations as a unqiue theme object that I can just reference  
+# later in the code....totally unclear if ggplot works this way....
+my_gg_theme = theme_minimal() +
+              theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+                     axis.title.x = element_text(color = font_color),
+                     axis.title.y = element_text(color = font_color),
+                     axis.text.x = element_text(color = font_color),
+                     axis.text.y = element_text(color = font_color),
+                     legend.title = element_text(color = font_color),
+                     legend.text = element_text(color = font_color),
+                     panel.grid.minor = element_line(color = grid_color_minor),
+                     panel.grid.major = element_line(color = grid_color_major),
+                     panel.background = element_rect(fill = back_color, color = font_color)
+                   )
 
 ```
 
@@ -129,61 +191,110 @@ print(success_descr)
 
 ### Correlation Plots - Raw Data
 
-Visualize the covariance matrix to understand correlation between break length and employee productivity
+Visualize the covariance matrix to understand correlation between Success and Professionalism and Competence (Model 1)
+A second correlation matrix is also computed which includes Motivation (for model 2)
 
 
 ```{r correlation_plots_raw}
 
-# SAMPLE CODE
-# # Given that we're working explicitly on break length and productivity, I want to create a second dataframe that 
-# # consists only of those columns for simplicity. I'll maintain the original as well so I can get some insight into
-# # employee enjoyment as well, but since that's not the focus I want a clean dataset as well.
-# success_dat <- success_raw_dat
-# success_dat$subject <- NULL
-# success_dat$enjoy <- NULL
-# 
-# # Produce a correlation matrix plot that includes the numbers printed with a color gradient for easy reading.
-# # par(bg = "lightgrey")
-# success_full_cor <- stats::cor(success_raw_dat)
-# corrplot( success_full_cor, 
-#           method="color", 
-#           type = "full", 
-#           addCoef.col = "black", 
-#           col = rb_colmap, 
-#           tl.col = font_color )
-# 
-# success_short_cor <- stats::cor(success_dat)
-# corrplot( success_short_cor, 
-#           method="color", 
-#           type = "full",  
-#           addCoef.col = "black", 
-#           col = rb_colmap,  
-#           tl.col = font_color )
-# 
-# 
-# # Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
-# # 1 for tables, but oh well)
-# success_full_cor_tab <- jmv::corrMatrix(success_raw_dat[2:4], flag = TRUE)
-# print(success_full_cor_tab)
-# 
-# success_short_cor_tab <- jmv::corrMatrix(success_dat, flag = TRUE)
-# print(success_short_cor_tab)
-# 
-# # Finally dump a correlation table to Word Doc format for easy table formatting / to save time in writing
-# # the assignment
-# apa.cor.table( success_raw_dat[2:4], 
-#                filename = "full_corr_table_success_v_prod.doc", 
-#                table.number = 1, 
-#                show.sig.stars = TRUE, 
-#                landscape = TRUE)
-# 
-# apa.cor.table( success_dat, 
-#                filename = "short_corr_table_success_v_prod.doc", 
-#                table.number = 1, 
-#                show.sig.stars = TRUE, 
-#                landscape = TRUE)
+# We'll make two datasets going forward, success_dat_m1 is for our first model. success_dat_m2 is for our second.
+# Second model (m2) contains all the predictors as the raw data. First model, (m1) is subset to remove motivation
+success_dat_m2 <- success_raw_dat
+success_dat_m2$id <- NULL
+success_dat_m1 <- success_dat_m2
+success_dat_m1$motivation <- NULL
+
+# We'll also create centered datasets here for use later
+success_dat_m1$success_cent <- success_dat_m1$success - mean(success_dat_m1$success)
+success_dat_m2$success_cent <- success_dat_m2$success - mean(success_dat_m2$success)
+
+# MODEL 1
+# Produce a correlation matrix plot that includes the numbers printed with a color gradient for easy reading.
+# par(bg = "lightgrey")
+success_cor_m1 <- stats::cor(success_dat_m1)
+corrplot( success_cor_m1,
+          method="color",
+          type = "full",
+          addCoef.col = "black",
+          col = rb_colmap,
+          tl.col = font_color )
+
+success_cor_m2 <- stats::cor(success_dat_m2)
+corrplot( success_cor_m2,
+          method="color",
+          type = "full",
+          addCoef.col = "black",
+          col = rb_colmap,
+          tl.col = font_color )
+
+# Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
+# 1 for tables, but oh well)
+success_cor_tab_m1 <- jmv::corrMatrix(success_dat_m1, flag = TRUE)
+print(success_cor_tab_m1)
+
+success_cor_tab_m2 <- jmv::corrMatrix(success_dat_m2, flag = TRUE)
+print(success_cor_tab_m2)
+
+# Finally dump a correlation tables to Word Doc format for easy table formatting / to save time in writing
+# the assignment
+apa.cor.table( success_dat_m1,
+               filename = "corr_table_success_model_1.doc",
+               table.number = 1,
+               show.sig.stars = TRUE,
+               landscape = TRUE)
+
+apa.cor.table( success_dat_m2,
+               filename = "corr_table_success_model_2.doc",
+               table.number = 1,
+               show.sig.stars = TRUE,
+               landscape = TRUE)
 
 ```
+## Scatterplots of All Predictor Vars
+
+Since scatterplots are not variables based, we can create a scatterplot with success as a function of each of the  
+3x possible predictor vars using the m2 dataset which did not strip out motivation. Scatterplots are broken out here,
+separate from residual plots and homoscedasticity testing for readability.
+
+**NOTE:** I'm not using centered data for the scatterplots as it's unintuitive but I may add them later if necessary
+
+```{r scatterplots_raw}
+
+# Scatterplot 1: Success (uncentered) vs. Professionalism
+success_scatter_svp <- ggplot(success_dat_m2, aes(profes, success) )
+
+success_scatter_svp +
+    geom_point() +
+    geom_smooth(method = "lm", colour = "Red") +
+    ggtitle("Career Success Relation to Student Professionalism") +
+    labs(y = "Career Success (1-100)", x = "Student Professionalism (0-7)") +
+    my_gg_theme
+
+
+# Scatterplot 2: Success (uncentered) vs. Competence
+success_scatter_svc <- ggplot(success_dat_m2, aes(comp, success) )
+
+success_scatter_svc +
+    geom_point() +
+    geom_smooth(method = "lm", colour = "Red") +
+    ggtitle("Career Success Relation to Student Competence") +
+    labs(y = "Career Success (1-100)", x = "Student Competence (0-7)") +
+    my_gg_theme
+
+# Scatterplot 3: Success (uncentered) vs. Motivation
+success_scatter_svc <- ggplot(success_dat_m2, aes(motivation, success) )
+
+success_scatter_svc +
+    geom_point() +
+    geom_smooth(method = "lm", colour = "Red") +
+    ggtitle("Career Success Relation to Student Motivation") +
+    labs(y = "Career Success (1-100)", x = "Student Motivation (0-7)") +
+    my_gg_theme
+
+
+
+```
+
 
 ### Assumptions, Figures, and Plots - Raw Data
 
@@ -193,52 +304,7 @@ going to center the data outright because I don't want to run everything multipl
 ```{r assumptions_and_figures_raw}
 
 # SAMPLE CODE
-# # Centering the data
-# success_dat$length_centered <- success_dat$length - mean(success_dat$length)
-# 
-# 
-# # Check Scatterplot of Centered data: Break Length is PV, Productivity is OV
-# success_raw_scatter <- ggplot(success_dat, aes(length, product) )
-# 
-# success_raw_scatter + 
-#     geom_point() + 
-#     geom_smooth(method = "lm", colour = "Red") + 
-#     ggtitle("Break Length Relation to Employee Productivity") + 
-#     labs(x = "Break Length (m)", y = "Employee Productivity (0-100)") +
-#     theme_minimal() +
-#     theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
-#            axis.title.x = element_text(color = font_color),
-#            axis.title.y = element_text(color = font_color),
-#            axis.text.x = element_text(color = font_color),
-#            axis.text.y = element_text(color = font_color),
-#            legend.title = element_text(color = font_color),
-#            legend.text = element_text(color = font_color),
-#            panel.grid.minor = element_line(color = grid_color_minor),
-#            panel.grid.major = element_line(color = grid_color_major),
-#            panel.background = element_rect(fill = back_color, color = font_color)
-#          )
-# 
-# success_cent_scatter <- ggplot(success_dat, aes(length_centered, product) )
-# 
-# success_cent_scatter + 
-#     geom_point() + 
-#     geom_smooth(method = "lm", colour = "Red") + 
-#     ggtitle("Break Length Relation to Employee Productivity") + 
-#     labs(x = "Break Length - Centered (m)", y = "Employee Productivity (0-100)") +
-#     theme_minimal() +
-#     theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
-#            axis.title.x = element_text(color = font_color),
-#            axis.title.y = element_text(color = font_color),
-#            axis.text.x = element_text(color = font_color),
-#            axis.text.y = element_text(color = font_color),
-#            legend.title = element_text(color = font_color),
-#            legend.text = element_text(color = font_color),
-#            panel.grid.minor = element_line(color = grid_color_minor),
-#            panel.grid.major = element_line(color = grid_color_major),
-#            panel.background = element_rect(fill = back_color, color = font_color)
-#          )
-# 
-# 
+
 # # Check Residuals plot (Heteroscedasticity)
 # # To compute residuals we need to define the model as productivity regressed onto break length in a linear fashion
 # success_model_lin <- lm(product ~ length, data = success_dat)
@@ -253,18 +319,7 @@ going to center the data outright because I don't want to run everything multipl
 #     xlab("Fitted Productivity Values (0 - 100)") +
 #     ylab("Productivity Residuals (0 - 100)") +
 #     ggtitle("Residual vs. Fitted Plot") +
-#     theme_minimal() +
-#     theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
-#            axis.title.x = element_text(color = font_color),
-#            axis.title.y = element_text(color = font_color),
-#            axis.text.x = element_text(color = font_color),
-#            axis.text.y = element_text(color = font_color),
-#            legend.title = element_text(color = font_color),
-#            legend.text = element_text(color = font_color),
-#            panel.grid.minor = element_line(color = grid_color_minor),
-#            panel.grid.major = element_line(color = grid_color_major),
-#            panel.background = element_rect(fill = back_color, color = font_color)
-#          )
+#     my_gg_theme
 # 
 # # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
 # success_resid_sd_fig = ggplot( success_model_lin, aes(.fitted , .resid / success_descr$descriptives$asDF$`product[sd]` ) )
@@ -275,18 +330,7 @@ going to center the data outright because I don't want to run everything multipl
 #     xlab("Fitted Productivity Values") +
 #     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
 #     ggtitle("Productivity Residual vs. Fitted Plot") +
-#     theme_minimal() +
-#     theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
-#            axis.title.x = element_text(color = font_color),
-#            axis.title.y = element_text(color = font_color),
-#            axis.text.x = element_text(color = font_color),
-#            axis.text.y = element_text(color = font_color),
-#            legend.title = element_text(color = font_color),
-#            legend.text = element_text(color = font_color),
-#            panel.grid.minor = element_line(color = grid_color_minor),
-#            panel.grid.major = element_line(color = grid_color_major),
-#            panel.background = element_rect(fill = back_color, color = font_color)
-#          )  
+#     my_gg_theme
 # 
 # # Run a Breusch Pagan Test of homoscedasticity
 # car::ncvTest(success_model_lin)
