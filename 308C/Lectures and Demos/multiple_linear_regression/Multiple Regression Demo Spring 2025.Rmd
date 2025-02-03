@@ -87,7 +87,14 @@ dat.lifesat$optimism.c <- dat.lifesat$optimism - mean(dat.lifesat$optimism)
 ```
 
 ```{r}
-# Multiple Regression
+# Multiple Regression - NESTED
+#  covs = PVs available to build models from
+#  blocks = lists defining models
+#  lists w/in blocks = each model
+#    list1 = model 1
+#    list1 + list2 = model2
+#    list1 + list2 + list3 = model3 .... etc.
+
 model.lifesat <- linReg(dat.lifesat, 
                  dep = 'life_sat', 
                  covs = c('fac_support.c','fam_support.c','optimism.c'),
@@ -103,7 +110,7 @@ model.lifesat
 ```
 
 ```{r}
-# Multiple Regression
+# Multiple Regression - Starting w/ Simple Regression
 model.lifesat <- linReg(dat.lifesat, 
                  dep = 'life_sat', 
                  covs = c('fac_support.c','fam_support.c','optimism.c'),
