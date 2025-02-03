@@ -229,7 +229,7 @@ apa.cor.table( success_dat_m2,
                landscape = TRUE)
 
 ```
-## Scatterplots of All Predictor Vars
+### Scatterplots of All Predictor Vars
 
 Since scatterplots are not variables based, we can create a scatterplot with success as a function of each of the  
 3x possible predictor vars using the m2 dataset which did not strip out motivation. Scatterplots are broken out here,
