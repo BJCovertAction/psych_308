@@ -382,48 +382,196 @@ success_dat_m1$comp_cent   <- success_dat_m1$comp   - mean(success_dat_m1$comp)
 
 
 # Center all predictor data for model 2.
-success_dat_m2$profes_cent     <- success_dat_m2$profes - mean(success_dat_m2$profes)
-success_dat_m2$comp_cent       <- success_dat_m2$comp   - mean(success_dat_m2$comp)
+success_dat_m2$profes_cent     <- success_dat_m2$profes     - mean(success_dat_m2$profes)
+success_dat_m2$comp_cent       <- success_dat_m2$comp       - mean(success_dat_m2$comp)
 success_dat_m2$motivation_cent <- success_dat_m2$motivation - mean(success_dat_m2$motivation)
 
 ```
 
-### Build Simple Regression Model
+### Manually Check Multicolinearity
+
+I'm curious about what, specifically, the colinearity stats tables that get spit out of the linReg function below  
+contain. I want to see if I can compute them manually by regressing our predictors directly onto one another.
+
+```{r multicolinearity_manual}
+
+# We're going to do this in the uncentered space just so we're dealing with data that's been less manipulated. 
+# Should be able to recreate in centered space as well.
+
+# First we'll regress professionalism onto competence:
+print("--------------------------------------------")
+print("---- Model 1 - Colinearity - UnCentered ----")
+print("--------------------------------------------")
+
+# "Model 2" contains data needed for all three 
+colinear_mod_prof_comp <- linReg( success_dat_m2, 
+                                  dep = 'profes', 
+                                  covs = c('comp', 'motivation'),
+                                  blocks = list(
+                                                 list('comp' )
+                                                ), 
+                                  modelTest = TRUE,
+                                  stdEst = TRUE, 
+                                  r2Adj = TRUE, 
+                                  collin = TRUE,
+                                  ci = TRUE)
+colinear_mod_prof_comp
+
+
+# Second we'll regress professionalism onto competence and motivation:
+print("--------------------------------------------")
+print("---- Model 2 - Colinearity - UnCentered ----")
+print("--------------------------------------------")
+
+# "Model 2" contains data needed for all three 
+colinear_mod_prof_comp_mot <- linReg( success_dat_m2, 
+                                  dep = 'profes', 
+                                  covs = c('comp', 'motivation'),
+                                  blocks = list(
+                                                 list('comp', 'motivation')
+                                                ), 
+                                  modelTest = TRUE,
+                                  stdEst = TRUE, 
+                                  r2Adj = TRUE, 
+                                  collin = TRUE,
+                                  ci = TRUE)
+colinear_mod_prof_comp_mot
+
+# Third we'll regress competence onto professionalism and motivation:
+print("--------------------------------------------")
+print("---- Model 3 - Colinearity - UnCentered ----")
+print("--------------------------------------------")
+
+# "Model 2" contains data needed for all three 
+colinear_mod_comp_prof_mot <- linReg( success_dat_m2, 
+                                  dep = 'comp', 
+                                  covs = c('profes', 'motivation'),
+                                  blocks = list(
+                                                 list('profes', 'motivation')
+                                                ), 
+                                  modelTest = TRUE,
+                                  stdEst = TRUE, 
+                                  r2Adj = TRUE, 
+                                  collin = TRUE,
+                                  ci = TRUE)
+colinear_mod_comp_prof_mot
+
+
+# Fourth we'll regress motivation onto professionalism and competence:
+print("--------------------------------------------")
+print("---- Model 4 - Colinearity - UnCentered ----")
+print("--------------------------------------------")
+
+# "Model 2" contains data needed for all three 
+colinear_mod_mot_comp_prof <- linReg( success_dat_m2, 
+                                  dep = 'motivation', 
+                                  covs = c('profes', 'comp'),
+                                  blocks = list(
+                                                 list('profes', 'comp')
+                                                ), 
+                                  modelTest = TRUE,
+                                  stdEst = TRUE, 
+                                  r2Adj = TRUE, 
+                                  collin = TRUE,
+                                  ci = TRUE)
+colinear_mod_mot_comp_prof
+
+
+
+
+```
+
+
+### Build Multiple Regression Model - Centered
 
 Centered data is already saved from scatter plots above (shift the y-intercept to the mean of the dataset).  
 Now we can build the regression model.  
 
-```{r multiple_regression}
+```{r multiple_regression_centered}
 
-print("--------------------------")
-print("---- Model 1 - Custom ----")
-print("--------------------------")
+# DON'T NEED THIS MODEL SEPARTED AS ITS NESTED IN M2
+# print("-------------------------------------")
+# print("---- Model 1 - Custom - Centered ----")
+# print("-------------------------------------")
+# 
+# # Model 1
+# success_mult_regr_m1 <- linReg( success_dat_m1, 
+#                                 dep = 'success', 
+#                                 covs = c('profes_cent','comp_cent'),
+#                                 blocks = list(
+#                                                list('profes_cent'),
+#                                                list('comp_cent')
+#                                               ), 
+#                                 modelTest = TRUE,
+#                                 stdEst = TRUE, 
+#                                 r2Adj = TRUE, 
+#                                 collin = TRUE,
+#                                 ci = TRUE)
+# success_mult_regr_m1
 
-# Model 1
-success_mult_regr_m1 <- linReg( success_dat_m1, 
-                                dep = 'success', 
-                                covs = c('profes_cent','comp_cent'),
-                                blocks = list(
-                                               list('profes_cent')
-                                              ), 
-                                modelTest = TRUE,
-                                stdEst = TRUE, 
-                                r2Adj = TRUE, 
-                                collin = TRUE,
-                                ci = TRUE)
-success_mult_regr_m1
-
-print("--------------------------")
-print("---- Model 2 - Custom ----")
-print("--------------------------")
+print("-------------------------------------")
+print("---- Model 2 - Custom - Centered ----")
+print("-------------------------------------")
 
 # Model 2
+# "Model 2" contains data needed for all three 
 success_mult_regr_m2 <- linReg( success_dat_m2, 
                                 dep = 'success', 
                                 covs = c('profes_cent','comp_cent', 'motivation_cent'),
                                 blocks = list(
                                                list( 'profes_cent','comp_cent' ),
                                                list( 'motivation_cent' )
+                                              ), 
+                                modelTest = TRUE,
+                                stdEst = TRUE, 
+                                r2Adj = TRUE, 
+                                collin = TRUE,
+                                ci = TRUE)
+success_mult_regr_m2
+
+```
+
+### Build Multiple Regression Model - UnCentered
+
+Centered data is already saved from scatter plots above (shift the y-intercept to the mean of the dataset).  
+Now we can build the regression model.  
+   
+**NOTE:** Using the data produced in the multi-colinearity section above, I confirmed by hand that the colinearity  
+stats produced in this section as outputs of linReg are equal to 1-R^2 when each of the predictors is regressed onto  
+the other two predictors (e.g. when profes is regressed onto comp + motivation, 1 minus the overall model-fit R^2  
+for that regression is equal to the tolerance shown for profes as output by linReg in this section.
+
+```{r multiple_regression_uncentered}
+# 
+# print("---------------------------------------")
+# print("---- Model 1 - Custom - UnCentered  ---")
+# print("---------------------------------------")
+# 
+# # Model 1
+# success_mult_regr_m1 <- linReg( success_dat_m1, 
+#                                 dep = 'success', 
+#                                 covs = c('profes','comp'),
+#                                 blocks = list(
+#                                                list('profes')
+#                                               ), 
+#                                 modelTest = TRUE,
+#                                 stdEst = TRUE, 
+#                                 r2Adj = TRUE, 
+#                                 collin = TRUE,
+#                                 ci = TRUE)
+# success_mult_regr_m1
+# 
+# print("---------------------------------------")
+# print("---- Model 2 - Custom - UnCentered ----")
+# print("---------------------------------------")
+
+# Model 2
+success_mult_regr_m2 <- linReg( success_dat_m2, 
+                                dep = 'success', 
+                                covs = c('profes','comp', 'motivation'),
+                                blocks = list(
+                                               list( 'profes','comp' ),
+                                               list( 'motivation' )
                                               ), 
                                 modelTest = TRUE,
                                 stdEst = TRUE, 
