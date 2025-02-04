@@ -1,0 +1,362 @@
+---
+title: "Multiple Regression Demo"
+author: "Jessica Diaz"
+date: "1/25/25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(car)
+library(psych)
+library(jmv)
+library(magrittr)
+library(rlang)
+library(mvnTest)
+library(dplyr)
+library(easystats)
+library(patchwork)
+library(mvtnorm)
+library(ggplot2)
+```
+
+***Demo 1***
+Yalçın, İ. (2011). Social support and optimism as predictors of life satisfaction of college students. International Journal for the Advancement of Counselling, 33(2), 79–87. https://doi-org.ccl.idm.oclc.org/10.1007/s10447-011-9113-9
+
+The purpose of this study was to investigate the predictive value of optimism, perceived support from family and perceived support from faculty in determining life satisfaction of 133 college students in Turkey. Specifically they measured the impact of optimism, faculty support, and family support on satisfaction with life. 
+
+life_sat: The Satisfaction with Life Scale (SWLS) (Diener et al. 1985) was utilized to determinestudents’ life satisfaction levels. The SWLS measures general life satisfaction and consists of five items.
+
+fam_support and fac_support: The Perceived Social Support Scale-Revised (PSSS-R) was developed by Yıldırım (2004) to assess students’ perceived social support from family, friends and teachers.The scale has 50 items and consists of three subscales, which are family support (FS), supportfrom friends (SFF), and support from teachers (SFT).
+
+opt: The Eight Item Life Orientation Test (LOT) (Scheier and Carver 1985) was administered to measure students’ optimism level.
+
+```{r}
+#Read in your data. As long as its in the same folder as the RMD file, this is the only code you need. 
+dat.lifesat <- read.csv("life_satisfaction.csv")
+```
+
+```{r}
+#descriptives of your data
+desc.lifesat <- jmv::descriptives(data = dat.lifesat[2:5], hist = TRUE, sd = TRUE, range = TRUE, skew = TRUE, kurt = TRUE)
+desc.lifesat
+```
+
+```{r}
+#scatterplots for each predictor and your outcome variable
+scatter.life.fam <- ggplot(dat.lifesat, aes(fam_support, life_sat))
+scatter.life.fam + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Family Support", y = "Life Satisfaction")
+
+scatter.life.fac <- ggplot(dat.lifesat, aes(fac_support, life_sat))
+scatter.life.fac + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Faculty Support", y = "Life Satisfaction")
+
+scatters.life.opt <- ggplot(dat.lifesat, aes(optimism, life_sat))
+scatters.life.opt + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Optimism", y = "Life Satisfaction")
+```
+
+```{r}
+#correlation table - remove ID column number 1
+cor.lifesat <- jmv::corrMatrix(dat.lifesat[2:5])
+cor.lifesat
+```
+
+```{r}
+#awesome function to visualize features of your data, check assumptions, and diagnose issues that may impact your results. 
+#specify model first
+model.life <- lm(life_sat~fac_support+fam_support+optimism, data = dat.lifesat)
+
+performance::check_model(model.life)
+```
+
+```{r}
+#another plot of fitted values vs. residuals
+ggplot(model.life, aes(.fitted, .resid))+geom_point()+geom_hline(yintercept=0, col="green", linetype="dashed")+xlab("Fitted Values")+ylab("Residuals")+ggtitle("Residual vs. Fitted Plot")+theme_bw()
+
+#Breusch Pagan Test of homoscedasticity
+ncvTest(model.life)
+```
+
+```{r}
+#Center our predictors for interpretability
+dat.lifesat$fac_support.c <- dat.lifesat$fac_support - mean(dat.lifesat$fac_support)
+dat.lifesat$fam_support.c <- dat.lifesat$fam_support - mean(dat.lifesat$fam_support)
+dat.lifesat$optimism.c <- dat.lifesat$optimism - mean(dat.lifesat$optimism)
+```
+
+```{r}
+# Multiple Regression - NESTED
+#  covs = PVs available to build models from
+#  blocks = lists defining models
+#  lists w/in blocks = each model
+#    list1 = model 1
+#    list1 + list2 = model2
+#    list1 + list2 + list3 = model3 .... etc.
+
+model.lifesat <- linReg(dat.lifesat, 
+                 dep = 'life_sat', 
+                 covs = c('fac_support.c','fam_support.c','optimism.c'),
+                 blocks = list(
+                   list('fac_support.c', 'fam_support.c'),
+                   list('optimism.c')), 
+                modelTest = TRUE,
+                stdEst = TRUE, #stEdt = Beta
+                r2Adj = TRUE, 
+                collin = TRUE,
+                ci = TRUE)
+model.lifesat
+```
+
+```{r}
+# Multiple Regression - NESTED - UNCENTERED
+#  covs = PVs available to build models from
+#  blocks = lists defining models
+#  lists w/in blocks = each model
+#    list1 = model 1
+#    list1 + list2 = model2
+#    list1 + list2 + list3 = model3 .... etc.
+
+model.lifesat.uc <- linReg(dat.lifesat, 
+                 dep = 'life_sat', 
+                 covs = c('fac_support','fam_support','optimism'),
+                 blocks = list(
+                   list('fac_support', 'fam_support'),
+                   list('optimism')), 
+                modelTest = TRUE,
+                stdEst = TRUE, #stEdt = Beta
+                r2Adj = TRUE, 
+                collin = TRUE,
+                ci = TRUE)
+model.lifesat.uc
+```
+
+```{r}
+# Multiple Regression - Starting w/ Simple Regression
+model.lifesat <- linReg(dat.lifesat, 
+                 dep = 'life_sat', 
+                 covs = c('fac_support.c','fam_support.c','optimism.c'),
+                 blocks = list(
+                   list('optimism.c'),
+                   list('fam_support.c'),
+                   list('fac_support.c')),
+                modelTest = TRUE,
+                stdEst = TRUE, #stEdt = Beta
+                r2Adj = TRUE, 
+                collin = TRUE,
+                ci = TRUE)
+model.lifesat
+```
+
+
+***Example 2***
+Cotter, K. C., & Reichard, R. J. (2019). Developing cultural competence through engagement in cross-cultural Interactions. In Osland, J.S., Sebastian Reiche, B., Szkudlarek, B., and Mendenhall, M. E. (Eds). Advances in Global Leadership (pp.49-28). Emerald Publishing Limited.
+
+The ability to effectively engage in cross-cultural interactions is imperative for leaders in our increasingly globalized world. This study represents an initial investigation into what predicts cultural competence for leaders who work abroad. They investigated several contextual predictors of cultural competence in a cross-sectional survey study of 135 undergraduate students one month into a study abroad program across 27 different countries. 
+
+Study Variables
+
+All primary study variables were measured on a seven-point Likert scale, ranging from
+(1) Strongly Disagree to (7) Strongly Agree.
+
+- ccpsycap: Twenty item scale measuring a specific form of psychological capital comprised of an invididual's hope, efficacy, resilience, and optimism as it relates to engaging in cross-cultural experiences.
+- engage: 12-item Cross-Cultural Engagement Questionnaire (CCEQ) representing the degree to which the participant engages with a culture other than their own from a total lack of awareness of ones cultural surroundings to full integration of cultural norms into behavioral changes. 
+- stress: Level of stress resulting from discrepancies in cultural values and practices or language barriers as they try to adopt the new culture. Measured using a 14-item scale of intercultural aprehension. 
+cultural competence
+
+Outcomes
+- cq: 20-item Cultural Intelligence scale (CQS) measuring the facet of intelligence that encompasses the abilities needed to effectively interact across cultures and adapt to new cultural contexts. Consits of four subscales, one for each facet of CQ (cognitive, metacognitive, behavioral, and motivational).
+- ethno: 15-item Revised Generalized Ethnocentrism Scale (GENE), which measures the extent to which one views their own ethnic group as superior to others
+
+Control Variables & Rationale
+- ss: social support was measured to support the explanatory power of ccpsycap (e.g. does ccpsycap predict above and beyond social support). Measured using the 12-item Multidimensional Scale of Perceived Social Support
+- lang: Measured an individual's speaking ability, listening comprehension, reading proficiency, and writing proficiency in the national or primary language of their host country. Language
+ability was calculated by averaging the participant’s responses from 0 (no ability) to 4 (completely fluent)
+-dist: the amount of deviance between a participants home country and host country, along Hofstede’s four cultural dimensions: power distance, uncertainty avoidance, masculinity/femininity, and individualism.
+
+
+```{r}
+#Read in your data. As long as its in the same folder as the RMD file, this is the only code you need. 
+dat.cultcomp <- read.csv("cross_cultural_competence.csv")
+
+```
+
+```{r}
+#descriptives of your data
+desc.per <- describe(dat.cultcomp[-c(1)])
+desc.per
+```
+
+```{r}
+#awesome function to visualize features of your data, check assumptions, and diagnose issues that may impact your results. 
+#cq - specify model first
+model.cq <- lm(cq~cc_psycap + stress + engage + ss + dist + lang, data = dat.cultcomp)
+performance::check_model(model.cq)
+```
+
+```{r}
+#ethno
+model.ethno <- lm(ethno~cc_psycap + stress + engage + ss + dist + lang, data = dat.cultcomp)
+performance::check_model(model.ethno)
+```
+
+```{r}
+#scatterplots for each predictor and your cq outcome variable
+scatter.cult.ccpsycap <- ggplot(dat.cultcomp, aes(cc_psycap, cq))
+scatter.cult.ccpsycap + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "CC Pyscap", y = "Cultural Intelligence")
+
+scatter.cult.ccpsycap <- ggplot(dat.cultcomp, aes(stress, cq))
+scatter.cult.ccpsycap + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Stress", y = "Cultural Intelligence")
+
+scatter.cult.ccpsycap <- ggplot(dat.cultcomp, aes(engage, cq))
+scatter.cult.ccpsycap + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Engagement", y = "Cultural Intelligence")
+
+scatter.cult.ccpsycap <- ggplot(dat.cultcomp, aes(ss, cq))
+scatter.cult.ccpsycap + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Social Support", y = "Cultural Intelligence")
+
+scatter.cult.ccpsycap <- ggplot(dat.cultcomp, aes(dist, cq))
+scatter.cult.ccpsycap + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Cultural Distance", y = "Cultural Intelligence")
+
+scatter.cult.ccpsycap <- ggplot(dat.cultcomp, aes(lang, cq))
+scatter.cult.ccpsycap + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Language", y = "Cultural Intelligence")
+
+```
+
+```{r}
+#scatterplots for each predictor and your ethno outcome variable
+scatter.cult.ccpsycap <- ggplot(dat.cultcomp, aes(cc_psycap, ethno))
+scatter.cult.ccpsycap + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "CC Pyscap", y = "Cultural Intelligence")
+
+scatter.cult.ccpsycap <- ggplot(dat.cultcomp, aes(stress, ethno))
+scatter.cult.ccpsycap + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Stress", y = "Cultural Intelligence")
+
+scatter.cult.ccpsycap <- ggplot(dat.cultcomp, aes(engage, ethno))
+scatter.cult.ccpsycap + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Engagement", y = "Cultural Intelligence")
+
+scatter.cult.ccpsycap <- ggplot(dat.cultcomp, aes(ss, ethno))
+scatter.cult.ccpsycap + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Social Support", y = "Cultural Intelligence")
+
+scatter.cult.ccpsycap <- ggplot(dat.cultcomp, aes(dist, ethno))
+scatter.cult.ccpsycap + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Cultural Distance", y = "Cultural Intelligence")
+
+scatter.cult.ccpsycap <- ggplot(dat.cultcomp, aes(lang, ethno))
+scatter.cult.ccpsycap + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Language", y = "Cultural Intelligence")
+```
+
+```{r}
+#another plot of fitted values vs. residuals
+ggplot(model.cq, aes(.fitted, .resid))+geom_point()+geom_hline(yintercept=0, col="green", linetype="dashed")+xlab("Fitted Values")+ylab("Residuals")+ggtitle("Residual vs. Fitted Plot")+theme_bw()
+ggplot(model.ethno, aes(.fitted, .resid))+geom_point()+geom_hline(yintercept=0, col="green", linetype="dashed")+xlab("Fitted Values")+ylab("Residuals")+ggtitle("Residual vs. Fitted Plot")+theme_bw()
+
+#Breusch Pagan Test of homoscedasticity
+ncvTest(model.cq)
+ncvTest(model.ethno)
+```
+
+```{r}
+#correlation table - remove ID column number 1
+cor.cult <- corrMatrix(dat.cultcomp[-c(1)])
+cor.cult
+
+```
+
+```{r}
+#center your predictors for interpretability
+dat.cultcomp$cc_psycap.c <- dat.cultcomp$cc_psycap - mean(dat.cultcomp$cc_psycap)
+dat.cultcomp$stress.c <- dat.cultcomp$stress - mean(dat.cultcomp$stress)
+dat.cultcomp$engage.c <- dat.cultcomp$engage - mean(dat.cultcomp$engage)
+dat.cultcomp$ss.c <- dat.cultcomp$ss - mean(dat.cultcomp$ss)
+dat.cultcomp$dist.c <- dat.cultcomp$dist - mean(dat.cultcomp$dist)
+dat.cultcomp$lang.c <- dat.cultcomp$lang - mean(dat.cultcomp$lang)
+```
+
+```{r}
+#Multiple Regression predicting cultural intelligence (cq)
+model.cq <- linReg(data = dat.cultcomp, 
+                 dep = 'cq', 
+                 covs = c('cc_psycap.c', 'stress.c', 'engage.c', 'ss.c', 'dist.c', 'lang.c'), 
+                 blocks = list(
+                   list('ss.c', 'dist.c', 'lang.c'),
+                   list('engage.c', 'cc_psycap.c', 'stress.c')),
+                modelTest = TRUE,
+                stdEst = TRUE,
+                r2Adj = TRUE,
+                collin = TRUE,
+                ci = TRUE)
+model.cq
+```
+
+```{r}
+#Multiple Regression predicting ethnocentricism
+model.ethno <- linReg(data = dat.cultcomp, 
+                 dep = 'ethno', 
+                 covs = c('cc_psycap.c', 'stress.c', 'engage.c', 'ss.c', 'dist.c', 'lang.c'), 
+                 blocks = list(
+                   list('ss.c', 'dist.c', 'lang.c'),
+                   list('engage.c', 'cc_psycap.c', 'stress.c')),
+                modelTest = TRUE,
+                stdEst = TRUE,
+                r2Adj = TRUE, 
+                ci = TRUE)
+model.ethno
+```
+
+
+***Practice Data Set***
+This data set is an extra opportunity for you to practice analyzing and interpreting output. Because it has a lot of variables, it's an excellent data set for you practice decision making and rationale. Below is a short overview of the data. Below that I included some questions to help scaffold your thinking/practice. 
+
+DATA OVERVIEW
+This data comes from a 1978 study on Boston housing prices. It is often used to teach or practice regression given the number variables and the strange results published by the original authors, which I address in the scaffolding questions below. 
+
+REFERENCES
+Harrison, D. and Rubinfeld, D.L. (1978). Hedonic prices and the demand for clean air. Journal of  Environmental Economics & Management, 5, 81-102.
+
+VARIABLE CODEBOOK
+CRIM: Per capita crime rate by town
+ZN: Proportion of residential land zoned for lots over 25,000 sq.ft.
+INDUS: Proportion of non-retail business acres per town
+CHAS: Charles River dummy variable (= 1 if tract bounds river; 0 otherwise)
+NOX: Nitric oxides concentration (parts per 10 million)
+RM: Average number of rooms per dwelling
+AGE: Proportion of owner-occupied units built prior to 1940
+DIS: Weighted distances to five Boston employment centres
+RAD: Index of accessibility to radial highways
+TAX: Full-value property-tax rate per $10,000
+PTRATIO: Ppupil-teacher ratio by town
+AA: Proportion of African-American Residents
+LSES: Percent of population with low SES status
+MEDV: Median value of owner-occupied homes in $1000's. THIS IS THE OUTCOME VARIABLE
+
+```{r}
+dat.housing <- read.csv("housing.csv")
+
+#convert to lower case for ease of entering in variable names
+colnames(dat.housing) %<>% tolower()
+```
+
+```{r}
+#Examine the descriptive statistics. How were the variables measured? Do you have variance in your outcome variable? How about your predictors? Anything problematic or surprising?
+
+
+```
+
+```{r}
+#What is related to what? Run a correlation table to explore initial relationships. FYI that we generally exclude dummy coded variables from correlation tables - more on that next week :) 
+
+
+
+```
+
+```{r}
+#Generally the next step is to visualize your data. I suggest scatterplots for your continuous predictors and your outcome variable. However, there are many variables in this data set. Consider looking at the data using the 
+
+
+```
+
+```{r}
+#Practice Task: When Harrison & Rubinfeld (1978) first wrote their article, their primary interest was estimating willingness to pay for cleaner air, which is measured by the variable NOX. They were interested in showing that NOX was predictive of median sale price above and beyond other things. Test this. Are they right? Can you statistically disprove their finding? What's problematic about their conclusion that people are willing to pay for cleaner air? What else might explain their findings?
+
+```
+
+
