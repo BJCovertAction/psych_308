@@ -488,27 +488,6 @@ Centered data is already saved from scatter plots above (shift the y-intercept t
 Now we can build the regression model.  
 
 ```{r multiple_regression_centered}
-
-# DON'T NEED THIS MODEL SEPARTED AS ITS NESTED IN M2
-# print("-------------------------------------")
-# print("---- Model 1 - Custom - Centered ----")
-# print("-------------------------------------")
-# 
-# # Model 1
-# success_mult_regr_m1 <- linReg( success_dat_m1, 
-#                                 dep = 'success', 
-#                                 covs = c('profes_cent','comp_cent'),
-#                                 blocks = list(
-#                                                list('profes_cent'),
-#                                                list('comp_cent')
-#                                               ), 
-#                                 modelTest = TRUE,
-#                                 stdEst = TRUE, 
-#                                 r2Adj = TRUE, 
-#                                 collin = TRUE,
-#                                 ci = TRUE)
-# success_mult_regr_m1
-
 print("-------------------------------------")
 print("---- Model 2 - Custom - Centered ----")
 print("-------------------------------------")
@@ -542,43 +521,24 @@ the other two predictors (e.g. when profes is regressed onto comp + motivation, 
 for that regression is equal to the tolerance shown for profes as output by linReg in this section.
 
 ```{r multiple_regression_uncentered}
-# 
-# print("---------------------------------------")
-# print("---- Model 1 - Custom - UnCentered  ---")
-# print("---------------------------------------")
-# 
-# # Model 1
-# success_mult_regr_m1 <- linReg( success_dat_m1, 
-#                                 dep = 'success', 
-#                                 covs = c('profes','comp'),
-#                                 blocks = list(
-#                                                list('profes')
-#                                               ), 
-#                                 modelTest = TRUE,
-#                                 stdEst = TRUE, 
-#                                 r2Adj = TRUE, 
-#                                 collin = TRUE,
-#                                 ci = TRUE)
-# success_mult_regr_m1
-# 
-# print("---------------------------------------")
-# print("---- Model 2 - Custom - UnCentered ----")
-# print("---------------------------------------")
+print("---------------------------------------")
+print("---- Model 2 - Custom - UnCentered ----")
+print("---------------------------------------")
 
 # Model 2
-success_mult_regr_m2 <- linReg( success_dat_m2, 
-                                dep = 'success', 
-                                covs = c('profes','comp', 'motivation'),
-                                blocks = list(
-                                               list( 'profes','comp' ),
-                                               list( 'motivation' )
-                                              ), 
-                                modelTest = TRUE,
-                                stdEst = TRUE, 
-                                r2Adj = TRUE, 
-                                collin = TRUE,
-                                ci = TRUE)
-success_mult_regr_m2
+success_mult_regr_m2_uc <- linReg( success_dat_m2, 
+                                   dep = 'success', 
+                                   covs = c('profes','comp', 'motivation'),
+                                   blocks = list(
+                                                  list( 'profes','comp' ),
+                                                  list( 'motivation' )
+                                                 ), 
+                                   modelTest = TRUE,
+                                   stdEst = TRUE, 
+                                   r2Adj = TRUE, 
+                                   collin = TRUE,
+                                   ci = TRUE)
+success_mult_regr_m2_uc
 
 ```
 
@@ -600,5 +560,96 @@ success_simple_mod_m2_cent <- lm(success ~ profes_cent + comp_cent + motivation_
 
 # Use reg.table method in APA package to generate regression table
 apa.reg.table( success_simple_mod_m2_cent, filename="success_reg_to_prof_and_comp_and_mot.doc", table.number = 3 )
+
+```
+
+### Homoscedasticity Recheck for Striker Eureka
+
+Since we're constructing a new fit line for this model, based exclusively on motivation, we need to recheck  
+heteroscedasticity
+
+```{r striker_eureka_assumptions}
+
+# We need to build a new simple model for motivation only. We can use the same dataset
+success_simple_mod_m3 <- lm(success ~ motivation, data = success_dat_m2)
+
+# Model performance checks for Striker Eureka
+performance::check_model(success_simple_mod_m3)
+
+# MODEL 3 RESIDUALS
+success_resid_m3_fig = ggplot( success_simple_mod_m3, aes(.fitted, .resid) )
+
+success_resid_m3_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Success Values (0 - 100)") +
+    ylab("Success Residuals (0 - 100)") +
+    ggtitle("Model 3 Success Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+success_resid_sd_m3_fig = ggplot( success_simple_mod_m3, 
+                                  aes(.fitted , .resid / success_descr$descriptives$asDF$`success[sd]` ) 
+                                )
+
+success_resid_sd_m3_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Success Values") +
+    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+    ggtitle("Model 3 Success Residual vs. Fitted Plot") +
+    my_gg_theme
+
+print("    ")
+print("---- Breusch-Pagan MODEL 3 ----")
+print("    ")
+car::ncvTest(success_simple_mod_m3)
+
+```
+
+### Striker Eureka Model
+
+Let's see what happens if we compare professionalism, competence, and motivation  to just competence and motivation
+
+```{r striker_eureka}
+
+print("-------------------------------------")
+print("---- Model 3 - Custom - Centered ----")
+print("-------------------------------------")
+
+# Model 3 Centered
+# "Model 2" contains data needed for all three predictors 
+success_mult_regr_m3 <- linReg( success_dat_m2, 
+                                dep = 'success', 
+                                covs = c('profes_cent','comp_cent', 'motivation_cent'),
+                                blocks = list(
+                                                list( 'motivation_cent' ),
+                                                list( 'comp_cent', 'profes_cent')
+                                              ), 
+                                modelTest = TRUE,
+                                stdEst = TRUE, 
+                                r2Adj = TRUE, 
+                                collin = TRUE,
+                                ci = TRUE)
+success_mult_regr_m3
+
+print("-------------------------------------")
+print("---- Model 3 - Custom - UnCentered ----")
+print("-------------------------------------")
+
+# Model 3 Uncentered
+success_mult_regr_m3_uc <- linReg( success_dat_m2, 
+                                   dep = 'success', 
+                                   covs = c('profes','comp', 'motivation'),
+                                   blocks = list(
+                                                  list( 'motivation' ),
+                                                  list( 'comp', 'profes')
+                                                 ), 
+                                   modelTest = TRUE,
+                                   stdEst = TRUE, 
+                                   r2Adj = TRUE, 
+                                   collin = TRUE,
+                                   ci = TRUE)
+success_mult_regr_m3_uc
 
 ```
