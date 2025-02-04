@@ -28,7 +28,15 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Prompt
 
-You now work for a nationwide transitional living program. They serve homeless individuals between the age of 16-25. The various services they are providing include: (1) a service that helps youth get a job (2) a literacy program (3) a program to help youth graduate from high school and (4) shelter to live in. They've collected data on the youth in their program on income, literacy, and high school graduation (see below for an explanation of the variables). The program ultimately cares about what best predicts the successful transition of these youth. According to the literature, high school graduation and income explain successful transitioning best. The CEO thinks that from her experience literacy is actually an important factor to consider in addition to graduation and income. Test both the model based on literature and the CEO's proposed model to determine what best predicts successful transition. 
+You now work for a nationwide transitional living program. They serve homeless individuals between the age of 16-25.  
+The various services they are providing include: (1) a service that helps youth get a job (2) a literacy program (3)  
+a program to help youth graduate from high school and (4) shelter to live in. They've collected data on the youth in  
+their program on income, literacy, and high school graduation (see below for an explanation of the variables). The   
+program ultimately cares about what best predicts the successful transition of these youth. According to the   
+literature, high school graduation and income explain successful transitioning best. The CEO thinks that from   
+her experience literacy is actually an important factor to consider in addition to graduation and income.   
+Test both the model based on literature and the CEO's proposed model to determine what best predicts successful  
+transition. 
 
 ## Variables 
 
@@ -36,8 +44,8 @@ You now work for a nationwide transitional living program. They serve homeless i
 |:-----|:---|:------------------|
 | `Income` | -- | Annual income |
 | `Illiteracy` | 1-7 scale | Score on competence rated by advisor |
-| `HS.Grad` | Factor: <br>Reference = Did not Grduate, <br>D1 = On Time, <br>D2 = Later | Whether they graduated on time (18 years old), later (any age after 18), or did not graduate at all. |
-| `Success` | 1-10 scale | Successful transition scaled based on a variety of factors compiling to an ultimate score between the values of 0-10 |
+| `HS.Grad` | Factor: <br>Reference = Did not Graduate, <br>D1 = On Time, <br>D2 = Later | Whether they graduated on time (18 years old), later (any age after 18), <br>or did not graduate at all. |
+| `Success` | 1-10 scale | Successful transition scaled based on a variety of factors compiling to <br>an ultimate score between the values of 0-10 |
 
 
 ## Assignment
@@ -97,26 +105,26 @@ This section of code is to setup some general variables that we'll use throughou
 
 ```{r metadata}
 # First we'll defines some meta-data to use in all of our plots so they're nice and clean
-font_color = "#4F81BD"
-grid_color_major = "#9BB7D9"
-grid_color_minor = "#C8D7EA"
-back_color = "gray95"
-rb_colmap = colorRampPalette( c("firebrick", "grey86", "dodgerblue3") )(200)
-
-# I'm going to try to save off my preferred ggplot theme combinations as a unqiue theme object that I can just reference  
-# later in the code....totally unclear if ggplot works this way....
-my_gg_theme = theme_minimal() +
-              theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
-                     axis.title.x = element_text(color = font_color),
-                     axis.title.y = element_text(color = font_color),
-                     axis.text.x = element_text(color = font_color),
-                     axis.text.y = element_text(color = font_color),
-                     legend.title = element_text(color = font_color),
-                     legend.text = element_text(color = font_color),
-                     panel.grid.minor = element_line(color = grid_color_minor),
-                     panel.grid.major = element_line(color = grid_color_major),
-                     panel.background = element_rect(fill = back_color, color = font_color)
-                   )
+# font_color = "#4F81BD"
+# grid_color_major = "#9BB7D9"
+# grid_color_minor = "#C8D7EA"
+# back_color = "gray95"
+# rb_colmap = colorRampPalette( c("firebrick", "grey86", "dodgerblue3") )(200)
+# 
+# # I'm going to try to save off my preferred ggplot theme combinations as a unqiue theme object that I can just reference  
+# # later in the code....totally unclear if ggplot works this way....
+# my_gg_theme = theme_minimal() +
+#               theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+#                      axis.title.x = element_text(color = font_color),
+#                      axis.title.y = element_text(color = font_color),
+#                      axis.text.x = element_text(color = font_color),
+#                      axis.text.y = element_text(color = font_color),
+#                      legend.title = element_text(color = font_color),
+#                      legend.text = element_text(color = font_color),
+#                      panel.grid.minor = element_line(color = grid_color_minor),
+#                      panel.grid.major = element_line(color = grid_color_major),
+#                      panel.background = element_rect(fill = back_color, color = font_color)
+#                    )
 
 ```
 
@@ -124,23 +132,23 @@ my_gg_theme = theme_minimal() +
 
 ```{r load_raw_data}
 
-# Load data as downloaded from Canvas
-success_raw_dat = read.csv("./308C.DA2 Data.csv")
-
-# Rename columns to lower because why not
-colnames(success_raw_dat) <- tolower( colnames(success_raw_dat) )
-
-# View data
-glimpse(success_raw_dat)
-
-# Ensure that the employee numbers of each subject in the study are unique to prevent any duplicate data
-# if the size of the unique-entries only is the same as the whole vector then there are no duplicate subjects
-test_unique = (length(unique(success_raw_dat$subject)) == length(success_raw_dat$subject))
-if(!test_unique){
-    print("WARNING: There are duplicate data entries in the raw data")
-}else{
-    print("No duplicate entries detected in raw data")
-}
+# # Load data as downloaded from Canvas
+# success_raw_dat = read.csv("./308C.DA2 Data.csv")
+# 
+# # Rename columns to lower because why not
+# colnames(success_raw_dat) <- tolower( colnames(success_raw_dat) )
+# 
+# # View data
+# glimpse(success_raw_dat)
+# 
+# # Ensure that the employee numbers of each subject in the study are unique to prevent any duplicate data
+# # if the size of the unique-entries only is the same as the whole vector then there are no duplicate subjects
+# test_unique = (length(unique(success_raw_dat$subject)) == length(success_raw_dat$subject))
+# if(!test_unique){
+#     print("WARNING: There are duplicate data entries in the raw data")
+# }else{
+#     print("No duplicate entries detected in raw data")
+# }
 ```
 
 ### Descriptive Statistics - Raw Data
@@ -149,21 +157,21 @@ This section will look at base descriptive statistics of the raw data to help id
 normality of predictor variables (break length - minutes)
 
 ```{r descriptive_stats_raw}
-
-# Get JMV descriptives of raw success, professionalism, competence, and motivation,
-# Tabulate mean, variance, skew, and kurtosis so we can check normality.
-# Output histograms and qq plots so we can spot outliers and review distribution shape
-success_descr = jmv::descriptives( success_raw_dat[c(2:5)],
-                                  hist = TRUE,
-                                  dens = TRUE,
-                                  qq = TRUE,
-                                  sd = TRUE,
-                                  variance = TRUE,
-                                  se = TRUE,
-                                  skew = TRUE,
-                                  kurt = TRUE,
-                                  missing = TRUE)
-print(success_descr)
+# 
+# # Get JMV descriptives of raw success, professionalism, competence, and motivation,
+# # Tabulate mean, variance, skew, and kurtosis so we can check normality.
+# # Output histograms and qq plots so we can spot outliers and review distribution shape
+# success_descr = jmv::descriptives( success_raw_dat[c(2:5)],
+#                                   hist = TRUE,
+#                                   dens = TRUE,
+#                                   qq = TRUE,
+#                                   sd = TRUE,
+#                                   variance = TRUE,
+#                                   se = TRUE,
+#                                   skew = TRUE,
+#                                   kurt = TRUE,
+#                                   missing = TRUE)
+# print(success_descr)
 
 ```
 
@@ -174,54 +182,54 @@ A second correlation matrix is also computed which includes Motivation (for mode
 
 
 ```{r correlation_plots_raw}
-
-# We'll make two datasets going forward, success_dat_m1 is for our first model. success_dat_m2 is for our second.
-# Second model (m2) contains all the predictors as the raw data. First model, (m1) is subset to remove motivation
-success_dat_m2 <- success_raw_dat
-success_dat_m2$id <- NULL
-success_dat_m1 <- success_dat_m2
-success_dat_m1$motivation <- NULL
-
-# MODEL 1
-# Produce a correlation matrix plot that includes the numbers printed with a color gradient for easy reading.
-# par(bg = "lightgrey")
-success_cor_m1 <- stats::cor(success_dat_m1)
-corrplot( success_cor_m1,
-          method="color",
-          type = "full",
-          addCoef.col = "black",
-          col = rb_colmap,
-          tl.col = font_color )
-
-success_cor_m2 <- stats::cor(success_dat_m2)
-corrplot( success_cor_m2,
-          method="color",
-          type = "full",
-          addCoef.col = "black",
-          col = rb_colmap,
-          tl.col = font_color )
-
-# Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
-# 1 for tables, but oh well)
-success_cor_tab_m1 <- jmv::corrMatrix(success_dat_m1, flag = TRUE)
-print(success_cor_tab_m1)
-
-success_cor_tab_m2 <- jmv::corrMatrix(success_dat_m2, flag = TRUE)
-print(success_cor_tab_m2)
-
-# Finally dump a correlation tables to Word Doc format for easy table formatting / to save time in writing
-# the assignment
-apa.cor.table( success_dat_m1,
-               filename = "corr_table_success_model_1.doc",
-               table.number = 1,
-               show.sig.stars = TRUE,
-               landscape = TRUE)
-
-apa.cor.table( success_dat_m2,
-               filename = "corr_table_success_model_2.doc",
-               table.number = 1,
-               show.sig.stars = TRUE,
-               landscape = TRUE)
+# 
+# # We'll make two datasets going forward, success_dat_m1 is for our first model. success_dat_m2 is for our second.
+# # Second model (m2) contains all the predictors as the raw data. First model, (m1) is subset to remove motivation
+# success_dat_m2 <- success_raw_dat
+# success_dat_m2$id <- NULL
+# success_dat_m1 <- success_dat_m2
+# success_dat_m1$motivation <- NULL
+# 
+# # MODEL 1
+# # Produce a correlation matrix plot that includes the numbers printed with a color gradient for easy reading.
+# # par(bg = "lightgrey")
+# success_cor_m1 <- stats::cor(success_dat_m1)
+# corrplot( success_cor_m1,
+#           method="color",
+#           type = "full",
+#           addCoef.col = "black",
+#           col = rb_colmap,
+#           tl.col = font_color )
+# 
+# success_cor_m2 <- stats::cor(success_dat_m2)
+# corrplot( success_cor_m2,
+#           method="color",
+#           type = "full",
+#           addCoef.col = "black",
+#           col = rb_colmap,
+#           tl.col = font_color )
+# 
+# # Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
+# # 1 for tables, but oh well)
+# success_cor_tab_m1 <- jmv::corrMatrix(success_dat_m1, flag = TRUE)
+# print(success_cor_tab_m1)
+# 
+# success_cor_tab_m2 <- jmv::corrMatrix(success_dat_m2, flag = TRUE)
+# print(success_cor_tab_m2)
+# 
+# # Finally dump a correlation tables to Word Doc format for easy table formatting / to save time in writing
+# # the assignment
+# apa.cor.table( success_dat_m1,
+#                filename = "corr_table_success_model_1.doc",
+#                table.number = 1,
+#                show.sig.stars = TRUE,
+#                landscape = TRUE)
+# 
+# apa.cor.table( success_dat_m2,
+#                filename = "corr_table_success_model_2.doc",
+#                table.number = 1,
+#                show.sig.stars = TRUE,
+#                landscape = TRUE)
 
 ```
 ### Scatterplots of All Predictor Vars
@@ -233,38 +241,38 @@ separate from residual plots and homoscedasticity testing for readability.
 **NOTE:** I'm not using centered data for the scatterplots as it's unintuitive but I may add them later if necessary
 
 ```{r scatterplots_raw}
-
-# Scatterplot 1: Success (uncentered) vs. Professionalism
-success_scatter_svp <- ggplot(success_dat_m2, aes(profes, success) )
-
-success_scatter_svp +
-    geom_point() +
-    geom_smooth(method = "lm", colour = "Red") +
-    ggtitle("Career Success Relation to Student Professionalism") +
-    labs(y = "Career Success (1-100)", x = "Student Professionalism (0-7)") +
-    my_gg_theme
-
-
-# Scatterplot 2: Success (uncentered) vs. Competence
-success_scatter_svc <- ggplot(success_dat_m2, aes(comp, success) )
-
-success_scatter_svc +
-    geom_point() +
-    geom_smooth(method = "lm", colour = "Red") +
-    ggtitle("Career Success Relation to Student Competence") +
-    labs(y = "Career Success (1-100)", x = "Student Competence (0-7)") +
-    my_gg_theme
-
-# Scatterplot 3: Success (uncentered) vs. Motivation
-success_scatter_svc <- ggplot(success_dat_m2, aes(motivation, success) )
-
-success_scatter_svc +
-    geom_point() +
-    geom_smooth(method = "lm", colour = "Red") +
-    ggtitle("Career Success Relation to Student Motivation") +
-    labs(y = "Career Success (1-100)", x = "Student Motivation (0-7)") +
-    my_gg_theme
-
+# 
+# # Scatterplot 1: Success (uncentered) vs. Professionalism
+# success_scatter_svp <- ggplot(success_dat_m2, aes(profes, success) )
+# 
+# success_scatter_svp +
+#     geom_point() +
+#     geom_smooth(method = "lm", colour = "Red") +
+#     ggtitle("Career Success Relation to Student Professionalism") +
+#     labs(y = "Career Success (1-100)", x = "Student Professionalism (0-7)") +
+#     my_gg_theme
+# 
+# 
+# # Scatterplot 2: Success (uncentered) vs. Competence
+# success_scatter_svc <- ggplot(success_dat_m2, aes(comp, success) )
+# 
+# success_scatter_svc +
+#     geom_point() +
+#     geom_smooth(method = "lm", colour = "Red") +
+#     ggtitle("Career Success Relation to Student Competence") +
+#     labs(y = "Career Success (1-100)", x = "Student Competence (0-7)") +
+#     my_gg_theme
+# 
+# # Scatterplot 3: Success (uncentered) vs. Motivation
+# success_scatter_svc <- ggplot(success_dat_m2, aes(motivation, success) )
+# 
+# success_scatter_svc +
+#     geom_point() +
+#     geom_smooth(method = "lm", colour = "Red") +
+#     ggtitle("Career Success Relation to Student Motivation") +
+#     labs(y = "Career Success (1-100)", x = "Student Motivation (0-7)") +
+#     my_gg_theme
+# 
 
 
 ```
@@ -276,11 +284,11 @@ creates these two models:
 Model: success ~ professionalism + competence + motivation
 
 ```{r simple_model_definition}
-# We create the linear models using separate datasets simply for clarity of code and readability  
-success_simple_mod_m2 <- lm(success ~ profes + comp + motivation, data = success_dat_m2)
-
-# Model performance checks for both
-performance::check_model(success_simple_mod_m2)
+# # We create the linear models using separate datasets simply for clarity of code and readability  
+# success_simple_mod_m2 <- lm(success ~ profes + comp + motivation, data = success_dat_m2)
+# 
+# # Model performance checks for both
+# performance::check_model(success_simple_mod_m2)
 
 ```
 
@@ -292,43 +300,43 @@ going to center the data outright because I don't want to run everything multipl
 
 ```{r assumptions_and_figures_raw}
 
-# Check Residuals plot (Heteroscedasticity)
-# Fitted values vs. residuals to examine homoscedasticity
-# NOTE use of .resid to plot residuals
-
-# MODEL 2 RESIDUALS
-success_resid_m2_fig = ggplot( success_simple_mod_m2, aes(.fitted, .resid) )
-
-success_resid_m2_fig +
-    geom_point(col = font_color) +
-    geom_hline(yintercept=0, col="green3", linetype="dashed") +
-    xlab("Fitted Success Values (0 - 100)") +
-    ylab("Success Residuals (0 - 100)") +
-    ggtitle("Model 2 Success Residual vs. Fitted Plot") +
-    my_gg_theme
-
-# I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-success_resid_sd_m2_fig = ggplot( success_simple_mod_m2, 
-                                  aes(.fitted , .resid / success_descr$descriptives$asDF$`success[sd]` ) 
-                                )
-
-success_resid_sd_m2_fig +
-    geom_point(col = font_color) +
-    geom_hline(yintercept=0, col="green3", linetype="dashed") +
-    xlab("Fitted Success Values") +
-    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
-    ggtitle("Model 2 Success Residual vs. Fitted Plot") +
-    my_gg_theme
-
-# Run a Breusch Pagan Test of homoscedasticity for both models
-print("    ")
-print("---- Breusch-Pagan MODEL 2 ----")
-print("    ")
-car::ncvTest(success_simple_mod_m1)
-print("    ")
-print("---- Breusch-Pagan MODEL 2 ----")
-print("    ")
-car::ncvTest(success_simple_mod_m2)
+# # Check Residuals plot (Heteroscedasticity)
+# # Fitted values vs. residuals to examine homoscedasticity
+# # NOTE use of .resid to plot residuals
+# 
+# # MODEL 2 RESIDUALS
+# success_resid_m2_fig = ggplot( success_simple_mod_m2, aes(.fitted, .resid) )
+# 
+# success_resid_m2_fig +
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Success Values (0 - 100)") +
+#     ylab("Success Residuals (0 - 100)") +
+#     ggtitle("Model 2 Success Residual vs. Fitted Plot") +
+#     my_gg_theme
+# 
+# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+# success_resid_sd_m2_fig = ggplot( success_simple_mod_m2, 
+#                                   aes(.fitted , .resid / success_descr$descriptives$asDF$`success[sd]` ) 
+#                                 )
+# 
+# success_resid_sd_m2_fig +
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Success Values") +
+#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+#     ggtitle("Model 2 Success Residual vs. Fitted Plot") +
+#     my_gg_theme
+# 
+# # Run a Breusch Pagan Test of homoscedasticity for both models
+# print("    ")
+# print("---- Breusch-Pagan MODEL 2 ----")
+# print("    ")
+# car::ncvTest(success_simple_mod_m1)
+# print("    ")
+# print("---- Breusch-Pagan MODEL 2 ----")
+# print("    ")
+# car::ncvTest(success_simple_mod_m2)
 ```
 
 ### Data Cleaning - OPTIONAL
@@ -344,10 +352,10 @@ We center our predictors for both datasets so regression tables can be built usi
 
 ```{r center_data}
 
-# Center all predictor data for model 2.
-success_dat_m2$profes_cent     <- success_dat_m2$profes     - mean(success_dat_m2$profes)
-success_dat_m2$comp_cent       <- success_dat_m2$comp       - mean(success_dat_m2$comp)
-success_dat_m2$motivation_cent <- success_dat_m2$motivation - mean(success_dat_m2$motivation)
+# # Center all predictor data for model 2.
+# success_dat_m2$profes_cent     <- success_dat_m2$profes     - mean(success_dat_m2$profes)
+# success_dat_m2$comp_cent       <- success_dat_m2$comp       - mean(success_dat_m2$comp)
+# success_dat_m2$motivation_cent <- success_dat_m2$motivation - mean(success_dat_m2$motivation)
 
 ```
 
@@ -357,65 +365,65 @@ I'm curious about what, specifically, the colinearity stats tables that get spit
 contain. I want to see if I can compute them manually by regressing our predictors directly onto one another.
 
 ```{r multicolinearity_manual}
-
-# Second we'll regress professionalism onto competence and motivation:
-print("--------------------------------------------")
-print("---- Model 2 - Colinearity - UnCentered ----")
-print("--------------------------------------------")
-
-# "Model 2" contains data needed for all three 
-colinear_mod_prof_comp_mot <- linReg( success_dat_m2, 
-                                  dep = 'profes', 
-                                  covs = c('comp', 'motivation'),
-                                  blocks = list(
-                                                 list('comp', 'motivation')
-                                                ), 
-                                  modelTest = TRUE,
-                                  stdEst = TRUE, 
-                                  r2Adj = TRUE, 
-                                  collin = TRUE,
-                                  ci = TRUE)
-colinear_mod_prof_comp_mot
-
-# Third we'll regress competence onto professionalism and motivation:
-print("--------------------------------------------")
-print("---- Model 3 - Colinearity - UnCentered ----")
-print("--------------------------------------------")
-
-# "Model 2" contains data needed for all three 
-colinear_mod_comp_prof_mot <- linReg( success_dat_m2, 
-                                  dep = 'comp', 
-                                  covs = c('profes', 'motivation'),
-                                  blocks = list(
-                                                 list('profes', 'motivation')
-                                                ), 
-                                  modelTest = TRUE,
-                                  stdEst = TRUE, 
-                                  r2Adj = TRUE, 
-                                  collin = TRUE,
-                                  ci = TRUE)
-colinear_mod_comp_prof_mot
-
-
-# Fourth we'll regress motivation onto professionalism and competence:
-print("--------------------------------------------")
-print("---- Model 4 - Colinearity - UnCentered ----")
-print("--------------------------------------------")
-
-# "Model 2" contains data needed for all three 
-colinear_mod_mot_comp_prof <- linReg( success_dat_m2, 
-                                  dep = 'motivation', 
-                                  covs = c('profes', 'comp'),
-                                  blocks = list(
-                                                 list('profes', 'comp')
-                                                ), 
-                                  modelTest = TRUE,
-                                  stdEst = TRUE, 
-                                  r2Adj = TRUE, 
-                                  collin = TRUE,
-                                  ci = TRUE)
-colinear_mod_mot_comp_prof
-
+# 
+# # Second we'll regress professionalism onto competence and motivation:
+# print("--------------------------------------------")
+# print("---- Model 2 - Colinearity - UnCentered ----")
+# print("--------------------------------------------")
+# 
+# # "Model 2" contains data needed for all three 
+# colinear_mod_prof_comp_mot <- linReg( success_dat_m2, 
+#                                   dep = 'profes', 
+#                                   covs = c('comp', 'motivation'),
+#                                   blocks = list(
+#                                                  list('comp', 'motivation')
+#                                                 ), 
+#                                   modelTest = TRUE,
+#                                   stdEst = TRUE, 
+#                                   r2Adj = TRUE, 
+#                                   collin = TRUE,
+#                                   ci = TRUE)
+# colinear_mod_prof_comp_mot
+# 
+# # Third we'll regress competence onto professionalism and motivation:
+# print("--------------------------------------------")
+# print("---- Model 3 - Colinearity - UnCentered ----")
+# print("--------------------------------------------")
+# 
+# # "Model 2" contains data needed for all three 
+# colinear_mod_comp_prof_mot <- linReg( success_dat_m2, 
+#                                   dep = 'comp', 
+#                                   covs = c('profes', 'motivation'),
+#                                   blocks = list(
+#                                                  list('profes', 'motivation')
+#                                                 ), 
+#                                   modelTest = TRUE,
+#                                   stdEst = TRUE, 
+#                                   r2Adj = TRUE, 
+#                                   collin = TRUE,
+#                                   ci = TRUE)
+# colinear_mod_comp_prof_mot
+# 
+# 
+# # Fourth we'll regress motivation onto professionalism and competence:
+# print("--------------------------------------------")
+# print("---- Model 4 - Colinearity - UnCentered ----")
+# print("--------------------------------------------")
+# 
+# # "Model 2" contains data needed for all three 
+# colinear_mod_mot_comp_prof <- linReg( success_dat_m2, 
+#                                   dep = 'motivation', 
+#                                   covs = c('profes', 'comp'),
+#                                   blocks = list(
+#                                                  list('profes', 'comp')
+#                                                 ), 
+#                                   modelTest = TRUE,
+#                                   stdEst = TRUE, 
+#                                   r2Adj = TRUE, 
+#                                   collin = TRUE,
+#                                   ci = TRUE)
+# colinear_mod_mot_comp_prof
+# 
 
 
 
@@ -428,25 +436,25 @@ Centered data is already saved from scatter plots above (shift the y-intercept t
 Now we can build the regression model.  
 
 ```{r multiple_regression_centered}
-print("-------------------------------------")
-print("---- Model 2 - Custom - Centered ----")
-print("-------------------------------------")
-
-# Model 2
-# "Model 2" contains data needed for all three 
-success_mult_regr_m2 <- linReg( success_dat_m2, 
-                                dep = 'success', 
-                                covs = c('profes_cent','comp_cent', 'motivation_cent'),
-                                blocks = list(
-                                               list( 'profes_cent','comp_cent' ),
-                                               list( 'motivation_cent' )
-                                              ), 
-                                modelTest = TRUE,
-                                stdEst = TRUE, 
-                                r2Adj = TRUE, 
-                                collin = TRUE,
-                                ci = TRUE)
-success_mult_regr_m2
+# print("-------------------------------------")
+# print("---- Model 2 - Custom - Centered ----")
+# print("-------------------------------------")
+# 
+# # Model 2
+# # "Model 2" contains data needed for all three 
+# success_mult_regr_m2 <- linReg( success_dat_m2, 
+#                                 dep = 'success', 
+#                                 covs = c('profes_cent','comp_cent', 'motivation_cent'),
+#                                 blocks = list(
+#                                                list( 'profes_cent','comp_cent' ),
+#                                                list( 'motivation_cent' )
+#                                               ), 
+#                                 modelTest = TRUE,
+#                                 stdEst = TRUE, 
+#                                 r2Adj = TRUE, 
+#                                 collin = TRUE,
+#                                 ci = TRUE)
+# success_mult_regr_m2
 
 ```
 
@@ -461,24 +469,24 @@ the other two predictors (e.g. when profes is regressed onto comp + motivation, 
 for that regression is equal to the tolerance shown for profes as output by linReg in this section.
 
 ```{r multiple_regression_uncentered}
-print("---------------------------------------")
-print("---- Model 2 - Custom - UnCentered ----")
-print("---------------------------------------")
-
-# Model 2
-success_mult_regr_m2_uc <- linReg( success_dat_m2, 
-                                   dep = 'success', 
-                                   covs = c('profes','comp', 'motivation'),
-                                   blocks = list(
-                                                  list( 'profes','comp' ),
-                                                  list( 'motivation' )
-                                                 ), 
-                                   modelTest = TRUE,
-                                   stdEst = TRUE, 
-                                   r2Adj = TRUE, 
-                                   collin = TRUE,
-                                   ci = TRUE)
-success_mult_regr_m2_uc
+# print("---------------------------------------")
+# print("---- Model 2 - Custom - UnCentered ----")
+# print("---------------------------------------")
+# 
+# # Model 2
+# success_mult_regr_m2_uc <- linReg( success_dat_m2, 
+#                                    dep = 'success', 
+#                                    covs = c('profes','comp', 'motivation'),
+#                                    blocks = list(
+#                                                   list( 'profes','comp' ),
+#                                                   list( 'motivation' )
+#                                                  ), 
+#                                    modelTest = TRUE,
+#                                    stdEst = TRUE, 
+#                                    r2Adj = TRUE, 
+#                                    collin = TRUE,
+#                                    ci = TRUE)
+# success_mult_regr_m2_uc
 
 ```
 
@@ -487,18 +495,18 @@ success_mult_regr_m2_uc
 Output regression tables to an APA formatted (almost) word doc in case that's useful for both models
 
 ```{r apa_tables}
-# We'll define a two multiple linear models using the centered data for each so we can compare them.
-
-# Define linear model 1: success ~ professionalism, competence
- success_simple_mod_m1_cent <- lm(success ~ profes_cent + comp_cent, data = success_dat_m1)
-
-# Use reg.table method in APA package to generate regression table
-apa.reg.table( success_simple_mod_m1_cent, filename="success_reg_to_prof_and_comp.doc", table.number = 2 )
-
-# Define linear model 2: success ~ professionalism, competence, motivation
-success_simple_mod_m2_cent <- lm(success ~ profes_cent + comp_cent + motivation_cent, data = success_dat_m2)
-
-# Use reg.table method in APA package to generate regression table
-apa.reg.table( success_simple_mod_m2_cent, filename="success_reg_to_prof_and_comp_and_mot.doc", table.number = 3 )
+# # We'll define a two multiple linear models using the centered data for each so we can compare them.
+# 
+# # Define linear model 1: success ~ professionalism, competence
+#  success_simple_mod_m1_cent <- lm(success ~ profes_cent + comp_cent, data = success_dat_m1)
+# 
+# # Use reg.table method in APA package to generate regression table
+# apa.reg.table( success_simple_mod_m1_cent, filename="success_reg_to_prof_and_comp.doc", table.number = 2 )
+# 
+# # Define linear model 2: success ~ professionalism, competence, motivation
+# success_simple_mod_m2_cent <- lm(success ~ profes_cent + comp_cent + motivation_cent, data = success_dat_m2)
+# 
+# # Use reg.table method in APA package to generate regression table
+# apa.reg.table( success_simple_mod_m2_cent, filename="success_reg_to_prof_and_comp_and_mot.doc", table.number = 3 )
 
 ```
