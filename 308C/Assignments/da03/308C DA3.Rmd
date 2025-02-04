@@ -1,0 +1,38 @@
+---
+title: "308C.DA3"
+author: "SM"
+date: "1/22/2024"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Prompt**
+You now work for a nationwide transitional living program. They serve homeless individuals between the age of 16-25. The various services they are providing include: (1) a service that helps youth get a job (2) a literacy program (3) a program to help youth graduate from high school and (4) shelter to live in. They've collected data on the youth in their program on income, literacy, and high school graduation (see below for an explanation of the variables). The program ultimately cares about what best predicts the successful transition of these youth. According to the literature, high school graduation and income explain successful transitioning best. The CEO thinks that from her experience literacy is actually an important factor to consider in addition to graduation and income. Test both the model based on literature and the CEO's proposed model to determine what best predicts successful transition. 
+
+Income: annual income
+Illiteracy: level of illiteracy on a scale of 0-3 (higher being more illiterate)
+HS.Grad: whether they graduated on time (18 years old), later (any age after 18), or did not graduate at all
+  -Reference: Did not graduate
+  -D1: On time
+  -D2: Later
+Success: successful transition scaled based on a variety of factors compiling to an ultimate score between the values of 0-10
+
+
+**Assignment:**
+
+**Part 1:**
+Conduct the appropriate analyses (including assumptions) and write a results section for an APA journal. Include tables and figures as necessary. 
+
+**Part 2:**
+1. Briefly explain your findings to the CEO. What recommendation would you make for the program? 
+2. Report the two different pieces of evidence that you can use to determine if high school graduation is a significant predictor of success. 
+3. According to your best model, what is the slope of the line for graduated on time? What is the slope for did not graduate? Are they the same or are they different? Explain why or why not. 
+4. The economic structure of Major League Baseball allows some teams to make substantially more money than others, which in turn allows some teams to spend much more on player salaries. These teams might therefore be expected to have better players and win more games as a result. Suppose that after collecting data on team payroll (in millions of dollars) and season win total for 2010, we find a regression equation of (Wins = 71.87 + 0.10Payroll - 0.06League), where League is a predictor variable that equals 0 if the team plays in the National League or 1 if the team plays in the American League. What is the intercept for a team in the American League? What is the slope?
+
+---CODE ONLY BELOW THIS LINE---
+
