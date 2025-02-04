@@ -1658,6 +1658,19 @@
       ],
       "Hash": "c6fafa6cccb1e1dfe7f7d122efd6e6a7"
     },
+    "lsr": {
+      "Package": "lsr",
+      "Version": "0.5.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "grDevices",
+        "graphics",
+        "methods",
+        "stats"
+      ],
+      "Hash": "7ac1df20608b61e9ff049402968a9f08"
+    },
     "lubridate": {
       "Package": "lubridate",
       "Version": "1.9.4",
