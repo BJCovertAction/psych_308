@@ -110,6 +110,29 @@ model.lifesat
 ```
 
 ```{r}
+# Multiple Regression - NESTED - UNCENTERED
+#  covs = PVs available to build models from
+#  blocks = lists defining models
+#  lists w/in blocks = each model
+#    list1 = model 1
+#    list1 + list2 = model2
+#    list1 + list2 + list3 = model3 .... etc.
+
+model.lifesat.uc <- linReg(dat.lifesat, 
+                 dep = 'life_sat', 
+                 covs = c('fac_support','fam_support','optimism'),
+                 blocks = list(
+                   list('fac_support', 'fam_support'),
+                   list('optimism')), 
+                modelTest = TRUE,
+                stdEst = TRUE, #stEdt = Beta
+                r2Adj = TRUE, 
+                collin = TRUE,
+                ci = TRUE)
+model.lifesat.uc
+```
+
+```{r}
 # Multiple Regression - Starting w/ Simple Regression
 model.lifesat <- linReg(dat.lifesat, 
                  dep = 'life_sat', 
