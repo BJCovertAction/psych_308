@@ -699,7 +699,7 @@ Given the findings of adding illiteracy to JUST HS graduation status (it doesn't
 on time), we should check if literacy effects transition variance at ALL. So we'll run it as the first predictor this  
 time.
 
-```{r multiple_regression_uncentered_ref_ot_ill_02}
+```{r multiple_regression_uncentered_ref_ot_ill_01}
 cat( 
      paste(
            '-------------------------------------------------------------------------------------------------',
