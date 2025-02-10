@@ -659,6 +659,74 @@ tranistion_mult_regr_no_cent
 
 ```
 
+#### UnCentered - Referenced to OnTime - Illiteracy Second
+
+Given that illiteracy isn't helping transition success much when added to income, we should check if it adds anything  
+to HS graduation alone (e.g. is it only convluted with income, or is it also convoluted with HS graduation). So, here  
+we run illiteracy as the 2nd predictor to be added on top of graduation status.  
+
+```{r multiple_regression_uncentered_ref_ot_ill_02}
+cat( 
+     paste(
+           '-------------------------------------------------------------------------------------------------',
+           '---- UnCentered Multiple Regression Model w/ OnTime Graduation as Reference - Illiteracy 2nd ----',
+           '-------------------------------------------------------------------------------------------------',
+           sep = '\n'
+     ) 
+   )
+
+# OnTime Graduation as Reference. UnCentered. Illiteracy 2nd       
+tranistion_mult_regr_ot_ill_02 <- linReg( transition_dat,
+                                          dep = 'success',
+                                          covs = c('income','illiteracy', 'grad_late_refd_to_ontime', 'grad_none_refd_to_ontime'),
+                                          blocks = list(
+                                                         list( 'grad_late_refd_to_ontime', 'grad_none_refd_to_ontime' ),
+                                                         list( 'illiteracy' ),
+                                                         list( 'income' )
+                                                        ),
+                                          modelTest = TRUE,
+                                          stdEst = TRUE,
+                                          r2Adj = TRUE,
+                                          collin = TRUE,
+                                          ci = TRUE)
+tranistion_mult_regr_ot_ill_02
+
+```
+
+#### UnCentered - Referenced to OnTime - Illiteracy First
+
+Given the findings of adding illiteracy to JUST HS graduation status (it doesn't provide much benefit over graduating   
+on time), we should check if literacy effects transition variance at ALL. So we'll run it as the first predictor this  
+time.
+
+```{r multiple_regression_uncentered_ref_ot_ill_02}
+cat( 
+     paste(
+           '-------------------------------------------------------------------------------------------------',
+           '---- UnCentered Multiple Regression Model w/ OnTime Graduation as Reference - Illiteracy 1st ----',
+           '-------------------------------------------------------------------------------------------------',
+           sep = '\n'
+     ) 
+   )
+
+# OnTime Graduation as Reference. UnCentered. Illiteracy 1st       
+tranistion_mult_regr_ot_ill_01 <- linReg( transition_dat,
+                                          dep = 'success',
+                                          covs = c('income','illiteracy', 'grad_late_refd_to_ontime', 'grad_none_refd_to_ontime'),
+                                          blocks = list(
+                                                         list( 'illiteracy' ),  
+                                                         list( 'grad_late_refd_to_ontime', 'grad_none_refd_to_ontime' ),
+                                                         list( 'income' )
+                                                        ),
+                                          modelTest = TRUE,
+                                          stdEst = TRUE,
+                                          r2Adj = TRUE,
+                                          collin = TRUE,
+                                          ci = TRUE)
+tranistion_mult_regr_ot_ill_01
+
+```
+
 ### APA Tables
 
 Output regression tables to an APA formatted (almost) word doc in case that's useful for all models
