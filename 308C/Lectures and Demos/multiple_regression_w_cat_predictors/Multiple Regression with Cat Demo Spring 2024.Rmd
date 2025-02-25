@@ -1,0 +1,363 @@
+---
+title: "Multiple Regression With Categorial Variables Demo"
+author: "Jessica Diaz"
+date: "1/23/2024"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(car)
+library(psych)
+library(jmv)
+library(ggplot2)
+library(tidyverse)
+library(magrittr)
+library(broom)
+library(dplyr)
+library(GGally)
+library(lsr)
+library(mvnTest)
+```
+
+**Example 1**
+A cognitive psychologist is interested what predicts reading comprehension in children. He collects the following variables: vocabulary, attention ability, spatial ability, and SES (low, middle, high). Based on previous research, we expect Vocabulary, Attention, and SES to predict reading comprehension. Spatial ability should NOT predict reading comprehension. The study included two measures of attention: Selective attention & Sustained attention. It is unclear whether both measures of attention are important for reading.
+
+picvocab = Vocabulary
+flanker = Attention (selective)
+cardsort = Attention (sustained)
+picture = Spatial ability
+reading = Reading Comprehension
+
+```{r}
+#Read in your data. As long as its in the same folder as the RMD file, this is the only code you need. 
+ABCD.dat <- read.csv("ABCD.csv")
+
+#rename your variables so they're easier to remember
+# ORDER IS: New name first, replaces OLD NAME when using rename fncn
+ABCD.dat <- ABCD.dat %>% 
+  dplyr::rename(vocab = picvocab) %>% 
+   dplyr::rename(att.sel = flanker) %>% 
+   dplyr::rename(att.sus = cardsort) %>% 
+  dplyr::rename(spatial = picture) %>% 
+  dplyr::rename(ses = listsort)
+```
+
+```{r}
+#dummy code ses. Since the variable has 3 levels, we need two dummy code variable. Looking at code below, what group did we make the reference group?
+# Create dummy codes
+# This is using simple logical indexing to create dummy codes. Could technically use something like logical XOR fncn to 
+# collapse this to a single command but this is more readable
+#
+# This uses "LOW" as reference since LOW is 0,0
+ABCD.dat$ses.d1[ABCD.dat$ses == 'low'] <- 0
+ABCD.dat$ses.d1[ABCD.dat$ses == 'mid'] <- 1
+ABCD.dat$ses.d1[ABCD.dat$ses == 'high'] <- 0
+
+ABCD.dat$ses.d2[ABCD.dat$ses == 'low'] <- 0
+ABCD.dat$ses.d2[ABCD.dat$ses == 'mid'] <- 0
+ABCD.dat$ses.d2[ABCD.dat$ses == 'high'] <- 1
+```
+
+```{r}
+#overall descriptives (freq = TRUE allows us to see the frequencies for each level of our categorical predictor).
+desc.ABCD <- descriptives(data = ABCD.dat, vars = c('reading', 'vocab', 'att.sel', 'att.sus', 'spatial', 'ses'), hist = TRUE, sd = TRUE, skew = TRUE, kurt = TRUE, freq = TRUE)
+desc.ABCD
+
+#descriptives of your data split by SES
+desc.ABCD.split <- descriptives(data = ABCD.dat, vars = c('reading', 'vocab', 'att.sel', 'att.sus', 'spatial'), hist = TRUE, sd = TRUE, skew = TRUE, kurt = TRUE, splitBy = 'ses')
+desc.ABCD.split
+```
+
+```{r}
+#scatterplots for each continuous predictor and your outcome variable
+scatter.ABCD.v <- ggplot(ABCD.dat, aes(vocab, reading))
+scatter.ABCD.v + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Vocab", y = "Reading Comprehension")
+
+scatter.ABCD.asel <- ggplot(ABCD.dat, aes(att.sel, reading))
+scatter.ABCD.asel + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Selective Attention", y = "Reading Comprehension")
+
+scatter.ABCD.asus <- ggplot(ABCD.dat, aes(att.sus, reading))
+scatter.ABCD.asus + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Sustained Attention", y = "Reading Comprehension")
+
+scatter.ABCD.spatial <- ggplot(ABCD.dat, aes(spatial, reading))
+scatter.ABCD.spatial + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Spatial Ability", y = "Reading Comprehension")
+
+```
+
+```{r}
+#correlation table - remove ID column number 1, the original categorical variable AND the dummy code (correlation tables arent appropriate for pearson correlations)
+cor.ABCD <- corrMatrix(ABCD.dat[2:6])
+cor.ABCD
+```
+
+```{r}
+#function to visualize features of your data, check assumptions, and diagnose issues that may impact your results. 
+#specify model first
+
+# NOTE: WE DO INCLUDE dummy vars in model defintion even though it's left out of scatterplots and correlation table
+model.ABCD <- lm(reading~vocab+att.sel+att.sus+spatial+ses.d1+ses.d2, data = ABCD.dat)
+performance::check_model(model.ABCD)
+```
+
+```{r}
+#plot fitted values v. residuals 
+ggplot(model.ABCD, aes(.fitted, .resid))+geom_point()+geom_hline(yintercept=0, col="red", linetype="dashed")+xlab("Fitted values")+ylab("Residuals")+ggtitle("Residual vs Fitted Plot")+theme_bw()
+
+#Breusch Pagan Test of homoscedasticity
+ncvTest(model.ABCD)
+```
+
+```{r}
+# Multiple regression models, uncentered 
+models.uncent <- linReg(data = ABCD.dat, 
+                 dep = 'reading', 
+                 covs = c('ses.d1', 'ses.d2', 'vocab', 'att.sel', 'att.sus', 'spatial'), 
+                 blocks = list(
+                   list('ses.d1', 'ses.d2'),
+                   list('vocab'),
+                   list('att.sus'),
+                   list('att.sel'),
+                   list('spatial')), 
+                modelTest = TRUE,
+                collin = TRUE, 
+                stdEst = TRUE,
+                r2Adj = TRUE, 
+                ci = TRUE)
+models.uncent
+```
+
+```{r}
+#Using model 3
+
+#equation for low SES (0, 0)
+#y = 51.66+(1.52*0)+(2.31*0)+(.29*vocab)+(.14*attention)
+#y = 51.66 + .29vocab + .14attention
+
+#equation for mid SES (1, 0)
+#y = 51.66+(1.52*1)+(2.31*0)+(.29*vocab)+(.14*attention)
+# y = 51.66 + 1.52 + .29vocab + .14attention
+# y = 53.18 +.29vocab + .14attention
+
+#equation for high SES (0, 1)
+#y = 51.66+(1.52*0)+(2.31*1)+(.29*vocab)+(.14*attention)
+#y = 51.66 + 2.31 + .29vocab + .14attention
+#y = 53.97 + .29vocab + .14attention
+
+#y = 53.97 + .29(0) + .14(0)
+```
+
+```{r}
+#Just for exploration sake, let's center continuous predictor variables 
+#DO NOT center outcome variable 
+#DO NOT center dummy codes 
+
+ABCD.dat$vocab.c <- ABCD.dat$vocab - mean(ABCD.dat$vocab)
+ABCD.dat$att.sel.c <- ABCD.dat$att.sel- mean(ABCD.dat$att.sel)
+ABCD.dat$att.sus.c <- ABCD.dat$att.sus- mean(ABCD.dat$att.sus)
+ABCD.dat$spatial.c <- ABCD.dat$spatial- mean(ABCD.dat$spatial)
+```
+
+```{r}
+#Centered Multiple Regression
+models.cent <- linReg(data = ABCD.dat, 
+                 dep = 'reading', 
+                   covs = c('ses.d1', 'ses.d2', 'vocab.c', 'att.sel.c', 'att.sus.c', 'spatial.c'), 
+                 blocks = list(
+                   list('ses.d1', 'ses.d2'),
+                   list('vocab.c'),
+                   list('att.sus.c'),
+                   list('att.sel.c'),
+                   list('spatial.c')),  
+                 modelTest = TRUE, 
+                 stdEst = TRUE, 
+                 ciStdEst = TRUE, 
+                 r2Adj = TRUE)
+models.cent
+```
+
+```{r}
+#Examining an outcome variable based on group membership sounds like...ANOVA. Let's look at a one way between groups ANOVA with IV = ses and DV = reading comprehension and compare it to a multiple regression model the two levels of SES predicting reading comprehension. 
+
+#ANOVA 
+jmv::ANOVA(data = ABCD.dat, 
+           dep = 'reading', 
+           factors = c('ses'),
+           effectSize = 'partEta', 
+           homo = TRUE,
+           postHoc = c('ses'),
+           postHocCorr = list("tukey"))
+
+# Multiple Regression
+modelANOVA <- linReg(data = ABCD.dat, 
+                 dep = 'reading', 
+                 covs = c('ses.d1', 'ses.d2'), 
+                 blocks = list(list('ses.d1', 'ses.d2')),
+                 modelTest = TRUE, 
+                 stdEst = TRUE, 
+                 ciStdEst = TRUE, 
+                 r2Adj = TRUE)
+
+modelANOVA
+```
+
+**Example 2**
+Gilliland, S. W., & Beckstein, B. A. (1996). Procedural and distributive justice in the editorial review process. Personnel Psychology, 49(3), 669-691.
+
+Based on organizational justice theories, the authors proposed a model of procedural and distributive justice to explain authors' reactions to editorial decisions and the editorial review process. Authors (n= 106) provided justice perceptions and future journal submission intentions upon receiving an editorial decision letter. The editor of the journal provided information on the ultimate editorial decision and review processes. Note: For this demo, we are only exploring a subset of the original study’s variables and relationships, and specifying alternative models to the authors original hypotheses. 
+
+Variables
+
+DISTRBUTIVE JUSTICE
+*Distributive Justice [dis_justice]*: Author perception regarding editorial decision fairness (e.g. “The results of the editorial process were consistent with how I view my paper). 9 Items
+
+PROCEDURAL JUSTICE DIMENSIONS
+*Feedback Timeliness [fb_time]*: Author perception regarding timeliness of the review (e.g. “It took a long time to hear back from the editor regarding my paper. 2 Items
+Editorial Review Process Consistency [p_consist]: Author perception regarding the consistency of the review process (e.g. “As far as I know the review process is the same for all authors”). 4 Items
+*Reviewer Consistency [r_consist]*: Author perception regarding the agreement between the reviewers (e.g. “Those involved in the review process did not seem to agree on their evaluations of my paper”). 2 Items
+*Interpersonal Sensitivity [interpersonal]*: Author perception how they and their work were treated in the review documents (e.g. “Even when criticizing my work, the reviewers were considerate and thoughtful in their feedback”). 5 Items
+*Explanation [explanation]*: Author perception of the explanation provided for the editorial decision (e.g. “I was given a reasonable explanation for why my paper received the editorial recommendation it did”). 4 Items
+
+JOURNAL SUBMISSION INTENTIONS (OUTCOME VARIABLE)
+*Journal Submission Intentions [intentions]*: Degree to which authors will reengage or recommend the journal to others in the future (“I will certainly continue to send future manuscripts to be reviewed for publication in this journal,” ‘‘I will recommend that others submit their work for possible publication in this journal,” “When an equally desirable outlet is available, I will submit my future work to other journals,” “I will wait to submit future papers to JAP until a new person assumes the editorship”)
+
+REVIEW INFORMATION
+*Rating Variance [rat_var]*: Standard deviation across reviewers on the nine dimensions JAP uses to evaluate papers. Note: authors don’t see this.
+*Decision Time [time]*: Number of days between submission and when the author received the review
+*Review Length [rev_length]*: Length of the reviewer feedback document to the nearest half page
+*Letter Length [letter_length]*: Length of the decision letter (written by editor and attached to review) to the nearest half page
+*Editorial Decision [ed_dec]*: reject, revise and resubmit (r&r), accept pending revision (apr)
+*Experience [experience]*: Composite variable representing years since Ph.D., number of pubs, number of editorial boards served on, and number reviews in last 2 years
+
+```{r}
+#Read in your data. As long as its in the same folder as the RMD file, this is the only code you need. 
+dat.justice <- read.csv("editorial_justice.csv")
+```
+
+```{r}
+#dummy code editorial decision. Since the variable has 3 levels, we need two dummy code variable. Looking at code below, what group did we make the reference group?
+dat.justice$d1.randr[dat.justice$ed_dec == 'reject'] <- 0 
+dat.justice$d1.randr[dat.justice$ed_dec == 'r&r'] <- 1
+dat.justice$d1.randr[dat.justice$ed_dec == 'apr'] <- 0
+
+dat.justice$d2.apr[dat.justice$ed_dec == 'reject'] <- 0
+dat.justice$d2.apr[dat.justice$ed_dec == 'r&r'] <- 0
+dat.justice$d2.apr[dat.justice$ed_dec == 'apr'] <- 1
+```
+
+```{r}
+#descriptives of your data
+desc.justice <- descriptives(data = dat.justice[2:13], hist = TRUE, sd = TRUE, range = TRUE, skew = TRUE, kurt = TRUE)
+desc.justice
+
+dat.justice$ed.dec <- as.factor(dat.justice$ed_dec)
+
+#descriptives of your data split by editorial decision
+desc.justice.split <- descriptives(data = dat.justice[2:14], hist = TRUE, sd = TRUE, range = TRUE, skew = TRUE, kurt = TRUE, splitBy ='ed_dec')
+desc.justice.split
+```
+
+
+```{r}
+#correlation table - remove ID column number 1, the original categorical variable AND the dummy code (correlation tables arent appropriate for pearson correlations)
+cor.justice <- corrMatrix(dat.justice[2:13])
+cor.justice
+```
+
+```{r}
+#function to visualize features of your data, check assumptions, and diagnose issues that may impact your results. 
+#specify model first
+model.justice <- lm(dis_justice~fb_time+p_consist+interpersonal+explanation+r_consist+rat_var+time+rev_length+let_length+d1.randr+d2.apr, data = dat.justice)
+performance::check_model(model.justice)
+```
+
+```{r}
+#plot fitted values v. residuals
+ggplot(model.justice, aes(.fitted, .resid))+geom_point()+geom_hline(yintercept=0, col="red", linetype="dashed")+xlab("Fitted values")+ylab("Residuals")+ggtitle("Residual vs Fitted Plot")+theme_bw()
+
+#Breusch Pagan Test of homoscedasticity
+ncvTest(model.justice)
+```
+
+```{r}
+#Center our continous predictors for interpretability (YOU DO NOT CENTER DUMMY CODED VARIABLES)
+dat.justice$fb_time.c <- dat.justice$fb_time - mean(dat.justice$fb_time)
+dat.justice$p_consist.c <- dat.justice$p_consist - mean(dat.justice$p_consist)
+dat.justice$interpersonal.c <- dat.justice$interpersonal - mean(dat.justice$interpersonal)
+dat.justice$explanation.c <- dat.justice$explanation - mean(dat.justice$explanation)
+dat.justice$r_consist.c <- dat.justice$r_consist - mean(dat.justice$r_consist)
+dat.justice$rat_var.c <- dat.justice$rat_var - mean(dat.justice$rat_var)
+dat.justice$time.c <- dat.justice$time - mean(dat.justice$time)
+dat.justice$rev_length.c <- dat.justice$rev_length - mean(dat.justice$rev_length)
+dat.justice$let_length.c <- dat.justice$let_length - mean(dat.justice$let_length)
+dat.justice$experience.c <- dat.justice$experience - mean(dat.justice$experience)
+```
+
+```{r}
+#Multiple Regression  model predicting perceptions of justice based on JUST the editorial decision.
+model.justice <- linReg(data = dat.justice, 
+                 dep = 'dis_justice', 
+                 covs = c('fb_time.c', 'p_consist.c', 'd1.randr', 'd2.apr', 'interpersonal.c', 'explanation.c', 'r_consist.c', 'rat_var.c', 'time.c', 'rev_length.c', 'let_length.c', 'experience.c'),
+                 blocks = list(
+                   list( 'd1.randr', 'd2.apr')),
+                modelTest = TRUE,
+                collin = TRUE, 
+                stdEst = TRUE,
+                r2Adj = TRUE, 
+                ci = TRUE)
+model.justice
+```
+
+```{r}
+#Multiple Regression with all predictors
+model.justice2 <- linReg(data = dat.justice, 
+                 dep = 'dis_justice', 
+                 covs = c('fb_time.c', 'p_consist.c', 'd1.randr', 'd2.apr', 'interpersonal.c', 'explanation.c', 'r_consist.c', 'rat_var.c', 'time.c', 'rev_length.c', 'let_length.c', 'experience.c'),
+                 blocks = list(
+                   list('fb_time.c', 'p_consist.c', 'd1.randr', 'd2.apr', 'interpersonal.c', 'explanation.c', 'r_consist.c', 'rat_var.c', 'time.c', 'rev_length.c', 'let_length.c', 'experience.c')),
+                modelTest = TRUE,
+                collin = TRUE, 
+                stdEst = TRUE,
+                r2Adj = TRUE, 
+                ci = TRUE)
+model.justice2
+```
+
+```{r}
+#Series of models - first just interpersonal treatment and explanation and then all of the predictors
+model.justice.3 <- linReg(data = dat.justice, 
+                 dep = 'dis_justice', 
+                 covs = c('fb_time.c', 'p_consist.c', 'd1.randr', 'd2.apr', 'interpersonal.c', 'explanation.c', 'r_consist.c', 'rat_var.c', 'time.c', 'rev_length.c', 'let_length.c', 'experience.c'),
+                 blocks = list(
+                  list('interpersonal.c', 'explanation.c'),
+                  list('fb_time.c', 'p_consist.c', 'd1.randr', 'd2.apr', 'r_consist.c', 'rat_var.c', 'time.c', 'rev_length.c', 'let_length.c', 'experience.c')),
+                modelTest = TRUE,
+                collin = TRUE, 
+                stdEst = TRUE,
+                r2Adj = TRUE, 
+                ci = TRUE)
+model.justice.3
+```
+
+```{r}
+#Assuming an individual has the following scores. How just will they deem the outcome? 
+
+#editorial decision  reject
+#fb_time	3.37
+#p_consist	3.14
+#interpersonal	2.94
+#explanation	4.61
+#r_consist	1.77
+#intentions	4.94
+#rat_var	0.7
+#time	71
+#rev_length	1.3
+#let_length	1.68
+#experience	3.58
+```
+
