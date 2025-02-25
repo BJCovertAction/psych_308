@@ -1,0 +1,186 @@
+---
+title: "Moderation Demo"
+author: "Jessica Diaz"
+date: "2/21/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(car)
+library(psych)
+library(jmv)
+library(ggplot2)
+library(tidyverse)
+library(magrittr)
+library(broom)
+library(GGally)
+library(foreign)
+library(ltm)
+library(mvnTest)
+library(rockchalk)
+library(haven)
+```
+
+***Categorical Moderation***
+Recent studies suggest impulsive individuals may be more vulnerable to cognitive interference from external or internal distractions. This can overload working memory capacity, making it difficult to process and retain information efficiently. However, less is known about which types of cognitive interference is liable to moderate this impulsivity effect. This study tested whether smartphone availability moderates the effect of individual differences in emotion-related impulsivity traits (positive urgency and negative urgency) on cognitive performance. We designed an experiment in which 132 college students (age 18–25 years) completed a laboratory task that assessed visual working memory capacity in three different conditions: two conditions differing in terms of smartphone availability (smartphone turned off and visible - group 1, smartphone in silent mode and visible - group 2) and a condition in which the smartphone was not available and was replaced by a calculator (control condition - group 3).
+
+Variables
+group: experimental condition (1 - phone off, 2 - phone silent, 3 - control/calculator) 
+subj: subject id
+spai: score on the smartphone addiction inventory
+k: working memory (measured as k = (rate + correct rejection rate – 1) × set size)
+setsize: number of things to be memorize
+nu: negative impulsivity
+pu: positive impulsivity
+
+```{r}
+#Read in your data. As long as its in the same folder as the RMD file, this is the only code you need. 
+dat_sp <- read.csv("smartphone.csv")
+
+#convert to lower case for ease of entering in variable names
+colnames(dat_sp) %<>% tolower()
+
+```
+
+```{r}
+#dummy code condition group. Since the variable has 3 levels, we need two dummy code variables. We'll make the control condition the reference group. Cond.off is dummy coded such that participants with their phone off receive a 1 and all else are 0. cond.silent is coded such that participants with their phone on silent are coded 2 and all other participants are coded as 0. 
+
+#cond.off = control -> off
+dat_sp$cond.off[dat_sp$group == 'off'] <- 1
+dat_sp$cond.off[dat_sp$group == 'silent'] <- 0
+dat_sp$cond.off[dat_sp$group == 'calculator'] <- 0
+
+#cond.silent = control -> silent
+dat_sp$cond.silent[dat_sp$group == 'off'] <- 0
+dat_sp$cond.silent[dat_sp$group == 'silent'] <- 1
+dat_sp$cond.silent[dat_sp$group == 'calculator'] <- 0
+```
+
+```{r}
+dat_sp$group <- as.factor(dat_sp$group)
+
+#descriptives of your data
+desc.sp <- descriptives(data = dat_sp, hist = TRUE, sd = TRUE, range = TRUE, skew = TRUE, kurt = TRUE, splitBy='group')
+desc.sp
+```
+
+```{r}
+#scatterplots for each predictor and your outcome variable
+scatter.spai <- ggplot(dat_sp, aes(spai, k))
+scatter.spai + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Smartphone Addiction", y = "Working Memory")
+
+scatter.pu <- ggplot(dat_sp, aes(pu, k))
+scatter.pu + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Positive Impulsivity", y = "Working Memory")
+
+scatter.nu <- ggplot(dat_sp, aes(nu, k))
+scatter.nu + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Negative Impulsivity", y = "Working Memory")
+```
+
+```{r}
+#correlation table
+cor.sp <- corrMatrix(dat_sp[c(3,4,6,7)]) 
+cor.sp
+```
+
+```{r}
+#create a saturated model test normality and homoscedascity
+model.sp.sat <- lm(k~cond.off + cond.silent + pu + spai, data=dat_sp)
+
+#HOMOSCEDASTICITY
+#plot fitted values v. residuals to examine homoscedasticity
+ggplot(model.sp.sat, aes(.fitted, .resid))+geom_point()+geom_hline(yintercept=0, col="red", linetype="dashed")+xlab("Fitted values")+ylab("Residuals")+ggtitle("Residual vs Fitted Plot")+theme_bw()
+
+#test of homoscedasticity
+ncvTest(model.sp.sat)
+
+#MULTIVARIATE NORMALITY
+#qqplot to look at multivariate normality
+ggplot(model.sp.sat, aes(qqnorm(.stdresid)[[1]], .stdresid))+geom_point(na.rm = TRUE)+xlab("Theoretical Quantiles")+ylab("Standardized Residuals")+ggtitle("Normal Q-Q")
+
+#Henze-Zingler test of multivariate normality
+HZ.test(dat_sp[c(3,4,6,7)])
+```
+
+```{r}
+#center your continuous predictors for interpretability and multicollinearity
+dat_sp$spai.c <- dat_sp$spai - mean(dat_sp$spai)
+dat_sp$nu.c <- dat_sp$nu - mean(dat_sp$nu)
+dat_sp$pu.c <- dat_sp$pu - mean(dat_sp$pu)
+
+#create moderator terms for positive impulsivity x group
+dat_sp$mod.pu.off <- dat_sp$cond.off * dat_sp$pu.c
+dat_sp$mod.pu.silent <- dat_sp$cond.silent * dat_sp$pu.c
+
+#create moderator terms for negative impulsivity
+dat_sp$mod.nu.off <- dat_sp$cond.off * dat_sp$nu.c
+dat_sp$mod.nu.silent <- dat_sp$cond.silent * dat_sp$nu.c
+```
+
+```{r}
+#hierarchical multiple regression examining whether positive impulsivity moderates the relationship between condition and working memory
+model.sp.pu.mod <- linReg(data = dat_sp, 
+                 dep = 'k', 
+                 covs = c('pu.c', 'cond.off', 'cond.silent', 'mod.pu.off', 'mod.pu.silent'), 
+                 blocks = list(
+                   list('pu.c', 'cond.off', 'cond.silent'),
+                   list('mod.pu.off', 'mod.pu.silent')), 
+                 modelTest = TRUE, 
+                 stdEst = TRUE,
+                 collin = TRUE,
+                 ci = TRUE)
+model.sp.pu.mod
+```
+
+```{r}
+dat_sp$group <- as.factor(dat_sp$group)
+
+#creating the plot
+dat_sp %>% 
+  ggplot() +
+  aes(x = pu, y = k, group = group, color = group) +
+   labs(x = "Positive Impulsivity", y = "Working Memory", color = "Smartphone Condition") + ggtitle("Moderating Effect of Positive Impulsivity on the Relationship Between Smartphone Condition and Working Memory") + geom_smooth(method = "lm", fullrange = TRUE, se=T)
+```
+
+```{r}
+#hierarchical multiple regression examining whether negative impulsivity moderates the relationship between condition and working memory
+model.sp.nu.mod <- linReg(data = dat_sp, 
+                 dep = 'k', 
+                 covs = c('nu.c', 'cond.off', 'cond.silent', 'mod.nu.off', 'mod.nu.silent'), 
+                 blocks = list(
+                   list('nu.c', 'cond.off', 'cond.silent'),
+                   list('mod.nu.off', 'mod.nu.silent')), 
+                 modelTest = TRUE, 
+                 stdEst = TRUE,
+                 collin = TRUE,
+                 ci = TRUE)
+model.sp.nu.mod
+```
+
+```{r}
+dat_sp$group <- as.factor(dat_sp$group)
+
+#creating the plot
+dat_sp %>% 
+  ggplot() +
+  aes(x = nu, y = k, group = group, color = group) +
+   labs(x = "Negativr Impulsivity", y = "Working Memory", color = "Smartphone Condition") + ggtitle("Moderating Effect of Negative Impulsivity on the Relationship Between Smartphone Condition and Working Memory") + geom_smooth(method = "lm", fullrange = TRUE, se=T)
+```
+
+```{r}
+#Plotting and Testing Simple Slopes
+plot_smartphone <- lm(k ~ pu + group + (pu*group), data = dat_sp)
+plot_smartphone
+modplot <- plotSlopes(plot_smartphone, plotx = "pu", modx = "group", main = "Moderating Effect of Phone Condition on Relationship Between Positive Impulsivity and Working Memory")
+
+testSlopes(modplot)
+```
+
+```{r}
+#alternative code for simple slopes
+model.pi <- lm(k ~ pu + group + pu*group, data = dat_sp)
+interactions::sim_slopes(model=model.pi, pred=pu, modx=group)
+```

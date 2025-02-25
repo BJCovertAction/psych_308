@@ -1,0 +1,164 @@
+---
+title: "Moderation Demo"
+author: "Jessica Diaz"
+date: "2/17/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(car)
+library(psych)
+library(jmv)
+library(ggplot2)
+library(tidyverse)
+library(magrittr)
+library(broom)
+library(GGally)
+library(foreign)
+library(ltm)
+library(mvnTest)
+library(rockchalk)
+library(haven)
+library(jtools)
+library(interactions)
+# library(pequod)
+```
+
+**Continuous Moderation**
+
+You are a positive social psychologist studying the effect of burnout on positive coping strategies. Your past research demonstrates that the most burned out an individual is, the less they are able to exhibit positive coping strategies in the face of challenge. However, you've noticed that this isn't a consistent reaction - some individuals seem to be more resistant to burnout's impact than others. You have a suspicion that personality, specifically extraversion may play a role in this difference. You decide to test this hypothesis
+
+Variables
+extrav: Extraversion
+neur: Neuroticism
+burn: Burnout
+poscop: Use of positive coping strategies
+negcop: Use of negative coping strategies
+anxiety: state anxiety
+
+RQ: Does extraversion moderate the relationship between burnout and use of positive coping  strategies?
+```{r}
+#Read in your data. As long as its in the same folder as the RMD file, this is the only code you need. 
+dat.coping<- haven::read_dta("coping.dta")
+
+#convert to lower case for ease of entering in variable names
+colnames(dat.coping) %<>% tolower()
+```
+
+```{r}
+#descriptives of your data
+desc.coping <- descriptives(data = dat.coping, hist = TRUE, sd = TRUE, range = TRUE, skew = TRUE, kurt = TRUE)
+desc.coping
+```
+
+```{r}
+#listwise deleting participants with missing data
+dat.coping.comp <- na.omit(dat.coping)
+```
+
+```{r}
+#scatterplots for each predictor and your outcome variable
+scatter.coping.burn <- ggplot(dat.coping.comp, aes(burn, poscop))
+scatter.coping.burn + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Burnout", y = "Positive Coping")
+
+scatter.coping.extrav <- ggplot(dat.coping.comp, aes(extrav, poscop))
+scatter.coping.extrav + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Extraversion", y = "Positive Coping")
+```
+
+```{r}
+#correlation table
+cor.coping <- corrMatrix(dat.coping.comp)
+cor.coping
+```
+
+```{r}
+#create a saturated models of correlated variables to test normality and homoscedascity
+model.coping.sat <- lm(poscop~burn+extrav, data=dat.coping.comp)
+
+#HOMOSCEDASTICITY
+#plot fitted values v. residuals to examine homoscedasticity
+ggplot(model.coping.sat, aes(.fitted, .resid))+geom_point()+geom_hline(yintercept=0, col="red", linetype="dashed")+xlab("Fitted values")+ylab("Residuals")+ggtitle("Residual vs Fitted Plot")+theme_bw()
+
+#test of homoscedasticity
+ncvTest(model.coping.sat)
+```
+
+```{r}
+#MULTIVARIATE NORMALITY
+#qqplot to look at multivariate normality
+ggplot(model.coping.sat, aes(qqnorm(.stdresid)[[1]], .stdresid))+geom_point(na.rm = TRUE)+xlab("Theoretical Quantiles")+ylab("Standardized Residuals")+ggtitle("Normal Q-Q")
+
+#Henze-Zingler test of multivariate normality
+HZ.test(dat.coping.comp[1:6])
+```
+
+```{r}
+#Center our predictors for interpretability and to assist with multicollinearity when we make a product term
+dat.coping.comp$burn.c <- dat.coping.comp$burn - mean(dat.coping.comp$burn, rm.na=TRUE)
+dat.coping.comp$extrav.c <- dat.coping.comp$extrav - mean(dat.coping.comp$extrav, rm.na=TRUE)
+```
+
+```{r}
+#Create a moderator term (product term)
+dat.coping.comp$mod <- dat.coping.comp$burn.c*dat.coping.comp$extrav.c
+```
+
+```{r}
+#Hierarchical Linear Regression
+model.coping <- linReg(data = dat.coping.comp, 
+                 dep = 'poscop', 
+                 covs = c('burn.c', 'extrav.c', 'mod'), 
+                 blocks = list(
+                   list('burn.c','extrav.c'),
+                   list('mod')), 
+                modelTest = TRUE,
+                collin = TRUE, 
+                stdEst = TRUE,
+                r2Adj = TRUE, 
+                ci = TRUE)
+model.coping
+```
+
+```{r}
+#Unstandardized Simple Slopes Analysis
+
+library(jtools)
+library(interactions)
+library(effectsize)
+
+# Fit model with raw variables
+model.poscomp <- lm(poscop ~ burn * extrav, data = dat.coping.comp)
+
+# Now run simple slopes 
+# NOTE: For these functions, we have to explicitly note who our perdictor is and who our moderator is
+sim_slopes(model.poscomp, pred = "burn", modx = "extrav")
+
+# Plot interaction
+interact_plot(model.poscomp, pred = "burn", modx = "extrav")
+```
+
+```{r}
+#Standardized Simple Slopes Analysis
+
+library(jtools)
+library(interactions)
+library(effectsize)
+
+# Fit model with raw variables
+model.poscomp <- lm(poscop ~ burn * extrav, data = dat.coping.comp)
+
+# Fully standardize model automatically
+# NOTE: This generates the same thing as above, but for a centered (standardized model)
+model.poscomp_std <- standardize(model.poscomp)
+
+# Now run simple slopes 
+sim_slopes(model.poscomp_std, pred = "burn", modx = "extrav")
+
+# Plot interaction
+interact_plot(model.poscomp_std, pred = "burn", modx = "extrav")
+```
+
