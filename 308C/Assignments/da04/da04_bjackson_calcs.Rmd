@@ -139,6 +139,10 @@ this_dat = read.csv("./308C.Data.DA4.csv")
 # Rename columns to lower because why not
 colnames(this_dat) <- tolower( colnames(this_dat) )
 
+# Since we're going to be creating a regression model we need to create the interaction term.
+this_dat$p_mod_f = this_dat$ppr * this_dat$fa
+
+
 ```
 
 ### Descriptive Statistics - Raw Data
@@ -150,7 +154,7 @@ normality of predictor variables (break length - minutes)
 
 # We'll need to check both univariate normality and multi-variate normality. 
 my_descr = jmv::descriptives( this_dat,
-                              vars = c('fa', 'ppr', 'agg'),
+                              vars = c('fa', 'ppr', 'agg', 'p_mod_f'),
                               hist = TRUE,
                               dens = TRUE,
                               qq = TRUE,
@@ -172,61 +176,61 @@ A second correlation matrix is also computed which includes Motivation (for mode
 
 
 ```{r correlation_plots_raw}
-
-# Model 1 Correlation Tables
-cat( 
-     paste(
-           '-----------------',
-           '---- Model 1 ----',
-           '-----------------',
-           sep = '\n'
-     ) 
-   )
-
-# Our first model will look at correlations associated with the simpler model:
-# success ~ income + graduation
-# But, since graduation is categorical, we strip it out.
-m1_subset = this_dat[ c('income', 'success') ]
-transition_cor_m1 <- stats::cor( m1_subset )
-corrplot( transition_cor_m1,
-          method="color",
-          type = "full",
-          addCoef.col = "black",
-          col = rb_colmap,
-          tl.col = font_color )
-
-# Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
-# 1 for tables, but oh well)
-transition_cor_tab_m1 <- jmv::corrMatrix(m1_subset, flag = TRUE)
-print( transition_cor_tab_m1 )
-
-
-# Model 2 Correlation Tables
-cat( 
-     paste(
-           '-----------------',
-           '---- Model 2 ----',
-           '-----------------',
-           sep = '\n'
-     ) 
-   )
-
-# Our second model will look at correlations associated with the additional predictor (literacy) model:
-# success ~ income + graduation + literacy
-# But, since graduation is categorical, we strip it out.
-m2_subset = this_dat[ c('income', 'success', 'illiteracy') ]
-transition_cor_m2 <- stats::cor( m2_subset )
-corrplot( transition_cor_m2,
-          method="color",
-          type = "full",
-          addCoef.col = "black",
-          col = rb_colmap,
-          tl.col = font_color )
-
-# Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
-# 1 for tables, but oh well)
-transition_cor_tab_m2 <- jmv::corrMatrix(m2_subset, flag = TRUE)
-print( transition_cor_tab_m2 )
+# 
+# # Model 1 Correlation Tables
+# cat( 
+#      paste(
+#            '-----------------',
+#            '---- Model 1 ----',
+#            '-----------------',
+#            sep = '\n'
+#      ) 
+#    )
+# 
+# # Our first model will look at correlations associated with the simpler model:
+# # success ~ income + graduation
+# # But, since graduation is categorical, we strip it out.
+# m1_subset = this_dat[ c('income', 'success') ]
+# transition_cor_m1 <- stats::cor( m1_subset )
+# corrplot( transition_cor_m1,
+#           method="color",
+#           type = "full",
+#           addCoef.col = "black",
+#           col = rb_colmap,
+#           tl.col = font_color )
+# 
+# # Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
+# # 1 for tables, but oh well)
+# transition_cor_tab_m1 <- jmv::corrMatrix(m1_subset, flag = TRUE)
+# print( transition_cor_tab_m1 )
+# 
+# 
+# # Model 2 Correlation Tables
+# cat( 
+#      paste(
+#            '-----------------',
+#            '---- Model 2 ----',
+#            '-----------------',
+#            sep = '\n'
+#      ) 
+#    )
+# 
+# # Our second model will look at correlations associated with the additional predictor (literacy) model:
+# # success ~ income + graduation + literacy
+# # But, since graduation is categorical, we strip it out.
+# m2_subset = this_dat[ c('income', 'success', 'illiteracy') ]
+# transition_cor_m2 <- stats::cor( m2_subset )
+# corrplot( transition_cor_m2,
+#           method="color",
+#           type = "full",
+#           addCoef.col = "black",
+#           col = rb_colmap,
+#           tl.col = font_color )
+# 
+# # Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
+# # 1 for tables, but oh well)
+# transition_cor_tab_m2 <- jmv::corrMatrix(m2_subset, flag = TRUE)
+# print( transition_cor_tab_m2 )
 
 ```
 ### Scatterplots of All Predictor Vars
@@ -238,27 +242,27 @@ testing for readability.
 **NOTE:** I'm not using centered data for the scatterplots as it's unintuitive but I may add them later if necessary
 
 ```{r scatterplots_raw}
-
-# Scatterplot 1: Transition (uncentered) vs. Income
-success_scatter_tvinc <- ggplot(this_dat, aes(income, success) )
-
-success_scatter_tvinc +
-    geom_point() +
-    geom_smooth(method = "lm", colour = "Red") +
-    ggtitle("Transition Success Relation to Student Income") +
-    labs(y = "Transition Success (1-10)", x = "Student Income ($USD)") +
-    my_gg_theme
-
-
-# Scatterplot 2: Transition (uncentered) vs. Illiteracy
-success_scatter_tvil <- ggplot(this_dat, aes(illiteracy, success) )
-
-success_scatter_tvil +
-    geom_point() +
-    geom_smooth(method = "lm", colour = "Red") +
-    ggtitle("Transition Success Relation to Student Illiteracy") +
-    labs(y = "Transition Success (1-10)", x = "Student Illiteracy (0-3)") +
-    my_gg_theme
+# 
+# # Scatterplot 1: Transition (uncentered) vs. Income
+# success_scatter_tvinc <- ggplot(this_dat, aes(income, success) )
+# 
+# success_scatter_tvinc +
+#     geom_point() +
+#     geom_smooth(method = "lm", colour = "Red") +
+#     ggtitle("Transition Success Relation to Student Income") +
+#     labs(y = "Transition Success (1-10)", x = "Student Income ($USD)") +
+#     my_gg_theme
+# 
+# 
+# # Scatterplot 2: Transition (uncentered) vs. Illiteracy
+# success_scatter_tvil <- ggplot(this_dat, aes(illiteracy, success) )
+# 
+# success_scatter_tvil +
+#     geom_point() +
+#     geom_smooth(method = "lm", colour = "Red") +
+#     ggtitle("Transition Success Relation to Student Illiteracy") +
+#     labs(y = "Transition Success (1-10)", x = "Student Illiteracy (0-3)") +
+#     my_gg_theme
 ```
 
 ### Simple Linear Model Defintion
@@ -270,27 +274,27 @@ Model 1: transition ~ graduation + income
 Model 2: transition ~ graduation + income + illiteracy  
 
 ```{r simple_model_definition}
-# We create the linear models using separate datasets simply for clarity of code and readability
-
-# Graduation referenced to OnTime, w/ income only
-transition_simp_mod_m1_ontime <- lm( success ~ income + grad_late_refd_to_ontime + grad_none_refd_to_ontime, 
-                                     data = this_dat)
-# Graduation referenced to None, w/ income only
-transition_simp_mod_m1_none  <- lm( success ~ income + grad_late_refd_to_none + grad_ontime_refd_to_none, 
-                                    data = this_dat)
-
-# Graduation referenced to OnTime, w/ income and illiteracy
-transition_simp_mod_m2_ontime <- lm( success ~ income + illiteracy + grad_late_refd_to_ontime + grad_none_refd_to_ontime, 
-                                     data = this_dat)
-# Graduation referenced to None, w/ income and illiteracy
-transition_simp_mod_m2_none  <- lm( success ~ income + illiteracy + grad_late_refd_to_none + grad_ontime_refd_to_none, 
-                                    data = this_dat)
-
-# Model performance checks for all models
-# performance::check_model(transition_simp_mod_m1_ontime)
-# performance::check_model(transition_simp_mod_m1_none)
-# performance::check_model(transition_simp_mod_m2_ontime)
-# performance::check_model(transition_simp_mod_m2_none)
+# # We create the linear models using separate datasets simply for clarity of code and readability
+# 
+# # Graduation referenced to OnTime, w/ income only
+# transition_simp_mod_m1_ontime <- lm( success ~ income + grad_late_refd_to_ontime + grad_none_refd_to_ontime, 
+#                                      data = this_dat)
+# # Graduation referenced to None, w/ income only
+# transition_simp_mod_m1_none  <- lm( success ~ income + grad_late_refd_to_none + grad_ontime_refd_to_none, 
+#                                     data = this_dat)
+# 
+# # Graduation referenced to OnTime, w/ income and illiteracy
+# transition_simp_mod_m2_ontime <- lm( success ~ income + illiteracy + grad_late_refd_to_ontime + grad_none_refd_to_ontime, 
+#                                      data = this_dat)
+# # Graduation referenced to None, w/ income and illiteracy
+# transition_simp_mod_m2_none  <- lm( success ~ income + illiteracy + grad_late_refd_to_none + grad_ontime_refd_to_none, 
+#                                     data = this_dat)
+# 
+# # Model performance checks for all models
+# # performance::check_model(transition_simp_mod_m1_ontime)
+# # performance::check_model(transition_simp_mod_m1_none)
+# # performance::check_model(transition_simp_mod_m2_ontime)
+# # performance::check_model(transition_simp_mod_m2_none)
 
 ```
 
@@ -301,107 +305,107 @@ Descriptives section already checked normality so here we need to focus on linea
 going to center the data outright because I don't want to run everything multiple times.
 
 ```{r residuals_figures}
-
-# Check Residuals plot (Heteroscedasticity)
-# Fitted values vs. residuals to examine homoscedasticity
-# NOTE use of .resid to plot residuals
-
-
-# MODEL 1 RESIDUALS: transition ~ income + illiteracy + grad_refd_to_ontime
-transition_resid_m1_ot_fig = ggplot( transition_simp_mod_m1_ontime, aes(.fitted, .resid) )
-
-transition_resid_m1_ot_fig +
-    geom_point(col = font_color) +
-    geom_hline(yintercept=0, col="green3", linetype="dashed") +
-    xlab("Fitted Transition Success Values (0 - 10)") +
-    ylab("Success Residuals (0 - 10)") +
-    ggtitle("Model 1 Transition Success Residual vs. Fitted Plot - Ref Ontime Grad") +
-    my_gg_theme
-
-# I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-transition_resid_sd_m1_ot_fig = ggplot( transition_simp_mod_m1_ontime,
-                                  aes(.fitted , .resid / transition_descr_comb$descriptives$asDF$`success[sd]` )
-                                )
-
-transition_resid_sd_m1_ot_fig +
-    geom_point(col = font_color) +
-    geom_hline(yintercept=0, col="green3", linetype="dashed") +
-    xlab("Fitted Transition Success Values") +
-    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
-    ggtitle("Model 1 Transition Success Residual vs. Fitted Plot - Ref Ontime Grad") +
-    my_gg_theme
-
-# MODEL 1 RESIDUALS: transition ~ income + illiteracy + grad_refd_to_none
-transition_resid_m1_no_fig = ggplot( transition_simp_mod_m1_none, aes(.fitted, .resid) )
-
-transition_resid_m1_no_fig +
-    geom_point(col = font_color) +
-    geom_hline(yintercept=0, col="green3", linetype="dashed") +
-    xlab("Fitted Transition Success Values (0 - 10)") +
-    ylab("Success Residuals (0 - 10)") +
-    ggtitle("Model 1 Transition Success Residual vs. Fitted Plot - Ref No Grad") +
-    my_gg_theme
-
-# I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-transition_resid_sd_m1_no_fig = ggplot( transition_simp_mod_m1_none,
-                                  aes(.fitted , .resid / transition_descr_comb$descriptives$asDF$`success[sd]` )
-                                )
-
-transition_resid_sd_m1_no_fig +
-    geom_point(col = font_color) +
-    geom_hline(yintercept=0, col="green3", linetype="dashed") +
-    xlab("Fitted Transition Success Values") +
-    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
-    ggtitle("Model 1 Transition Success Residual vs. Fitted Plot - Ref No Grad") +
-    my_gg_theme
-
-# MODEL 2 RESIDUALS: transition ~ income + illiteracy + grad_refd_to_ontime
-transition_resid_m2_ot_fig = ggplot( transition_simp_mod_m2_ontime, aes(.fitted, .resid) )
-
-transition_resid_m2_ot_fig +
-    geom_point(col = font_color) +
-    geom_hline(yintercept=0, col="green3", linetype="dashed") +
-    xlab("Fitted Transition Success Values (0 - 10)") +
-    ylab("Success Residuals (0 - 10)") +
-    ggtitle("Model 2 Transition Success Residual vs. Fitted Plot - Ref Ontime Grad") +
-    my_gg_theme
-
-# I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-transition_resid_sd_m2_ot_fig = ggplot( transition_simp_mod_m2_ontime,
-                                  aes(.fitted , .resid / transition_descr_comb$descriptives$asDF$`success[sd]` )
-                                )
-
-transition_resid_sd_m2_ot_fig +
-    geom_point(col = font_color) +
-    geom_hline(yintercept=0, col="green3", linetype="dashed") +
-    xlab("Fitted Transition Success Values") +
-    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
-    ggtitle("Model 2 Transition Success Residual vs. Fitted Plot - Ref Ontime Grad") +
-    my_gg_theme
-
-# MODEL 2 RESIDUALS: transition ~ income + illiteracy + grad_refd_to_none
-transition_resid_m2_no_fig = ggplot( transition_simp_mod_m2_none, aes(.fitted, .resid) )
-
-transition_resid_m2_no_fig +
-    geom_point(col = font_color) +
-    geom_hline(yintercept=0, col="green3", linetype="dashed") +
-    xlab("Fitted Transition Success Values (0 - 10)") +
-    ylab("Success Residuals (0 - 10)") +
-    ggtitle("Model 2 Transition Success Residual vs. Fitted Plot - Ref No Grad") +
-    my_gg_theme
-
-# I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-transition_resid_sd_m2_no_fig = ggplot( transition_simp_mod_m2_none,
-                                  aes(.fitted , .resid / transition_descr_comb$descriptives$asDF$`success[sd]` )
-                                )
-
-transition_resid_sd_m2_no_fig +
-    geom_point(col = font_color) +
-    geom_hline(yintercept=0, col="green3", linetype="dashed") +
-    xlab("Fitted Transition Success Values") +
-    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
-    ggtitle("Model 2 Transition Success Residual vs. Fitted Plot - Ref No Grad") +
-    my_gg_theme
+# 
+# # Check Residuals plot (Heteroscedasticity)
+# # Fitted values vs. residuals to examine homoscedasticity
+# # NOTE use of .resid to plot residuals
+# 
+# 
+# # MODEL 1 RESIDUALS: transition ~ income + illiteracy + grad_refd_to_ontime
+# transition_resid_m1_ot_fig = ggplot( transition_simp_mod_m1_ontime, aes(.fitted, .resid) )
+# 
+# transition_resid_m1_ot_fig +
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Transition Success Values (0 - 10)") +
+#     ylab("Success Residuals (0 - 10)") +
+#     ggtitle("Model 1 Transition Success Residual vs. Fitted Plot - Ref Ontime Grad") +
+#     my_gg_theme
+# 
+# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+# transition_resid_sd_m1_ot_fig = ggplot( transition_simp_mod_m1_ontime,
+#                                   aes(.fitted , .resid / transition_descr_comb$descriptives$asDF$`success[sd]` )
+#                                 )
+# 
+# transition_resid_sd_m1_ot_fig +
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Transition Success Values") +
+#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+#     ggtitle("Model 1 Transition Success Residual vs. Fitted Plot - Ref Ontime Grad") +
+#     my_gg_theme
+# 
+# # MODEL 1 RESIDUALS: transition ~ income + illiteracy + grad_refd_to_none
+# transition_resid_m1_no_fig = ggplot( transition_simp_mod_m1_none, aes(.fitted, .resid) )
+# 
+# transition_resid_m1_no_fig +
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Transition Success Values (0 - 10)") +
+#     ylab("Success Residuals (0 - 10)") +
+#     ggtitle("Model 1 Transition Success Residual vs. Fitted Plot - Ref No Grad") +
+#     my_gg_theme
+# 
+# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+# transition_resid_sd_m1_no_fig = ggplot( transition_simp_mod_m1_none,
+#                                   aes(.fitted , .resid / transition_descr_comb$descriptives$asDF$`success[sd]` )
+#                                 )
+# 
+# transition_resid_sd_m1_no_fig +
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Transition Success Values") +
+#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+#     ggtitle("Model 1 Transition Success Residual vs. Fitted Plot - Ref No Grad") +
+#     my_gg_theme
+# 
+# # MODEL 2 RESIDUALS: transition ~ income + illiteracy + grad_refd_to_ontime
+# transition_resid_m2_ot_fig = ggplot( transition_simp_mod_m2_ontime, aes(.fitted, .resid) )
+# 
+# transition_resid_m2_ot_fig +
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Transition Success Values (0 - 10)") +
+#     ylab("Success Residuals (0 - 10)") +
+#     ggtitle("Model 2 Transition Success Residual vs. Fitted Plot - Ref Ontime Grad") +
+#     my_gg_theme
+# 
+# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+# transition_resid_sd_m2_ot_fig = ggplot( transition_simp_mod_m2_ontime,
+#                                   aes(.fitted , .resid / transition_descr_comb$descriptives$asDF$`success[sd]` )
+#                                 )
+# 
+# transition_resid_sd_m2_ot_fig +
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Transition Success Values") +
+#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+#     ggtitle("Model 2 Transition Success Residual vs. Fitted Plot - Ref Ontime Grad") +
+#     my_gg_theme
+# 
+# # MODEL 2 RESIDUALS: transition ~ income + illiteracy + grad_refd_to_none
+# transition_resid_m2_no_fig = ggplot( transition_simp_mod_m2_none, aes(.fitted, .resid) )
+# 
+# transition_resid_m2_no_fig +
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Transition Success Values (0 - 10)") +
+#     ylab("Success Residuals (0 - 10)") +
+#     ggtitle("Model 2 Transition Success Residual vs. Fitted Plot - Ref No Grad") +
+#     my_gg_theme
+# 
+# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+# transition_resid_sd_m2_no_fig = ggplot( transition_simp_mod_m2_none,
+#                                   aes(.fitted , .resid / transition_descr_comb$descriptives$asDF$`success[sd]` )
+#                                 )
+# 
+# transition_resid_sd_m2_no_fig +
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Transition Success Values") +
+#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+#     ggtitle("Model 2 Transition Success Residual vs. Fitted Plot - Ref No Grad") +
+#     my_gg_theme
 
 ```
 
@@ -410,19 +414,19 @@ transition_resid_sd_m2_no_fig +
 Just to throw the kitchen sink at the problem, we'll run BP tests on all 4 models.
 
 ```{r homoscedasticity_checks}
-# Run a Breusch Pagan Test of homoscedasticity for both models, for both reference grad values
-
-cat( paste("  ", "---- Breusch-Pagan MODEL 1 - OnTime Ref ----", " ", sep = "\n") )
-car::ncvTest(transition_simp_mod_m1_ontime)
-
-cat( paste("  ", "---- Breusch-Pagan MODEL 1 - None Ref ----", " ", sep = "\n") )
-car::ncvTest(transition_simp_mod_m1_none)
-
-cat( paste("  ", "---- Breusch-Pagan MODEL 2 - OnTime Ref ----", " ", sep = "\n") )
-car::ncvTest(transition_simp_mod_m2_ontime)
-
-cat( paste("  ", "---- Breusch-Pagan MODEL 2 - None Ref ----", " ", sep = "\n") )
-car::ncvTest(transition_simp_mod_m2_none)
+# # Run a Breusch Pagan Test of homoscedasticity for both models, for both reference grad values
+# 
+# cat( paste("  ", "---- Breusch-Pagan MODEL 1 - OnTime Ref ----", " ", sep = "\n") )
+# car::ncvTest(transition_simp_mod_m1_ontime)
+# 
+# cat( paste("  ", "---- Breusch-Pagan MODEL 1 - None Ref ----", " ", sep = "\n") )
+# car::ncvTest(transition_simp_mod_m1_none)
+# 
+# cat( paste("  ", "---- Breusch-Pagan MODEL 2 - OnTime Ref ----", " ", sep = "\n") )
+# car::ncvTest(transition_simp_mod_m2_ontime)
+# 
+# cat( paste("  ", "---- Breusch-Pagan MODEL 2 - None Ref ----", " ", sep = "\n") )
+# car::ncvTest(transition_simp_mod_m2_none)
 ```
 
 ### Data Cleaning - OPTIONAL
@@ -441,227 +445,80 @@ needed
 
 # Center all continuous predictor data for models. We DON'T center outcome var (transition success) or categorical vars  
 # (HS graduation times)
-this_dat$income_cent     <- this_dat$income - mean(this_dat$income)
-this_dat$illiteracy_cent <- this_dat$illiteracy - mean(this_dat$illiteracy)
+this_dat$fa_cent      <- this_dat$fa - mean(this_dat$fa)
+this_dat$ppr_cent     <- this_dat$ppr - mean(this_dat$ppr)
+# this_dat$p_mod_f_cent <- this_dat$p_mod_f - mean(this_dat$p_mod_f) # THIS DOESN'T WORK, WRONG WAY TO CRATE A CENTERED
+#                                                                    # MODERATOR
+this_dat$p_mod_f_cent <- this_dat$ppr_cent * this_dat$fa_cent
 
 ```
 
 ### Build Multiple Regression Models
 
-We're going to build up the regression model one predictor at a time, starting with HS graduation. We do technically    
-have two "flavors" of model in how we're running this, as our primary model is referenced to graduating on time as the  
-baseline. So we will create another section where we use the variables referenced against no graduation for comparison  
+We're going to build up the regression model one predictor at a time. First we'll look at how well family adversity  
+predicts aggresive behavior. Then we'll look at how adding positive peer relationships into the mix impacts childhood  
+aggression, and then we'll study how much positive peer relationships affects family adversity's impact on childhood   
+aggression.
 
-#### UnCentered - Referenced to OnTime
-
-Uncentered data with OnTime graduation as reference categorical value
+#### UnCentered Regression w/ PPR moderating FA
 
 ```{r multiple_regression_uncentered_ref_ot}
 cat( 
      paste(
-           '--------------------------------------------------------------------------------',
-           '---- UnCentered Multiple Regression Model w/ OnTime Graduation as Reference ----',
-           '--------------------------------------------------------------------------------',
+           '----------------------------------------------------------------------------------',
+           '---- UnCentered Multiple Regression Model w/ PPR Moderating Family Attributes ----',
+           '----------------------------------------------------------------------------------',
            sep = '\n'
      ) 
    )
 
-# OnTime Graduation as Reference. UnCentered.   
-tranistion_mult_regr_ot <- linReg( this_dat,
-                                   dep = 'success',
-                                   covs = c('income','illiteracy', 'grad_late_refd_to_ontime', 'grad_none_refd_to_ontime'),
-                                   blocks = list(
-                                                  list( 'grad_late_refd_to_ontime', 'grad_none_refd_to_ontime' ),
-                                                  list( 'income' ),
-                                                  list( 'illiteracy' )
-                                                 ),
-                                   modelTest = TRUE,
-                                   stdEst = TRUE,
-                                   r2Adj = TRUE,
-                                   collin = TRUE,
-                                   ci = TRUE)
-tranistion_mult_regr_ot
+# 
+moderated_regr_uc <- linReg( this_dat,
+                             dep = 'agg',
+                             covs = c('fa', 'ppr', 'p_mod_f'),
+                             blocks = list(
+                                            list( 'fa' ),
+                                            list( 'ppr' ),
+                                            list( 'p_mod_f' )
+                                          ),
+                             modelTest = TRUE,
+                             stdEst = TRUE,
+                             r2Adj = TRUE,
+                             collin = TRUE,
+                             ci = TRUE)
+moderated_regr_uc
 
 ```
 
-#### Centered - Referenced to OnTime
+#### Centered Regression w/ PPR moderating FA
 
-Centered data with OnTime graduation as reference categorical value
+Centered data with Peer Support Moderating Family Attributes
 
 ```{r multiple_regression_centered_ref_ot}
 cat( 
      paste(
-           '------------------------------------------------------------------------------',
-           '---- Centered Multiple Regression Model w/ OnTime Graduation as Reference ----',
-           '------------------------------------------------------------------------------',
-           sep = '\n'
-     ) 
-   )
-
-# OnTime Graduation as Reference. Centered.        
-tranistion_mult_regr_ot_cent <- linReg( this_dat,
-                                        dep = 'success',
-                                        covs = c('income_cent','illiteracy_cent', 'grad_late_refd_to_ontime', 'grad_none_refd_to_ontime'),
-                                        blocks = list(
-                                                       list( 'grad_late_refd_to_ontime', 'grad_none_refd_to_ontime' ),
-                                                       list( 'income_cent' ),
-                                                       list( 'illiteracy_cent' )
-                                                      ),
-                                        modelTest = TRUE,
-                                        stdEst = TRUE,
-                                        r2Adj = TRUE,
-                                        collin = TRUE,
-                                        ci = TRUE)
-tranistion_mult_regr_ot_cent
-
-```
-
-
-#### UnCentered - Referenced to No Graduation
-
-Uncentered data with NO graduation as reference categorical value
-
-```{r multiple_regression_uncentered_ref_no}
-cat( 
-     paste(
            '--------------------------------------------------------------------------------',
-           '---- UnCentered Multiple Regression Model w/ None Graduation as Reference ----',
+           '---- Centered Multiple Regression Model w/ PPR Moderating Family Attributes ----',
            '--------------------------------------------------------------------------------',
            sep = '\n'
      ) 
    )
 
-# OnTime Graduation as Reference. UnCentered.   
-tranistion_mult_regr_no <- linReg( this_dat,
-                                   dep = 'success',
-                                   covs = c('income','illiteracy', 'grad_late_refd_to_none', 'grad_ontime_refd_to_none'),
-                                   blocks = list(
-                                                  list( 'grad_late_refd_to_none', 'grad_ontime_refd_to_none' ),
-                                                  list( 'income' ),
-                                                  list( 'illiteracy' )
-                                                 ),
-                                   modelTest = TRUE,
-                                   stdEst = TRUE,
-                                   r2Adj = TRUE,
-                                   collin = TRUE,
-                                   ci = TRUE)
-tranistion_mult_regr_no
+# Centered
+moderated_regr_cent <- linReg( this_dat,
+                               dep = 'agg',
+                               covs = c('fa_cent', 'ppr_cent', 'p_mod_f_cent'),
+                               blocks = list(
+                                              list( 'fa_cent' ),
+                                              list( 'ppr_cent' ),
+                                              list( 'p_mod_f_cent' )
+                                            ),
+                               modelTest = TRUE,
+                               stdEst = TRUE,
+                               r2Adj = TRUE,
+                               collin = TRUE,
+                               ci = TRUE)
+moderated_regr_cent
 
 ```
 
-#### Centered - Referenced to No Graduation
-
-Centered data with NO graduation as reference categorical value
-
-```{r multiple_regression_centered_ref_no}
-cat( 
-     paste(
-           '------------------------------------------------------------------------------',
-           '---- Centered Multiple Regression Model w/ None Graduation as Reference ----',
-           '------------------------------------------------------------------------------',
-           sep = '\n'
-     ) 
-   )
-
-# OnTime Graduation as Reference. Centered.        
-tranistion_mult_regr_no_cent <- linReg( this_dat,
-                                        dep = 'success',
-                                        covs = c('income_cent','illiteracy_cent', 'grad_late_refd_to_none', 'grad_ontime_refd_to_none'),
-                                        blocks = list(
-                                                       list( 'grad_late_refd_to_none', 'grad_ontime_refd_to_none' ),
-                                                       list( 'income_cent' ),
-                                                       list( 'illiteracy_cent' )
-                                                      ),
-                                        modelTest = TRUE,
-                                        stdEst = TRUE,
-                                        r2Adj = TRUE,
-                                        collin = TRUE,
-                                        ci = TRUE)
-tranistion_mult_regr_no_cent
-
-```
-
-#### UnCentered - Referenced to OnTime - Illiteracy Second
-
-Given that illiteracy isn't helping transition success much when added to income, we should check if it adds anything  
-to HS graduation alone (e.g. is it only convluted with income, or is it also convoluted with HS graduation). So, here  
-we run illiteracy as the 2nd predictor to be added on top of graduation status.  
-
-```{r multiple_regression_uncentered_ref_ot_ill_02}
-cat( 
-     paste(
-           '-------------------------------------------------------------------------------------------------',
-           '---- UnCentered Multiple Regression Model w/ OnTime Graduation as Reference - Illiteracy 2nd ----',
-           '-------------------------------------------------------------------------------------------------',
-           sep = '\n'
-     ) 
-   )
-
-# OnTime Graduation as Reference. UnCentered. Illiteracy 2nd       
-tranistion_mult_regr_ot_ill_02 <- linReg( this_dat,
-                                          dep = 'success',
-                                          covs = c('income','illiteracy', 'grad_late_refd_to_ontime', 'grad_none_refd_to_ontime'),
-                                          blocks = list(
-                                                         list( 'grad_late_refd_to_ontime', 'grad_none_refd_to_ontime' ),
-                                                         list( 'illiteracy' ),
-                                                         list( 'income' )
-                                                        ),
-                                          modelTest = TRUE,
-                                          stdEst = TRUE,
-                                          r2Adj = TRUE,
-                                          collin = TRUE,
-                                          ci = TRUE)
-tranistion_mult_regr_ot_ill_02
-
-```
-
-#### UnCentered - Referenced to OnTime - Illiteracy First
-
-Given the findings of adding illiteracy to JUST HS graduation status (it doesn't provide much benefit over graduating   
-on time), we should check if literacy effects transition variance at ALL. So we'll run it as the first predictor this  
-time.
-
-```{r multiple_regression_uncentered_ref_ot_ill_01}
-cat( 
-     paste(
-           '-------------------------------------------------------------------------------------------------',
-           '---- UnCentered Multiple Regression Model w/ OnTime Graduation as Reference - Illiteracy 1st ----',
-           '-------------------------------------------------------------------------------------------------',
-           sep = '\n'
-     ) 
-   )
-
-# OnTime Graduation as Reference. UnCentered. Illiteracy 1st       
-tranistion_mult_regr_ot_ill_01 <- linReg( this_dat,
-                                          dep = 'success',
-                                          covs = c('income','illiteracy', 'grad_late_refd_to_ontime', 'grad_none_refd_to_ontime'),
-                                          blocks = list(
-                                                         list( 'illiteracy' ),  
-                                                         list( 'grad_late_refd_to_ontime', 'grad_none_refd_to_ontime' ),
-                                                         list( 'income' )
-                                                        ),
-                                          modelTest = TRUE,
-                                          stdEst = TRUE,
-                                          r2Adj = TRUE,
-                                          collin = TRUE,
-                                          ci = TRUE)
-tranistion_mult_regr_ot_ill_01
-
-```
-
-### APA Tables
-
-Output regression tables to an APA formatted (almost) word doc in case that's useful for all models
-
-```{r apa_tables}
-# Our simple linear models are still defined from the prior section so we can just plug them in here.
-# Use reg.table method in APA package to generate regression table
-
-# Document tables for success ~ income + grad
-apa.reg.table( transition_simp_mod_m1_ontime, filename="transition_inc_grad_ref_ontime.doc", table.number = 2 )
-apa.reg.table( transition_simp_mod_m1_none,   filename="transition_inc_grad_ref_none.doc", table.number = 2 )
-
-# Document tables for success ~ income + grad
-apa.reg.table( transition_simp_mod_m2_ontime, filename="transition_inc_ill_grad_ref_ontime.doc", table.number = 2 )
-apa.reg.table( transition_simp_mod_m2_none,   filename="transition_inc_ill_grad_ref_none.doc", table.number = 2 )
-```
