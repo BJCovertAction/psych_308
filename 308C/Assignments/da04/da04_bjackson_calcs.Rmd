@@ -94,6 +94,10 @@ library(foreign)
 library(ltm)
 library(rockchalk)
 library(haven)
+library(jtools)
+library(interactions)
+library(effectsize)
+
 ```
 
 
@@ -522,3 +526,38 @@ moderated_regr_cent
 
 ```
 
+### Simple Slopes Analyses
+
+#### Non-Standardized Simple Slopes Analysis
+
+```{r unstd_simp_slop} 
+#Unstandardized Simple Slopes Analysis
+
+# Fit model with raw variables
+unstd_model <- lm(agg ~ ppr * fa, data = this_dat)
+
+# Now run simple slopes 
+# NOTE: For these functions, we have to explicitly note who our perdictor is and who our moderator is
+sim_slopes(unstd_model, pred = "fa", modx = "ppr")
+
+# Plot interaction
+interact_plot(unstd_model, pred = "fa", modx = "ppr")
+```
+
+#### Standard Simple Slopes Analysis
+
+```{r}
+## Something doesn't work in the code below, pulled from Dr. D's example. We get data format and interaction errors.
+
+# #Standardized Simple Slopes Analysis
+# 
+# # Fully standardize model automatically
+# # NOTE: This generates the same thing as above, but for a centered (standardized model)
+# std_model <- rockchalk::standardize(unstd_model)
+# 
+# # Now run simple slopes 
+# sim_slopes(std_model, pred = "fa", modx = "ppr")
+# 
+# # Plot interaction
+# interact_plot(std_model, pred = "fa", modx = "ppr")
+# ```
