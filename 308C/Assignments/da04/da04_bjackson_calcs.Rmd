@@ -28,24 +28,36 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Prompt
 
-<UPDATE>
+You have been hired by a local school to figure out what predicts child aggression in their students. The literature   
+suggests that family adversity can have an impact on child aggression. However, some of the staff at this school have  
+been noting (anecdotally) an interesting phenomenon that they think could be impacting this relationship. Apparently,   
+even when youth have a lot of family adversity, if they also have positive friendships, then they don't seem to   
+act aggressively quite as much. However, this doesn't seem to be the case for students who have a lot of adversity in  
+their family and don't have good peer relationships (these students tend to act out a lot).  
+  
+To answer this question, the school created a short pen-and-paper survey that was recently administered to students   
+that measured family adversity and positive peer relationships and a short survey that was administered to teachers   
+who rated each student's level of aggression.  
+  
+You have been tasked with assessing their data set and analyzing whether the presence of positive peer relationships  
+influences the relationship between family adversity and child aggression.   
+ 
 
 ## Variables 
 
 | Variable | Type | Description |
 |:-----|:---|:------------------|
-| `Update` | $ | <update> |
-| `Update` | 1-3 scale | <update> |
-| `Update` | <> |  <update> |
-| `Update` | 1-10 scale | <update> |
+| `FA` | 1-20 scale | Family Adversity (PV) |
+| `PPR` | 1-20 scale | Positive Peer Relationships (ModV) |
+| `AGG` | 1-20 scale |  Child Aggression (OV) |
 
 
 ## Assignment
 
 ### Part 1
 
-Conduct the appropriate analyses (including assumptions) and write a results section for an APA journal.   
-Include tables and figures as necessary.
+Conduct the appropriate analyses and write a results section for an APA journal. Include all necessary tables  
+and figures.
 
 
 ---ONLY WRITE CODE BELOW THIS LINE---
@@ -76,6 +88,12 @@ library(mvnTest)
 library(easystats)
 library(patchwork)
 library(mvtnorm)
+library(broom)
+library(GGally)
+library(foreign)
+library(ltm)
+library(rockchalk)
+library(haven)
 ```
 
 
@@ -110,64 +128,16 @@ my_gg_theme = theme_minimal() +
 
 ### Load and View data
 
+Description of the data implies we have a continuous PV, a continuous ModV, and a continuous OV.  
+No Dummy code needed.
+
 ```{r load_raw_data}
 
 # Load data as downloaded from Canvas
-transition_dat = read.csv("./308C.Data.DA3.csv")
+this_dat = read.csv("./308C.Data.DA4.csv")
 
 # Rename columns to lower because why not
-colnames(transition_dat) <- tolower( colnames(transition_dat) )
-
-# Create Dummy Code variables for graduation level. These will be named:
-
-# We're going to use "Graduated ontime" as a reference so we can see the delta-effects on transition of
-# 1) Whether graduating late results in any significant decrease in transition compared to graduating on time
-# 2) Whether failing to graduate results in any significant decrease in transition compared to graduating on time. 
-
-# NOTE: For comparison's sake we'll create Dummy codes that use Did Not Graduate for another model so we can also get
-#       the "Graduate Late <-> Did not graduate" comparison
-#
-
-# Create columns for Dummy Codes referenced to: Graduated ontime
-transition_dat$grad_late_refd_to_ontime <- transition_dat$hs.grad
-transition_dat$grad_none_refd_to_ontime <- transition_dat$hs.grad
-
-# Create columns for Dummy Codes referenced to: Did not graduate
-transition_dat$grad_late_refd_to_none   <- transition_dat$hs.grad
-transition_dat$grad_ontime_refd_to_none <- transition_dat$hs.grad
-
-# Dummy code replacement logic for the OnTime Reference Case. Codes for this set are as follows:
-# [ cond     | ontime | late | none ]
-# [   ontime |      0 |    0 |    0 ]
-# [   late   |      0 |    1 |    0 ]
-# [   none   |      0 |    0 |    1 ]
-transition_dat$grad_late_refd_to_ontime[transition_dat$hs.grad == 'Graduated ontime'] <- 0
-transition_dat$grad_late_refd_to_ontime[transition_dat$hs.grad == 'Graduated later']  <- 1
-transition_dat$grad_late_refd_to_ontime[transition_dat$hs.grad == 'Did not graduate'] <- 0
-
-transition_dat$grad_none_refd_to_ontime[transition_dat$hs.grad == 'Graduated ontime'] <- 0
-transition_dat$grad_none_refd_to_ontime[transition_dat$hs.grad == 'Graduated later']  <- 0
-transition_dat$grad_none_refd_to_ontime[transition_dat$hs.grad == 'Did not graduate'] <- 1
-
-
-# Dummy code replacement logic for the None Reference Case. Codes for this set are as follows:
-# [ cond     | ontime | late | none ]
-# [   none   |      0 |    0 |    0 ]
-# [   late   |      0 |    1 |    0 ]
-# [   ontime |      1 |    0 |    0 ]
-transition_dat$grad_late_refd_to_none[transition_dat$hs.grad == 'Graduated ontime'] <- 0
-transition_dat$grad_late_refd_to_none[transition_dat$hs.grad == 'Graduated later']  <- 1
-transition_dat$grad_late_refd_to_none[transition_dat$hs.grad == 'Did not graduate'] <- 0
-
-transition_dat$grad_ontime_refd_to_none[transition_dat$hs.grad == 'Graduated ontime'] <- 1
-transition_dat$grad_ontime_refd_to_none[transition_dat$hs.grad == 'Graduated later']  <- 0
-transition_dat$grad_ontime_refd_to_none[transition_dat$hs.grad == 'Did not graduate'] <- 0
-
-# Now we need to convert all of our integer arrays to int types since we primed them as character arrays
-transition_dat$grad_late_refd_to_ontime <- as.integer(transition_dat$grad_late_refd_to_ontime)
-transition_dat$grad_none_refd_to_ontime <- as.integer(transition_dat$grad_none_refd_to_ontime)
-transition_dat$grad_late_refd_to_none   <- as.integer(transition_dat$grad_late_refd_to_none)
-transition_dat$grad_ontime_refd_to_none <- as.integer(transition_dat$grad_ontime_refd_to_none)
+colnames(this_dat) <- tolower( colnames(this_dat) )
 
 ```
 
@@ -178,48 +148,20 @@ normality of predictor variables (break length - minutes)
 
 ```{r descriptive_stats_raw}
 
-# Get JMV descriptives of raw success, professionalism, competence, and motivation,
-# Tabulate mean, variance, skew, and kurtosis so we can check normality.
-# Output histograms and qq plots so we can spot outliers and review distribution shape
-#  We're going to split by graduation level so we can best understand data trends within the categorical variables.
-# This will also help us see collinearity trends between predictors potentially.
-transition_descr_splt = jmv::descriptives( transition_dat,
-                                           vars = c('income', 'illiteracy', 'success'),
-                                           splitBy = 'hs.grad',
-                                           hist = TRUE,
-                                           dens = TRUE,
-                                           qq = TRUE,
-                                           sd = TRUE,
-                                           variance = TRUE,
-                                           se = TRUE,
-                                           skew = TRUE,
-                                           kurt = TRUE,
-                                           missing = TRUE)
-print(transition_descr_splt)
-
-
-# Now we'll look at descriptives of the unsplit set
-cat( 
-     paste(
-           '------------------',
-           '---- Combined ----',
-           '------------------',
-           sep = '\n'
-     ) 
-   )
-
-transition_descr_comb = jmv::descriptives( transition_dat,
-                                           vars = c('income', 'illiteracy', 'success', 'hs.grad'),
-                                           hist = TRUE,
-                                           dens = TRUE,
-                                           qq = TRUE,
-                                           sd = TRUE,
-                                           variance = TRUE,
-                                           se = TRUE,
-                                           skew = TRUE,
-                                           kurt = TRUE,
-                                           missing = TRUE)
-print(transition_descr_comb)
+# We'll need to check both univariate normality and multi-variate normality. 
+my_descr = jmv::descriptives( this_dat,
+                              vars = c('fa', 'ppr', 'agg'),
+                              hist = TRUE,
+                              dens = TRUE,
+                              qq = TRUE,
+                              sd = TRUE,
+                              variance = TRUE,
+                              se = TRUE,
+                              skew = TRUE,
+                              kurt = TRUE,
+                              missing = TRUE
+                            )
+print(my_descr)
 
 ```
 
@@ -244,7 +186,7 @@ cat(
 # Our first model will look at correlations associated with the simpler model:
 # success ~ income + graduation
 # But, since graduation is categorical, we strip it out.
-m1_subset = transition_dat[ c('income', 'success') ]
+m1_subset = this_dat[ c('income', 'success') ]
 transition_cor_m1 <- stats::cor( m1_subset )
 corrplot( transition_cor_m1,
           method="color",
@@ -272,7 +214,7 @@ cat(
 # Our second model will look at correlations associated with the additional predictor (literacy) model:
 # success ~ income + graduation + literacy
 # But, since graduation is categorical, we strip it out.
-m2_subset = transition_dat[ c('income', 'success', 'illiteracy') ]
+m2_subset = this_dat[ c('income', 'success', 'illiteracy') ]
 transition_cor_m2 <- stats::cor( m2_subset )
 corrplot( transition_cor_m2,
           method="color",
@@ -298,7 +240,7 @@ testing for readability.
 ```{r scatterplots_raw}
 
 # Scatterplot 1: Transition (uncentered) vs. Income
-success_scatter_tvinc <- ggplot(transition_dat, aes(income, success) )
+success_scatter_tvinc <- ggplot(this_dat, aes(income, success) )
 
 success_scatter_tvinc +
     geom_point() +
@@ -309,7 +251,7 @@ success_scatter_tvinc +
 
 
 # Scatterplot 2: Transition (uncentered) vs. Illiteracy
-success_scatter_tvil <- ggplot(transition_dat, aes(illiteracy, success) )
+success_scatter_tvil <- ggplot(this_dat, aes(illiteracy, success) )
 
 success_scatter_tvil +
     geom_point() +
@@ -332,17 +274,17 @@ Model 2: transition ~ graduation + income + illiteracy
 
 # Graduation referenced to OnTime, w/ income only
 transition_simp_mod_m1_ontime <- lm( success ~ income + grad_late_refd_to_ontime + grad_none_refd_to_ontime, 
-                                     data = transition_dat)
+                                     data = this_dat)
 # Graduation referenced to None, w/ income only
 transition_simp_mod_m1_none  <- lm( success ~ income + grad_late_refd_to_none + grad_ontime_refd_to_none, 
-                                    data = transition_dat)
+                                    data = this_dat)
 
 # Graduation referenced to OnTime, w/ income and illiteracy
 transition_simp_mod_m2_ontime <- lm( success ~ income + illiteracy + grad_late_refd_to_ontime + grad_none_refd_to_ontime, 
-                                     data = transition_dat)
+                                     data = this_dat)
 # Graduation referenced to None, w/ income and illiteracy
 transition_simp_mod_m2_none  <- lm( success ~ income + illiteracy + grad_late_refd_to_none + grad_ontime_refd_to_none, 
-                                    data = transition_dat)
+                                    data = this_dat)
 
 # Model performance checks for all models
 # performance::check_model(transition_simp_mod_m1_ontime)
@@ -499,8 +441,8 @@ needed
 
 # Center all continuous predictor data for models. We DON'T center outcome var (transition success) or categorical vars  
 # (HS graduation times)
-transition_dat$income_cent     <- transition_dat$income - mean(transition_dat$income)
-transition_dat$illiteracy_cent <- transition_dat$illiteracy - mean(transition_dat$illiteracy)
+this_dat$income_cent     <- this_dat$income - mean(this_dat$income)
+this_dat$illiteracy_cent <- this_dat$illiteracy - mean(this_dat$illiteracy)
 
 ```
 
@@ -525,7 +467,7 @@ cat(
    )
 
 # OnTime Graduation as Reference. UnCentered.   
-tranistion_mult_regr_ot <- linReg( transition_dat,
+tranistion_mult_regr_ot <- linReg( this_dat,
                                    dep = 'success',
                                    covs = c('income','illiteracy', 'grad_late_refd_to_ontime', 'grad_none_refd_to_ontime'),
                                    blocks = list(
@@ -557,7 +499,7 @@ cat(
    )
 
 # OnTime Graduation as Reference. Centered.        
-tranistion_mult_regr_ot_cent <- linReg( transition_dat,
+tranistion_mult_regr_ot_cent <- linReg( this_dat,
                                         dep = 'success',
                                         covs = c('income_cent','illiteracy_cent', 'grad_late_refd_to_ontime', 'grad_none_refd_to_ontime'),
                                         blocks = list(
@@ -590,7 +532,7 @@ cat(
    )
 
 # OnTime Graduation as Reference. UnCentered.   
-tranistion_mult_regr_no <- linReg( transition_dat,
+tranistion_mult_regr_no <- linReg( this_dat,
                                    dep = 'success',
                                    covs = c('income','illiteracy', 'grad_late_refd_to_none', 'grad_ontime_refd_to_none'),
                                    blocks = list(
@@ -622,7 +564,7 @@ cat(
    )
 
 # OnTime Graduation as Reference. Centered.        
-tranistion_mult_regr_no_cent <- linReg( transition_dat,
+tranistion_mult_regr_no_cent <- linReg( this_dat,
                                         dep = 'success',
                                         covs = c('income_cent','illiteracy_cent', 'grad_late_refd_to_none', 'grad_ontime_refd_to_none'),
                                         blocks = list(
@@ -656,7 +598,7 @@ cat(
    )
 
 # OnTime Graduation as Reference. UnCentered. Illiteracy 2nd       
-tranistion_mult_regr_ot_ill_02 <- linReg( transition_dat,
+tranistion_mult_regr_ot_ill_02 <- linReg( this_dat,
                                           dep = 'success',
                                           covs = c('income','illiteracy', 'grad_late_refd_to_ontime', 'grad_none_refd_to_ontime'),
                                           blocks = list(
@@ -690,7 +632,7 @@ cat(
    )
 
 # OnTime Graduation as Reference. UnCentered. Illiteracy 1st       
-tranistion_mult_regr_ot_ill_01 <- linReg( transition_dat,
+tranistion_mult_regr_ot_ill_01 <- linReg( this_dat,
                                           dep = 'success',
                                           covs = c('income','illiteracy', 'grad_late_refd_to_ontime', 'grad_none_refd_to_ontime'),
                                           blocks = list(
