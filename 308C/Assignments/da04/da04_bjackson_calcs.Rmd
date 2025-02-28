@@ -547,17 +547,18 @@ interact_plot(unstd_model, pred = "fa", modx = "ppr")
 #### Standard Simple Slopes Analysis
 
 ```{r}
-## Something doesn't work in the code below, pulled from Dr. D's example. We get data format and interaction errors.
+# Something doesn't work in the code below, pulled from Dr. D's example. We get data format and interaction errors.
 
-# #Standardized Simple Slopes Analysis
-# 
-# # Fully standardize model automatically
-# # NOTE: This generates the same thing as above, but for a centered (standardized model)
-# std_model <- rockchalk::standardize(unstd_model)
-# 
-# # Now run simple slopes 
-# sim_slopes(std_model, pred = "fa", modx = "ppr")
-# 
-# # Plot interaction
-# interact_plot(std_model, pred = "fa", modx = "ppr")
-# ```
+#Standardized Simple Slopes Analysis
+
+# Fully standardize model automatically
+# NOTE: This generates the same thing as above, but for a centered (standardized model)
+std_model <- effectsize::standardize(unstd_model)
+
+# Now run simple slopes
+sim_slopes(std_model, pred = "fa", modx = "ppr")
+
+# Plot interaction
+interact_plot(std_model, pred = "fa", modx = "ppr")
+
+```
