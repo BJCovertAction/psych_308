@@ -149,6 +149,23 @@ this_dat$p_mod_f = this_dat$ppr * this_dat$fa
 
 ```
 
+### Add Centered Data
+
+We center our predictors for both datasets so regression tables can be built using centered data explicitly if so  
+needed
+
+```{r center_data}
+
+# Center all continuous predictor data for models. We DON'T center outcome var (transition success) or categorical vars  
+# (HS graduation times)
+this_dat$fa_cent      <- this_dat$fa - mean(this_dat$fa)
+this_dat$ppr_cent     <- this_dat$ppr - mean(this_dat$ppr)
+# this_dat$p_mod_f_cent <- this_dat$p_mod_f - mean(this_dat$p_mod_f) # THIS DOESN'T WORK, WRONG WAY TO CRATE A CENTERED
+#                                                                    # MODERATOR
+this_dat$p_mod_f_cent <- this_dat$ppr_cent * this_dat$fa_cent
+
+```
+
 ### Descriptive Statistics - Raw Data
 
 This section will look at base descriptive statistics of the raw data to help identify data anomalies and check   
@@ -175,241 +192,142 @@ print(my_descr)
 
 ### Correlation Plots - Raw Data
 
-Visualize the covariance matrix to understand correlation between Success and Professionalism and Competence (Model 1)
+Visualize the covariance matrix to understand correlation between Aggression, Family Adversity, and Positive Peer Support (Model 1)
 A second correlation matrix is also computed which includes Motivation (for model 2)
 
 
 ```{r correlation_plots_raw}
-# 
-# # Model 1 Correlation Tables
-# cat( 
-#      paste(
-#            '-----------------',
-#            '---- Model 1 ----',
-#            '-----------------',
-#            sep = '\n'
-#      ) 
-#    )
-# 
-# # Our first model will look at correlations associated with the simpler model:
-# # success ~ income + graduation
-# # But, since graduation is categorical, we strip it out.
-# m1_subset = this_dat[ c('income', 'success') ]
-# transition_cor_m1 <- stats::cor( m1_subset )
-# corrplot( transition_cor_m1,
-#           method="color",
-#           type = "full",
-#           addCoef.col = "black",
-#           col = rb_colmap,
-#           tl.col = font_color )
-# 
-# # Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
-# # 1 for tables, but oh well)
-# transition_cor_tab_m1 <- jmv::corrMatrix(m1_subset, flag = TRUE)
-# print( transition_cor_tab_m1 )
-# 
-# 
-# # Model 2 Correlation Tables
-# cat( 
-#      paste(
-#            '-----------------',
-#            '---- Model 2 ----',
-#            '-----------------',
-#            sep = '\n'
-#      ) 
-#    )
-# 
-# # Our second model will look at correlations associated with the additional predictor (literacy) model:
-# # success ~ income + graduation + literacy
-# # But, since graduation is categorical, we strip it out.
-# m2_subset = this_dat[ c('income', 'success', 'illiteracy') ]
-# transition_cor_m2 <- stats::cor( m2_subset )
-# corrplot( transition_cor_m2,
-#           method="color",
-#           type = "full",
-#           addCoef.col = "black",
-#           col = rb_colmap,
-#           tl.col = font_color )
-# 
-# # Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
-# # 1 for tables, but oh well)
-# transition_cor_tab_m2 <- jmv::corrMatrix(m2_subset, flag = TRUE)
-# print( transition_cor_tab_m2 )
+
+# Our first model will look at correlations associated with the simpler model:
+# success ~ income + graduation
+# But, since graduation is categorical, we strip it out.
+m1_subset = this_dat[ c('agg', 'fa', 'ppr') ]
+agg_cor_m1 <- stats::cor( m1_subset )
+corrplot( agg_cor_m1,
+          method="color",
+          type = "full",
+          addCoef.col = "black",
+          col = rb_colmap,
+          tl.col = font_color )
 
 ```
 ### Scatterplots of All Predictor Vars
 
-Since scatterplots are not variables based, we can create a scatterplot with Transition as a function of each of the  
+Since scatterplots are not variables based, we can create a scatterplot with Aggression as a function of each of the  
 2x continuous predictor vars. Scatterplots are broken out here, separate from residual plots and homoscedasticity  
 testing for readability.
 
 **NOTE:** I'm not using centered data for the scatterplots as it's unintuitive but I may add them later if necessary
 
 ```{r scatterplots_raw}
-# 
-# # Scatterplot 1: Transition (uncentered) vs. Income
-# success_scatter_tvinc <- ggplot(this_dat, aes(income, success) )
-# 
-# success_scatter_tvinc +
-#     geom_point() +
-#     geom_smooth(method = "lm", colour = "Red") +
-#     ggtitle("Transition Success Relation to Student Income") +
-#     labs(y = "Transition Success (1-10)", x = "Student Income ($USD)") +
-#     my_gg_theme
-# 
-# 
-# # Scatterplot 2: Transition (uncentered) vs. Illiteracy
-# success_scatter_tvil <- ggplot(this_dat, aes(illiteracy, success) )
-# 
-# success_scatter_tvil +
-#     geom_point() +
-#     geom_smooth(method = "lm", colour = "Red") +
-#     ggtitle("Transition Success Relation to Student Illiteracy") +
-#     labs(y = "Transition Success (1-10)", x = "Student Illiteracy (0-3)") +
-#     my_gg_theme
+
+# Scatterplot 1: Aggression vs. Family Adversity  (uncentered)
+agg_scatter_faunc <- ggplot(this_dat, aes(agg, fa) )
+
+agg_scatter_faunc +
+    geom_point() +
+    geom_smooth(method = "lm", colour = "Red") +
+    ggtitle("Childhood Aggression as a Function of Family Adversity") +
+    labs(y = "Childhood Aggression (1-20)", x = "Family Adversity (0-20)") +
+    my_gg_theme
+
+
+# Scatterplot 2: Aggression vs. Positive Peer Support  (uncentered)
+agg_scatter_ppruc <- ggplot(this_dat, aes(agg, ppr) )
+
+agg_scatter_ppruc +
+    geom_point() +
+    geom_smooth(method = "lm", colour = "Red") +
+    ggtitle("Childhood Aggression as a Function of Positve Peer Relationships") +
+    labs(y = "Childhood Aggression (1-20)", x = "Positive Peer Relationships (0-20)") +
+    my_gg_theme
 ```
 
 ### Simple Linear Model Defintion
 
-We need to create two simple linear models for various data visualization and analysis efforts. The following code   
-creates these two models:
-
-Model 1: transition ~ graduation + income  
-Model 2: transition ~ graduation + income + illiteracy  
+We need to create a main effects regression of aggression onto family adversity and positive peer support to aid in  
+assumption checks.
 
 ```{r simple_model_definition}
-# # We create the linear models using separate datasets simply for clarity of code and readability
-# 
-# # Graduation referenced to OnTime, w/ income only
-# transition_simp_mod_m1_ontime <- lm( success ~ income + grad_late_refd_to_ontime + grad_none_refd_to_ontime, 
-#                                      data = this_dat)
-# # Graduation referenced to None, w/ income only
-# transition_simp_mod_m1_none  <- lm( success ~ income + grad_late_refd_to_none + grad_ontime_refd_to_none, 
-#                                     data = this_dat)
-# 
-# # Graduation referenced to OnTime, w/ income and illiteracy
-# transition_simp_mod_m2_ontime <- lm( success ~ income + illiteracy + grad_late_refd_to_ontime + grad_none_refd_to_ontime, 
-#                                      data = this_dat)
-# # Graduation referenced to None, w/ income and illiteracy
-# transition_simp_mod_m2_none  <- lm( success ~ income + illiteracy + grad_late_refd_to_none + grad_ontime_refd_to_none, 
-#                                     data = this_dat)
-# 
-# # Model performance checks for all models
-# # performance::check_model(transition_simp_mod_m1_ontime)
-# # performance::check_model(transition_simp_mod_m1_none)
-# # performance::check_model(transition_simp_mod_m2_ontime)
-# # performance::check_model(transition_simp_mod_m2_none)
+# We create a simple linear model using the two main effect predictors (FA and PPR) w/o accounting for moderation
+# to aid in simple data assumption checks later on (homoscedasticity and multi-variate normality.)
+ 
+# Aggression regressed onto family adversity and positive peer support as main effect predictors.
+agg_simp_mod_uc <- lm( agg ~ fa + ppr, data = this_dat)
+
+# Model performance checks for all models
+performance::check_model(agg_simp_mod_uc)
+
+# We'll create a simple model that includes the moderation term as well
+# NOTE: We're using uncentered data here:
+agg_me_w_mod_model_uc <- lm(agg ~ fa + ppr + p_mod_f, data = this_dat)
+# Notice funny grouping when we define model as above. Spot checked these alternative models and it's not clear which is  
+# better.
+# agg_me_w_mod_model_uc <- lm(agg ~ p_mod_f, data = this_dat)
+# agg_me_w_mod_model_uc <- lm(agg ~ fa_cent + ppr_cent + p_mod_f_cent, data = this_dat)
 
 ```
 
 
-### Residuals & Assumptions
+### Residuals Plots
 
-Descriptives section already checked normality so here we need to focus on linearity and homoscedasticity. We're  
-going to center the data outright because I don't want to run everything multiple times.
-
+Descriptives section already checked normality so here we need to focus on linearity and homoscedasticity.
 ```{r residuals_figures}
-# 
-# # Check Residuals plot (Heteroscedasticity)
-# # Fitted values vs. residuals to examine homoscedasticity
-# # NOTE use of .resid to plot residuals
-# 
-# 
-# # MODEL 1 RESIDUALS: transition ~ income + illiteracy + grad_refd_to_ontime
-# transition_resid_m1_ot_fig = ggplot( transition_simp_mod_m1_ontime, aes(.fitted, .resid) )
-# 
-# transition_resid_m1_ot_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Transition Success Values (0 - 10)") +
-#     ylab("Success Residuals (0 - 10)") +
-#     ggtitle("Model 1 Transition Success Residual vs. Fitted Plot - Ref Ontime Grad") +
-#     my_gg_theme
-# 
-# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-# transition_resid_sd_m1_ot_fig = ggplot( transition_simp_mod_m1_ontime,
-#                                   aes(.fitted , .resid / transition_descr_comb$descriptives$asDF$`success[sd]` )
-#                                 )
-# 
-# transition_resid_sd_m1_ot_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Transition Success Values") +
-#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
-#     ggtitle("Model 1 Transition Success Residual vs. Fitted Plot - Ref Ontime Grad") +
-#     my_gg_theme
-# 
-# # MODEL 1 RESIDUALS: transition ~ income + illiteracy + grad_refd_to_none
-# transition_resid_m1_no_fig = ggplot( transition_simp_mod_m1_none, aes(.fitted, .resid) )
-# 
-# transition_resid_m1_no_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Transition Success Values (0 - 10)") +
-#     ylab("Success Residuals (0 - 10)") +
-#     ggtitle("Model 1 Transition Success Residual vs. Fitted Plot - Ref No Grad") +
-#     my_gg_theme
-# 
-# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-# transition_resid_sd_m1_no_fig = ggplot( transition_simp_mod_m1_none,
-#                                   aes(.fitted , .resid / transition_descr_comb$descriptives$asDF$`success[sd]` )
-#                                 )
-# 
-# transition_resid_sd_m1_no_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Transition Success Values") +
-#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
-#     ggtitle("Model 1 Transition Success Residual vs. Fitted Plot - Ref No Grad") +
-#     my_gg_theme
-# 
-# # MODEL 2 RESIDUALS: transition ~ income + illiteracy + grad_refd_to_ontime
-# transition_resid_m2_ot_fig = ggplot( transition_simp_mod_m2_ontime, aes(.fitted, .resid) )
-# 
-# transition_resid_m2_ot_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Transition Success Values (0 - 10)") +
-#     ylab("Success Residuals (0 - 10)") +
-#     ggtitle("Model 2 Transition Success Residual vs. Fitted Plot - Ref Ontime Grad") +
-#     my_gg_theme
-# 
-# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-# transition_resid_sd_m2_ot_fig = ggplot( transition_simp_mod_m2_ontime,
-#                                   aes(.fitted , .resid / transition_descr_comb$descriptives$asDF$`success[sd]` )
-#                                 )
-# 
-# transition_resid_sd_m2_ot_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Transition Success Values") +
-#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
-#     ggtitle("Model 2 Transition Success Residual vs. Fitted Plot - Ref Ontime Grad") +
-#     my_gg_theme
-# 
-# # MODEL 2 RESIDUALS: transition ~ income + illiteracy + grad_refd_to_none
-# transition_resid_m2_no_fig = ggplot( transition_simp_mod_m2_none, aes(.fitted, .resid) )
-# 
-# transition_resid_m2_no_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Transition Success Values (0 - 10)") +
-#     ylab("Success Residuals (0 - 10)") +
-#     ggtitle("Model 2 Transition Success Residual vs. Fitted Plot - Ref No Grad") +
-#     my_gg_theme
-# 
-# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-# transition_resid_sd_m2_no_fig = ggplot( transition_simp_mod_m2_none,
-#                                   aes(.fitted , .resid / transition_descr_comb$descriptives$asDF$`success[sd]` )
-#                                 )
-# 
-# transition_resid_sd_m2_no_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Transition Success Values") +
-#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
-#     ggtitle("Model 2 Transition Success Residual vs. Fitted Plot - Ref No Grad") +
-#     my_gg_theme
+
+# Check Residuals plot (Heteroscedasticity)
+# Fitted values vs. residuals to examine homoscedasticity
+# NOTE use of .resid to plot residuals
+
+
+# Main Effects: agg ~ fa + ppr
+agg_resid_me_fig = ggplot( agg_simp_mod_uc, aes(.fitted, .resid) )
+
+agg_resid_me_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Childhood Aggression Levels (0-20)") +
+    ylab("Aggression Residuals (0 - 20)") +
+    ggtitle("Main Effects Childhood Aggression Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+agg_resid_me_sd_fig = ggplot( agg_simp_mod_uc,
+                              aes(.fitted , .resid / my_descr$descriptives$asDF$`agg[sd]` )
+                            )
+
+agg_resid_me_sd_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Childhood Aggression Levels (0-20)") +
+    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+    ggtitle("Main Effects Childhood Aggression Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# Create Residuals plot for Fitted values with Moderation Accounted for
+
+# Moderation Effects: agg ~ fa + ppr + p_mod_f
+agg_resid_mod_fig = ggplot( agg_me_w_mod_model_uc, aes(.fitted, .resid) )
+
+agg_resid_mod_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Childhood Aggression Levels (0-20)") +
+    ylab("Aggression Residuals (0 - 20)") +
+    ggtitle("Main + Moderation Effects Childhood Aggression Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+agg_resid_mod_sd_fig = ggplot( agg_me_w_mod_model_uc,
+                              aes(.fitted , .resid / my_descr$descriptives$asDF$`agg[sd]` )
+                            )
+
+agg_resid_mod_sd_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Childhood Aggression Levels (0-20)") +
+    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+    ggtitle("Main + Moderation Childhood Aggression Residual vs. Fitted Plot") +
+    my_gg_theme
 
 ```
 
@@ -418,42 +336,47 @@ going to center the data outright because I don't want to run everything multipl
 Just to throw the kitchen sink at the problem, we'll run BP tests on all 4 models.
 
 ```{r homoscedasticity_checks}
-# # Run a Breusch Pagan Test of homoscedasticity for both models, for both reference grad values
-# 
-# cat( paste("  ", "---- Breusch-Pagan MODEL 1 - OnTime Ref ----", " ", sep = "\n") )
-# car::ncvTest(transition_simp_mod_m1_ontime)
-# 
-# cat( paste("  ", "---- Breusch-Pagan MODEL 1 - None Ref ----", " ", sep = "\n") )
-# car::ncvTest(transition_simp_mod_m1_none)
-# 
-# cat( paste("  ", "---- Breusch-Pagan MODEL 2 - OnTime Ref ----", " ", sep = "\n") )
-# car::ncvTest(transition_simp_mod_m2_ontime)
-# 
-# cat( paste("  ", "---- Breusch-Pagan MODEL 2 - None Ref ----", " ", sep = "\n") )
-# car::ncvTest(transition_simp_mod_m2_none)
+# Run a Breusch Pagan Test of homoscedasticity for both models, for both reference grad values
+
+cat( paste("  ", "---- Breusch-Pagan Main Effects ----", " ", sep = "\n") )
+car::ncvTest(agg_simp_mod_uc)
+
+cat( paste("  ", "---- Breusch-Pagan Main + Moderation Effects ----", " ", sep = "\n") )
+car::ncvTest(agg_me_w_mod_model_uc)
+
+```
+
+### Multi-Variate Normality
+
+```{r multivar_norm}
+
+# Code below manually produces QQ Plot for better alignment with general plot styles
+ggplot(agg_simp_mod_uc, 
+         aes( 
+               qqnorm( .stdresid,
+                       xlab = "", ylab = "", 
+                       conf.level = 0.945, 
+                       conf.args = list(col = "lightgrey", exact = TRUE) 
+                      )[[1]],
+               .stdresid ) 
+       ) + 
+    geom_point(na.rm = TRUE) +
+    xlab("Theoretical Quantiles") + 
+    ylab("Standardized Residuals") +
+    ggtitle("Normal Q-Q of Main Effects Model") + 
+    my_gg_theme
+
+# Henze-Zingler test of multivariate normality
+# Columns 2-4 are Aggression, Family Adversity, and Positive Peer Support respectively.
+HZ.test(this_dat[2:4])
 ```
 
 ### Data Cleaning - OPTIONAL
 At first glance there was no need to revisit the data (clean the data), but this is kept here as a placeholder
 
+
+
 ``` {r data_cleaning_raw}
-
-```
-
-### Add Centered Data
-
-We center our predictors for both datasets so regression tables can be built using centered data explicitly if so  
-needed
-
-```{r center_data}
-
-# Center all continuous predictor data for models. We DON'T center outcome var (transition success) or categorical vars  
-# (HS graduation times)
-this_dat$fa_cent      <- this_dat$fa - mean(this_dat$fa)
-this_dat$ppr_cent     <- this_dat$ppr - mean(this_dat$ppr)
-# this_dat$p_mod_f_cent <- this_dat$p_mod_f - mean(this_dat$p_mod_f) # THIS DOESN'T WORK, WRONG WAY TO CRATE A CENTERED
-#                                                                    # MODERATOR
-this_dat$p_mod_f_cent <- this_dat$ppr_cent * this_dat$fa_cent
 
 ```
 
@@ -533,7 +456,8 @@ moderated_regr_cent
 ```{r unstd_simp_slop} 
 #Unstandardized Simple Slopes Analysis
 
-# Fit model with raw variables
+# Fit model with raw variables - This model accounts for the moderation term only, apparently. Might be worth doing  
+# some research on how / why we define it this way for simple slopes analysis.
 unstd_model <- lm(agg ~ ppr * fa, data = this_dat)
 
 # Now run simple slopes 
