@@ -161,7 +161,8 @@ needed
 this_dat$fa_cent      <- this_dat$fa - mean(this_dat$fa)
 this_dat$ppr_cent     <- this_dat$ppr - mean(this_dat$ppr)
 # this_dat$p_mod_f_cent <- this_dat$p_mod_f - mean(this_dat$p_mod_f) # THIS DOESN'T WORK, WRONG WAY TO CRATE A CENTERED
-#                                                                    # MODERATOR
+#                                                                    # MODERATOR. DOESN'T HANDLE TRANSITIVE TERM OF
+#                                                                    # SUBTRACTING MEANS CORRECTLY
 this_dat$p_mod_f_cent <- this_dat$ppr_cent * this_dat$fa_cent
 
 ```
@@ -198,9 +199,9 @@ A second correlation matrix is also computed which includes Motivation (for mode
 
 ```{r correlation_plots_raw}
 
-# Our first model will look at correlations associated with the simpler model:
-# success ~ income + graduation
-# But, since graduation is categorical, we strip it out.
+# We look at correlations for both the centered and uncentered data.... turns out it doesn't matter
+
+# Uncentered correlations
 m1_subset = this_dat[ c('agg', 'fa', 'ppr') ]
 agg_cor_m1 <- stats::cor( m1_subset )
 corrplot( agg_cor_m1,
@@ -209,6 +210,22 @@ corrplot( agg_cor_m1,
           addCoef.col = "black",
           col = rb_colmap,
           tl.col = font_color )
+
+# Centered correlations.
+m2_subset = this_dat[ c('agg', 'fa_cent', 'ppr_cent') ]
+agg_cor_m1 <- stats::cor( m2_subset )
+corrplot( agg_cor_m1,
+          method="color",
+          type = "full",
+          addCoef.col = "black",
+          col = rb_colmap,
+          tl.col = font_color )
+
+# Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
+# 1 for tables, but oh well)
+agg_cor_tab_m2 <- jmv::corrMatrix(m2_subset, flag = TRUE)
+print( agg_cor_tab_m2 )
+
 
 ```
 ### Scatterplots of All Predictor Vars
@@ -228,7 +245,7 @@ agg_scatter_faunc +
     geom_point() +
     geom_smooth(method = "lm", colour = "Red") +
     ggtitle("Childhood Aggression as a Function of Family Adversity") +
-    labs(y = "Childhood Aggression (1-20)", x = "Family Adversity (0-20)") +
+    labs(y = "Childhood Aggression (1-20)", x = "Family Adversity (1-20)") +
     my_gg_theme
 
 
@@ -239,7 +256,7 @@ agg_scatter_ppruc +
     geom_point() +
     geom_smooth(method = "lm", colour = "Red") +
     ggtitle("Childhood Aggression as a Function of Positve Peer Relationships") +
-    labs(y = "Childhood Aggression (1-20)", x = "Positive Peer Relationships (0-20)") +
+    labs(y = "Childhood Aggression (1-20)", x = "Positive Peer Relationships (1-20)") +
     my_gg_theme
 ```
 
@@ -285,8 +302,8 @@ agg_resid_me_fig = ggplot( agg_simp_mod_uc, aes(.fitted, .resid) )
 agg_resid_me_fig +
     geom_point(col = font_color) +
     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-    xlab("Fitted Childhood Aggression Levels (0-20)") +
-    ylab("Aggression Residuals (0 - 20)") +
+    xlab("Fitted Childhood Aggression Levels (1-20)") +
+    ylab("Aggression Residuals (1 - 20)") +
     ggtitle("Main Effects Childhood Aggression Residual vs. Fitted Plot") +
     my_gg_theme
 
@@ -298,7 +315,7 @@ agg_resid_me_sd_fig = ggplot( agg_simp_mod_uc,
 agg_resid_me_sd_fig +
     geom_point(col = font_color) +
     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-    xlab("Fitted Childhood Aggression Levels (0-20)") +
+    xlab("Fitted Childhood Aggression Levels (1-20)") +
     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
     ggtitle("Main Effects Childhood Aggression Residual vs. Fitted Plot") +
     my_gg_theme
@@ -311,8 +328,8 @@ agg_resid_mod_fig = ggplot( agg_me_w_mod_model_uc, aes(.fitted, .resid) )
 agg_resid_mod_fig +
     geom_point(col = font_color) +
     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-    xlab("Fitted Childhood Aggression Levels (0-20)") +
-    ylab("Aggression Residuals (0 - 20)") +
+    xlab("Fitted Childhood Aggression Levels (1-20)") +
+    ylab("Aggression Residuals (1 - 20)") +
     ggtitle("Main + Moderation Effects Childhood Aggression Residual vs. Fitted Plot") +
     my_gg_theme
 
@@ -324,7 +341,7 @@ agg_resid_mod_sd_fig = ggplot( agg_me_w_mod_model_uc,
 agg_resid_mod_sd_fig +
     geom_point(col = font_color) +
     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-    xlab("Fitted Childhood Aggression Levels (0-20)") +
+    xlab("Fitted Childhood Aggression Levels (1-20)") +
     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
     ggtitle("Main + Moderation Childhood Aggression Residual vs. Fitted Plot") +
     my_gg_theme
@@ -366,7 +383,7 @@ ggplot(agg_simp_mod_uc,
     ggtitle("Normal Q-Q of Main Effects Model") + 
     my_gg_theme
 
-# Henze-Zingler test of multivariate normality
+# Henze-Zirkler test of multivariate normality
 # Columns 2-4 are Aggression, Family Adversity, and Positive Peer Support respectively.
 HZ.test(this_dat[2:4])
 ```
@@ -483,6 +500,9 @@ std_model <- effectsize::standardize(unstd_model)
 sim_slopes(std_model, pred = "fa", modx = "ppr")
 
 # Plot interaction
-interact_plot(std_model, pred = "fa", modx = "ppr")
+interact_plot(std_model, pred = "fa", modx = "ppr",
+              x.label = "Family Adversity (SD multiples)", 
+              y.label = "Childhood Aggression (SD multiples)", 
+              legend.main = "Positive Peer Relationships")
 
 ```
