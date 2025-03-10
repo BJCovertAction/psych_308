@@ -83,8 +83,8 @@ library(jmv)       # for descriptive
 library(ggplot2)
 library(dplyr)
 library(corrplot)    # For fancy covariance matrix plots
-library(apaTables)   # For Word formatted tables
-library(car)         # for ncvTest (Breusch Pagan)
+# library(apaTables)   # For Word formatted tables
+# library(car)         # for ncvTest (Breusch Pagan)
 # library(stringr)   # for sub_str operations
 library(psych)
 # library(Hmisc)     # for fun.dat substitution
@@ -96,12 +96,12 @@ library(mvnTest)
 library(easystats)
 library(patchwork)
 library(mvtnorm)
-library(broom)
-library(GGally)
-library(foreign)
-library(ltm)
-library(rockchalk)
-library(haven)
+# library(broom)
+# library(GGally)
+# library(foreign)
+# library(ltm)
+# library(rockchalk)
+# library(haven)
 library(jtools)
 library(interactions)
 library(effectsize)
@@ -352,7 +352,7 @@ bin_model
  
  
 ```
-### Fiddling w/ Findings
+### Fiddling w/ Findings - Model 1: Best Expected Model
 
 Now that we've seen which predictors generally add predictive power to our model, we're going to start with the minimum    
 set of predictors that were significant over their prior models, and then try adding predictors in a different order.  
@@ -388,18 +388,51 @@ bin_mod02
  
  
 ```
-### Clean this part up
+### Second Model Fiddling - Compare All bad Predictors to Weakest Sign Predictor
+
+Just to be sure we like our model of danger, rehab, and general deterrence we do one more analysis where we build a   
+model with the weakest single predictor (rehab) and all the non-significant predictors, and then we remove the  
+significant predictor. We're trying to see if the combined effects of all the non-significant predictors can add   
+add anything to a relatively weak model.
 
 ```{r bi_lo_re_fiddle2}
 
 # Want to compare the set of non-sigificant predictors against the BEST significant predictor and see if that's any  
 # improvement
+bin_mod02a <- logRegBin( this_dat,
+                         dep = verdict,
+                         covs = vars('danger_cent', 'gendet_cent', 'specdet_cent', 'rehab_cent', 'punish_cent', 'incap_cent'),
+                         blocks = list(
+                                        list('rehab_cent', 'specdet_cent', 'punish_cent', 'incap_cent'),
+                                        list('incap_cent', 'punish_cent', 'specdet_cent')
+                                      ),
+                         refLevels = list( list(var = 'verdict', ref = '0') ), #reference group
+                         modelTest = TRUE,
+                         aic = FALSE,
+                         OR = TRUE,   # output odds ratio
+                         class = TRUE,#class table
+                         collin = TRUE, # output tolerance tables
+                         acc = TRUE) #overall classification rate
+bin_mod02a
+ 
+ 
+```
+
+### Question 3 Model
+
+Question three specifically asks us to evaluate the probability of a verdict outcome based on rehab, punishment, and  
+general deterrence. Our preferred model, based on danger, rehab, and general deterrence doesn't allow evaluating this   
+as punishment is left out. So we'll build the question 3 model and see if punishment adds anything significant to just  
+general deterrence and rehab. 
+
+```{r question_3_model}
+
 bin_mod03 <- logRegBin( this_dat,
                         dep = verdict,
                         covs = vars('danger_cent', 'gendet_cent', 'specdet_cent', 'rehab_cent', 'punish_cent', 'incap_cent'),
                         blocks = list(
-                                       list('danger_cent', 'specdet_cent', 'punish_cent', 'incap_cent'),
-                                       list('incap_cent', 'punish_cent', 'specdet_cent')
+                                       list('gendet_cent', 'rehab_cent'),
+                                       list('punish_cent')
                                      ),
                         refLevels = list( list(var = 'verdict', ref = '0') ), #reference group
                         modelTest = TRUE,
@@ -409,28 +442,85 @@ bin_mod03 <- logRegBin( this_dat,
                         collin = TRUE, # output tolerance tables
                         acc = TRUE) #overall classification rate
 bin_mod03
- 
- 
-```
-
-### Final Model Predictions - START HERE
-
-```{r}
-# # Something doesn't work in the code below, pulled from Dr. D's example. We get data format and interaction errors.
-# 
-# #Standardized Simple Slopes Analysis
-# 
-# # Fully standardize model automatically
-# # NOTE: This generates the same thing as above, but for a centered (standardized model)
-# std_model <- effectsize::standardize(unstd_model)
-# 
-# # Now run simple slopes
-# sim_slopes(std_model, pred = "fa", modx = "ppr")
-# 
-# # Plot interaction
-# interact_plot(std_model, pred = "fa", modx = "ppr",
-#               x.label = "Family Adversity (SD multiples)", 
-#               y.label = "Childhood Aggression (SD multiples)", 
-#               legend.main = "Positive Peer Relationships")
 
 ```
+
+
+### Question 3 Predictions
+
+```{r computing_probability}
+# Question 3 asks what the probability of a death penalty verdict (verdict = 1) is from a juror with a:
+#   rehab score of 7, 
+#   a punish score of 2, and 
+#   a gendet score of 4.
+# So we input those probabilities here to vet our final model.
+
+rehab_uc  = 7
+punish_uc = 2
+gendet_uc = 4
+
+# Get means of each PV from descriptives
+rehab_mean  = my_descr$descriptives$asDF$`rehab[mean]`
+punish_mean = my_descr$descriptives$asDF$`punish[mean]` 
+gendet_mean = my_descr$descriptives$asDF$`gendet[mean]` 
+
+# Compute centered values of each PV
+rehab_c  = ( rehab_uc - rehab_mean )
+gendet_c = ( gendet_uc - gendet_mean )
+punish_c = ( punish_uc - punish_mean ) 
+
+# Copy-pasta Coefficients from bin_mod03 - Model 2, which has all three PVs for problem 3 in it
+# We pull the B-values, or coefficients. NOT the Z-values nor the odds ratios
+rehab_b   = -0.19455253
+punish_b  =  0.03732782 
+gendet_b  =  0.18296626  
+q3_m2_int = -0.08296193 
+
+# Coefficients from model 1.
+rehab_b_m1  = -0.19096754 
+gendet_b_m1 =  0.18289582
+q3_m1_int   = -0.08531196 
+
+# Compute the Logit from Model 2, with all three coefficients.
+logit_q3_m2_3x_coeffs =   q3_m2_int + 
+                        ( rehab_b  * rehab_c ) + 
+                        ( gendet_b * gendet_c ) + 
+                        ( punish_b * punish_c )
+
+# Compute the Logit from Model 2, with only the significant coefficients.
+logit_q3_m2_2x_coeffs =   q3_m2_int + 
+                        ( rehab_b  * rehab_c ) + 
+                        ( gendet_b * gendet_c )
+
+
+# Compute the Logit from Model 1, which included ONLY rehab and gendet, since punishment is not discernable from
+#  a coefficient of 0
+logit_q3_m1_2x_coeffs =   q3_m1_int + 
+                        ( rehab_b_m1  * rehab_c ) + 
+                        ( gendet_b_m1 * gendet_c )
+
+# Convert All 3 Logit flavors to odds
+# Recall logit = ln(odds) so odds = e^logit
+odds_dp_m2_3x_coeffs = exp(logit_q3_m2_3x_coeffs)
+odds_dp_m2_2x_coeffs = exp(logit_q3_m2_2x_coeffs)
+odds_dp_m1_2x_coeffs = exp(logit_q3_m1_2x_coeffs)
+
+
+# Convert All 3 flavors of odds to probabilities
+# Recall that odds = P(A) / (1 - P(A)) so:
+# odds - odds(P(A)) = P(A)
+# odds = P(A) + odds(P(A))
+# odds = P(A) * (1 + odds)
+# odds / (1 + odds) = P(A)
+prob_dp_m2_3x_coeffs = odds_dp_m2_3x_coeffs / ( 1 + odds_dp_m2_3x_coeffs)
+prob_dp_m2_2x_coeffs = odds_dp_m2_2x_coeffs / ( 1 + odds_dp_m2_2x_coeffs)
+prob_dp_m1_2x_coeffs = odds_dp_m1_2x_coeffs / ( 1 + odds_dp_m1_2x_coeffs)
+
+# Print Output:
+line1_out = sprintf("P(verdict = Death) using Model 2 w/ 3x Coefficients: %.4f", prob_dp_m2_3x_coeffs)
+line2_out = sprintf("P(verdict = Death) using Model 2 w/ 2x Coefficients: %.4f", prob_dp_m2_2x_coeffs)
+line3_out = sprintf("P(verdict = Death) using Model 1 w/ 3x Coefficients: %.4f", prob_dp_m1_2x_coeffs)
+cat(paste(line1_out, line2_out, line3_out, sep="\n"))
+
+```
+
