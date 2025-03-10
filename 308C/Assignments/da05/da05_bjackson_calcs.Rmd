@@ -361,7 +361,7 @@ Notably, the following three predictors seemed to add significant predictive pow
 we start with them:
  Danger, General Deterrence, Rehabilitation
  
-Then we add individual predictors on top of those three in reverse order than we tried last time, just to see if   
+Then we add individual predictors on top of those three in a different order than we tried last time, just to see if   
 different combos than the previous buildup add anything  
 
 
@@ -373,8 +373,8 @@ bin_mod02 <- logRegBin( this_dat,
                         covs = vars('danger_cent', 'gendet_cent', 'specdet_cent', 'rehab_cent', 'punish_cent', 'incap_cent'),
                         blocks = list(
                                        list('danger_cent', 'gendet_cent', 'rehab_cent'),
-                                       list('incap_cent'),
                                        list('punish_cent'),
+                                       list('incap_cent'),
                                        list('specdet_cent')
                                      ),
                         refLevels = list( list(var = 'verdict', ref = '0') ), #reference group
