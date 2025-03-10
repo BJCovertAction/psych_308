@@ -499,10 +499,17 @@ logit_q3_m1_2x_coeffs =   q3_m1_int +
                         ( rehab_b_m1  * rehab_c ) + 
                         ( gendet_b_m1 * gendet_c )
 
+# Compute the Logit from Model 2, with only the significant coefficients, no intercept.
+logit_q3_m2_2x_coeffs_noint = ( rehab_b  * rehab_c ) + 
+                              ( gendet_b * gendet_c )
+
+
+
 # Convert All 3 Logit flavors to odds
 # Recall logit = ln(odds) so odds = e^logit
 odds_dp_m2_3x_coeffs = exp(logit_q3_m2_3x_coeffs)
 odds_dp_m2_2x_coeffs = exp(logit_q3_m2_2x_coeffs)
+odds_dp_m2_2x_coeffs_noint = exp(logit_q3_m2_2x_coeffs_noint)
 odds_dp_m1_2x_coeffs = exp(logit_q3_m1_2x_coeffs)
 
 
@@ -514,13 +521,16 @@ odds_dp_m1_2x_coeffs = exp(logit_q3_m1_2x_coeffs)
 # odds / (1 + odds) = P(A)
 prob_dp_m2_3x_coeffs = odds_dp_m2_3x_coeffs / ( 1 + odds_dp_m2_3x_coeffs)
 prob_dp_m2_2x_coeffs = odds_dp_m2_2x_coeffs / ( 1 + odds_dp_m2_2x_coeffs)
+prob_dp_m2_2x_coeffs_noint = odds_dp_m2_2x_coeffs_noint / ( 1 + odds_dp_m2_2x_coeffs_noint)
 prob_dp_m1_2x_coeffs = odds_dp_m1_2x_coeffs / ( 1 + odds_dp_m1_2x_coeffs)
 
 # Print Output:
 line1_out = sprintf("P(verdict = Death) using Model 2 w/ 3x Coefficients: %.4f", prob_dp_m2_3x_coeffs)
 line2_out = sprintf("P(verdict = Death) using Model 2 w/ 2x Coefficients: %.4f", prob_dp_m2_2x_coeffs)
 line3_out = sprintf("P(verdict = Death) using Model 1 w/ 3x Coefficients: %.4f", prob_dp_m1_2x_coeffs)
-cat(paste(line1_out, line2_out, line3_out, sep="\n"))
+line4_out = sprintf("P(verdict = Death) using Model 2 w/ 2x Coefficients and No INtercept: %.4f", prob_dp_m2_2x_coeffs_noint)
+
+cat(paste(line1_out, line2_out, line3_out, line4_out, sep="\n"))
 
 ```
 
