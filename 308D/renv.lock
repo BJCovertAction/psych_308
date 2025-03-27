@@ -767,6 +767,13 @@
       "Repository": "CRAN",
       "Hash": "57120b229b87ba5206eb33c5b6f04f75"
     },
+    "corrplot": {
+      "Package": "corrplot",
+      "Version": "0.95",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "f52d5babd10d348f9c0771386b61ea4a"
+    },
     "cowplot": {
       "Package": "cowplot",
       "Version": "1.1.3",
