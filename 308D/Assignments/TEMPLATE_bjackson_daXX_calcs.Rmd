@@ -70,11 +70,27 @@ library(dplyr)
 library(corrplot)    # For fancy covariance matrix plots
 library(apaTables)   # For Word formatted tables
 library(car)         # for ncvTest (Breusch Pagan)
-# library(stringr)   # for sub_str operations
-# library(psych)
-# library(Hmisc)     # for fun.dat substitution
-# library(see)       # for outliers analysis 
-# library(magrittr)
+library(tidyverse)
+library(jmv)       # for descriptive
+library(ggplot2)
+library(dplyr)
+library(psych)
+library(corrplot)    # For fancy covariance matrix plots
+library(car)         # for ncvTest (Breusch Pagan)
+library(stringr)     # for sub_str operations
+library(Hmisc)       # for fun.dat substitution
+library(see)         # for outliers analysis 
+library(magrittr)
+library(foreign)
+library(broom)
+library(robmed)
+library(mediation)   # For mediation analysis
+library(multilevel)
+library(GGally)
+library(lsr)
+library(car)
+library(mvnTest)     # Multivariate Normality
+library(lm.beta)
 # library(AER)
 ```
 
@@ -335,19 +351,4 @@ Now we can build the regression model.
 
 ```
 
-### APA Tables
-
-Output regression tables to an APA formatted (almost) word doc in case that's useful
-
-```{r apa_tables}
-# We'll define a new linear model using the centered data.
-
-# SAMPLE CODE:
-# Define a linear model
-# breaks_model_lin_centered <- lm(product ~ length_centered, data = breaks_dat)
-
-# Use reg.table method in APA package to generate regression table
-# apa.reg.table( breaks_model_lin_centered, filename="prod_regressed_to_breaks.doc", table.number = 2 )
-
-```
 
