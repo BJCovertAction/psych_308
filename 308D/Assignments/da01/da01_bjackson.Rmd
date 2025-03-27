@@ -1,0 +1,361 @@
+---
+title: "PSYCH308D - Data Analysis 01 (DA01)"
+author: "Brady C. Jackson"
+date: "2025/03/27"
+
+# Write document output to HTML, Word, and PDF output types with a Table of
+# contents included.
+output: 
+  html_document:
+    toc: true
+  word_document:
+    toc: true
+  pdf_document:
+    toc: true
+    latex_engine: xelatex
+
+# This option here enables output to both HTML and PDF formats
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding,
+  output_format = "all") })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+
+## Prompt
+Parents with anxiety disorders tend to have children with anxiety disorders as well (see everything ever written by  
+Bogels, Borelli, Wood, or Rapee). This has led some to hypothesize that anxiety is genetically transmitted. However,  
+you think there might be something else going on. Parental overcontrol, the excess regulation of a child's emotion,  
+cognition, and behavior is strongly related to child anxiety. You wonder if anxious parents are more overcontrolling,  
+leading to child anxiety. You decided to conduct a study to figure this out. 
+ 
+## Variables 
+
+Input Variable Table HERE
+
+| Variable | Type | Description |
+|:-----|:---|:------------------|
+| `Parent_Anx` | 1-20 scale | Higher scores indicating higher anxiety symptoms |
+| `Child_Anx`  | 1-20 scale | Higher scores indicating higher anxiety symptoms    |
+| `Parent_OC`  | 1-20 scale | Higher scores indicating greater use of overcontrol |
+
+## Research Question  
+  
+Does parental overcontrol mediate the relationship between parent anxiety and child anxiety?
+
+## Assignment
+
+### Part 1
+
+Conduct the appropriate analysis using *both* the *Baron & Kenney method* and *bootstrapping techniques* and write an    
+APA results section. Report all the proper assumptions and statistics in the results section. Don't forget to include    
+all appropriate tables and figures for both methods. 
+
+### Part 2
+
+*Respond to the following questions.*
+
+1. Interpret your findings for a lay audience. 
+2. Run Sobels test and compare your results to your bootstrapped analysis findings.   
+   If the two analyses found different outcomes, determine which results are more appropriate and justify your   
+   decision. (Hint: What is a known issue with the Sobel test?)
+3. If you bootstrapped a mediation analysis with 1000 iterations twice, would you obtain the same exact statistics  
+   both times? Explain why or why not. 
+
+---ONLY WRITE CODE BELOW THIS LINE---
+
+## Code
+
+### Libraries
+
+Load all requisite libraries here.
+
+```{r package_loading, message=FALSE, warning=FALSE}
+# Load packages. Set messages and warnings to FALSE so I don't have to see the
+# masking messages in the output.
+library(tidyverse)
+library(jmv)       # for descriptive
+library(ggplot2)
+library(dplyr)
+library(psych)
+library(corrplot)    # For fancy covariance matrix plots
+library(car)         # for ncvTest (Breusch Pagan)
+library(stringr)     # for sub_str operations
+library(Hmisc)       # for fun.dat substitution
+library(see)         # for outliers analysis 
+library(magrittr)
+library(foreign)
+library(broom)
+library(robmed)
+library(mediation)   # For mediation analysis
+library(multilevel)
+library(GGally)
+library(lsr)
+library(car)
+library(mvnTest)     # Multivariate Normality
+library(lm.beta)
+
+```
+
+### Metadata
+
+This section of code is to setup some general variables that we'll use throughout the code (e.g. figure colors, etc)
+
+```{r metadata}
+# First we'll defines some meta-data to use in all of our plots so they're nice and clean
+font_color = "#4F81BD"
+grid_color_major = "#9BB7D9"
+grid_color_minor = "#C8D7EA"
+back_color = "gray95"
+rb_colmap = colorRampPalette( c("firebrick", "grey86", "dodgerblue3") )(200)
+
+
+```
+
+### Load and View data
+
+```{r load_raw_data}
+
+# SAMPLE CODE
+# # Stuff goes here
+# breaks_raw_dat = read.csv("./da01.csv")
+# 
+# # Rename columns to lower because why not
+# colnames(breaks_raw_dat) <- tolower( colnames(breaks_raw_dat) )
+# 
+# # View data
+# glimpse(breaks_raw_dat)
+# 
+# # Ensure that the employee numbers of each subject in the study are unique to prevent any duplicate data
+# # if the size of the unique-entries only is the same as the whole vector then there are no duplicate subjects
+# test_unique = (length(unique(breaks_raw_dat$subject)) == length(breaks_raw_dat$subject))
+# if(!test_unique){
+#     print("WARNING: There are duplicate data entries in the raw data")
+# }else{
+#     print("No duplicate entries detected in raw data")
+# }
+```
+
+### Descriptive Statistics - Raw Data
+
+This section will look at base descriptive statistics of the raw data to help identify data anomalies and check   
+normality of predictor variables (break length - minutes)
+
+```{r descriptive_stats_raw}
+
+# SAMPLE CODE
+# # Get JMV descriptives of raw productivity, enjoyment, and break length
+# # Tabulate mean, variance, skew, and kurtosis so we can check normality.
+# # Output histograms and qq plots so we can spot outliers and review distribution shape
+# breaks_descr = jmv::descriptives( breaks_raw_dat[c(2:4)],
+#                                   hist = TRUE,
+#                                   dens = TRUE,
+#                                   qq = TRUE,
+#                                   sd = TRUE, 
+#                                   variance = TRUE,
+#                                   se = TRUE, 
+#                                   skew = TRUE, 
+#                                   kurt = TRUE,
+#                                   missing = TRUE)
+# print(breaks_descr)
+
+```
+
+### Correlation Plots - Raw Data
+
+Visualize the covariance matrix to understand correlation between break length and employee productivity
+
+
+```{r correlation_plots_raw}
+
+# SAMPLE CODE
+# # Given that we're working explicitly on break length and productivity, I want to create a second dataframe that 
+# # consists only of those columns for simplicity. I'll maintain the original as well so I can get some insight into
+# # employee enjoyment as well, but since that's not the focus I want a clean dataset as well.
+# breaks_dat <- breaks_raw_dat
+# breaks_dat$subject <- NULL
+# breaks_dat$enjoy <- NULL
+# 
+# # Produce a correlation matrix plot that includes the numbers printed with a color gradient for easy reading.
+# # par(bg = "lightgrey")
+# breaks_full_cor <- stats::cor(breaks_raw_dat)
+# corrplot( breaks_full_cor, 
+#           method="color", 
+#           type = "full", 
+#           addCoef.col = "black", 
+#           col = rb_colmap, 
+#           tl.col = font_color )
+# 
+# breaks_short_cor <- stats::cor(breaks_dat)
+# corrplot( breaks_short_cor, 
+#           method="color", 
+#           type = "full",  
+#           addCoef.col = "black", 
+#           col = rb_colmap,  
+#           tl.col = font_color )
+# 
+# 
+# # Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
+# # 1 for tables, but oh well)
+# breaks_full_cor_tab <- jmv::corrMatrix(breaks_raw_dat[2:4], flag = TRUE)
+# print(breaks_full_cor_tab)
+# 
+# breaks_short_cor_tab <- jmv::corrMatrix(breaks_dat, flag = TRUE)
+# print(breaks_short_cor_tab)
+# 
+# # Finally dump a correlation table to Word Doc format for easy table formatting / to save time in writing
+# # the assignment
+# apa.cor.table( breaks_raw_dat[2:4], 
+#                filename = "full_corr_table_breaks_v_prod.doc", 
+#                table.number = 1, 
+#                show.sig.stars = TRUE, 
+#                landscape = TRUE)
+# 
+# apa.cor.table( breaks_dat, 
+#                filename = "short_corr_table_breaks_v_prod.doc", 
+#                table.number = 1, 
+#                show.sig.stars = TRUE, 
+#                landscape = TRUE)
+
+```
+
+### Assumptions, Figures, and Plots - Raw Data
+
+Descriptives section already checked normality so here we need to focus on linearity and homoscedasticity. We're  
+going to center the data outright because I don't want to run everything multiple times.
+
+```{r assumptions_and_figures_raw}
+
+# SAMPLE CODE
+# # Centering the data
+# breaks_dat$length_centered <- breaks_dat$length - mean(breaks_dat$length)
+# 
+# 
+# # Check Scatterplot of Centered data: Break Length is PV, Productivity is OV
+# breaks_raw_scatter <- ggplot(breaks_dat, aes(length, product) )
+# 
+# breaks_raw_scatter + 
+#     geom_point() + 
+#     geom_smooth(method = "lm", colour = "Red") + 
+#     ggtitle("Break Length Relation to Employee Productivity") + 
+#     labs(x = "Break Length (m)", y = "Employee Productivity (0-100)") +
+#     theme_minimal() +
+#     theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+#            axis.title.x = element_text(color = font_color),
+#            axis.title.y = element_text(color = font_color),
+#            axis.text.x = element_text(color = font_color),
+#            axis.text.y = element_text(color = font_color),
+#            legend.title = element_text(color = font_color),
+#            legend.text = element_text(color = font_color),
+#            panel.grid.minor = element_line(color = grid_color_minor),
+#            panel.grid.major = element_line(color = grid_color_major),
+#            panel.background = element_rect(fill = back_color, color = font_color)
+#          )
+# 
+# breaks_cent_scatter <- ggplot(breaks_dat, aes(length_centered, product) )
+# 
+# breaks_cent_scatter + 
+#     geom_point() + 
+#     geom_smooth(method = "lm", colour = "Red") + 
+#     ggtitle("Break Length Relation to Employee Productivity") + 
+#     labs(x = "Break Length - Centered (m)", y = "Employee Productivity (0-100)") +
+#     theme_minimal() +
+#     theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+#            axis.title.x = element_text(color = font_color),
+#            axis.title.y = element_text(color = font_color),
+#            axis.text.x = element_text(color = font_color),
+#            axis.text.y = element_text(color = font_color),
+#            legend.title = element_text(color = font_color),
+#            legend.text = element_text(color = font_color),
+#            panel.grid.minor = element_line(color = grid_color_minor),
+#            panel.grid.major = element_line(color = grid_color_major),
+#            panel.background = element_rect(fill = back_color, color = font_color)
+#          )
+# 
+# 
+# # Check Residuals plot (Heteroscedasticity)
+# # To compute residuals we need to define the model as productivity regressed onto break length in a linear fashion
+# breaks_model_lin <- lm(product ~ length, data = breaks_dat)
+# 
+# # Fitted values vs. residuals to examine homoscedasticity
+# # NOTE use of .resid to plot residuals
+# breaks_resid_fig = ggplot( breaks_model_lin, aes(.fitted, .resid) )
+# 
+# breaks_resid_fig + 
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Productivity Values (0 - 100)") +
+#     ylab("Productivity Residuals (0 - 100)") +
+#     ggtitle("Residual vs. Fitted Plot") +
+#     theme_minimal() +
+#     theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+#            axis.title.x = element_text(color = font_color),
+#            axis.title.y = element_text(color = font_color),
+#            axis.text.x = element_text(color = font_color),
+#            axis.text.y = element_text(color = font_color),
+#            legend.title = element_text(color = font_color),
+#            legend.text = element_text(color = font_color),
+#            panel.grid.minor = element_line(color = grid_color_minor),
+#            panel.grid.major = element_line(color = grid_color_major),
+#            panel.background = element_rect(fill = back_color, color = font_color)
+#          )
+# 
+# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+# breaks_resid_sd_fig = ggplot( breaks_model_lin, aes(.fitted , .resid / breaks_descr$descriptives$asDF$`product[sd]` ) )
+# 
+# breaks_resid_sd_fig + 
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Productivity Values") +
+#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+#     ggtitle("Productivity Residual vs. Fitted Plot") +
+#     theme_minimal() +
+#     theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+#            axis.title.x = element_text(color = font_color),
+#            axis.title.y = element_text(color = font_color),
+#            axis.text.x = element_text(color = font_color),
+#            axis.text.y = element_text(color = font_color),
+#            legend.title = element_text(color = font_color),
+#            legend.text = element_text(color = font_color),
+#            panel.grid.minor = element_line(color = grid_color_minor),
+#            panel.grid.major = element_line(color = grid_color_major),
+#            panel.background = element_rect(fill = back_color, color = font_color)
+#          )  
+# 
+# # Run a Breusch Pagan Test of homoscedasticity
+# car::ncvTest(breaks_model_lin)
+```
+
+### Data Cleaning - OPTIONAL
+If there are data issues that need to be adjusted, clean the data here.
+
+``` {r data_cleaning_raw}
+
+```
+
+### Build Simple Regression Model
+
+Centered data is already saved from scatter plots above (shift the y-intercept to the mean of the dataset).  
+Now we can build the regression model.  
+
+```{r simple_regression}
+
+# SAMPLE CODE
+# #simple regression looking at self-efficacy (centered) as a predictor of desire to lead in a group (e.g. self-efficacy (centered) regressed on desire to lead)
+# breaks_model_lin_reg <- linReg( data = breaks_dat, 
+#                                 dep = 'product', 
+#                                 covs = c('length_centered'), 
+#                                 blocks = list( c( 'length_centered') ), 
+#                                 modelTest = TRUE, 
+#                                 stdEst = TRUE,
+#                                 ci = TRUE)
+# breaks_model_lin_reg
+
+
+```
+
+
