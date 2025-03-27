@@ -1,0 +1,536 @@
+---
+title: "PSYCH308C - Data Analysis 05 (DA05)"
+author: "Brady C. Jackson"
+date: "2025/03/07"
+
+# Write document output to HTML, Word, and PDF output types with a Table of
+# contents included.
+output: 
+  html_document:
+    toc: true
+  word_document:
+    toc: true
+  pdf_document:
+    toc: true
+    latex_engine: xelatex
+
+# This option here enables output to both HTML and PDF formats
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding,
+  output_format = "all") })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+
+## Prompt
+
+The data are based on a mock jury study conducted by Shari Diamond and Jonathan   
+Casper. In order to examine just how easily the justice system is impacted by   
+the personal beliefs of jurors, subjects (N = 100) watched a videotaped   
+sentencing phase trial in which the defendant had already been found guilty.   
+The issue for the jurors to decide was whether the defendant deserved the   
+death penalty. These data were collected “pre-deliberation” (i.e., each juror   
+was asked to provide his/her vote on the death penalty verdict, then the jurors   
+met as a group to decide the overall jury verdict). The initial individual   
+verdicts are given in this data set. 
+
+Based on the info you have, build a model that you are confident predicts   
+sentencing outcomes. There are multiple ways to approach this and therefore    
+multiple “best” models. All we ask is that you explain and provide rationale   
+for each of your decisions in your results section. Write-up an APA results    
+section with details of your findings.  
+ 
+
+## Variables 
+
+| Variable | Type | Description |
+|:-----|:---|:------------------|
+| `Verdict` | binary | DC: 0 = life sentence, 1 = death penalty |
+| `Danger` | 0-10 scale | Perceived dangerousness of the defendant |
+| `Rehab` | 0-10 scale | Level of belief that rehabilitation is an important goal of the criminal justice system |
+| `Punish` | 0-10 scale | Level of belief that punishment is an important goal of the criminal justice system |
+| `Gendet` | 0-10 scale | Level of belief that general public deterrence is an important goal of the criminal justice system – the sentence should deter the public from crime |
+| `Specdet` | 0-10 scale | Level of belief that specific deterrence is an important goal of the criminal justice system – the sentence should deter this specific defendant from committing another crime |
+| `Incap` | 1-10 scale | Beliefs about the capability of the defendant to reform |
+
+
+## Assignment
+
+### Part 1
+
+Based on the info you have, build a model that you are confident predicts   
+sentencing outcomes. There are multiple ways to approach this and therefore    
+multiple “best” models. All we ask is that you explain and provide rationale   
+for each of your decisions in your results section. Write-up an APA results    
+section with details of your findings. 
+
+---ONLY WRITE CODE BELOW THIS LINE---
+
+## Code
+
+### Libraries
+
+Load all requisite libraries here.
+
+```{r package_loading, message=FALSE, warning=FALSE}
+# Load packages. Set messages and warnings to FALSE so I don't have to see the
+# masking messages in the output.
+library(jmv)       # for descriptive
+library(ggplot2)
+library(dplyr)
+library(corrplot)    # For fancy covariance matrix plots
+# library(apaTables)   # For Word formatted tables
+# library(car)         # for ncvTest (Breusch Pagan)
+# library(stringr)   # for sub_str operations
+library(psych)
+# library(Hmisc)     # for fun.dat substitution
+# library(see)       # for outliers analysis 
+library(magrittr)
+# library(AER)
+library(rlang)
+library(mvnTest)
+library(easystats)
+library(patchwork)
+library(mvtnorm)
+# library(broom)
+# library(GGally)
+# library(foreign)
+# library(ltm)
+# library(rockchalk)
+# library(haven)
+library(jtools)
+library(interactions)
+library(effectsize)
+library(popbio)
+```
+
+
+### Metadata
+
+This section of code is to setup some general variables that we'll use throughout the code (e.g. figure colors, etc)
+
+```{r metadata}
+# First we'll defines some meta-data to use in all of our plots so they're nice and clean
+font_color = "#4F81BD"
+grid_color_major = "#9BB7D9"
+grid_color_minor = "#C8D7EA"
+back_color = "gray95"
+rb_colmap = colorRampPalette( c("firebrick", "grey86", "dodgerblue3") )(200)
+
+# I'm going to try to save off my preferred ggplot theme combinations as a unqiue theme object that I can just reference
+# later in the code....totally unclear if ggplot works this way....
+my_gg_theme = theme_minimal() +
+              theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+                     axis.title.x = element_text(color = font_color),
+                     axis.title.y = element_text(color = font_color),
+                     axis.text.x = element_text(color = font_color),
+                     axis.text.y = element_text(color = font_color),
+                     legend.title = element_text(color = font_color),
+                     legend.text = element_text(color = font_color),
+                     panel.grid.minor = element_line(color = grid_color_minor),
+                     panel.grid.major = element_line(color = grid_color_major),
+                     panel.background = element_rect(fill = back_color, color = font_color)
+                   )
+
+```
+
+### Load and View data
+
+We're loading jury data which has a combination of binary variables and continous variables. The binary variable,  
+verdict, is already dummy coded as a 0-1 numeric. For frequency output purposes in our descriptives later we'll create a  
+factor version of this as well.
+
+```{r load_raw_data}
+
+# Load data as downloaded from Canvas
+this_dat = read.csv("./308C.Data.DA5.csv")
+
+# Rename columns to lower because why not
+colnames(this_dat) <- tolower( colnames(this_dat) )
+
+# Add a factor casting of verdict so we can easily get frequency counts
+this_dat$verdict_fac = as.factor(this_dat$verdict)
+
+
+```
+
+### Add Centered Data
+
+We center our continuous predictors for both datasets so binary regression tables can be built using centered   
+data explicitly 
+
+```{r center_data}
+
+# Center all continuous predictor data for models. We DON'T center outcome var 
+this_dat$danger_cent = this_dat$danger - mean(this_dat$danger) 
+this_dat$rehab_cent = this_dat$rehab - mean(this_dat$rehab) 
+this_dat$punish_cent = this_dat$punish - mean(this_dat$punish) 
+this_dat$gendet_cent = this_dat$gendet - mean(this_dat$gendet) 
+this_dat$specdet_cent = this_dat$specdet - mean(this_dat$specdet) 
+this_dat$incap_cent = this_dat$incap - mean(this_dat$incap)
+
+```
+
+### Descriptive Statistics - Raw Data
+
+This section will look at base descriptive statistics of the raw data to help identify data anomalies and check   
+normality, trends, and independence of predictor variables
+
+```{r descriptive_stats_raw}
+
+# We'll need to check both univariate normality and multi-variate normality. 
+# NOTE: We check descriptives of the binary output, verdict, case as a factor so we can get frequency counts
+my_descr = jmv::descriptives( this_dat,
+                              vars = c( 'verdict_fac', 
+                                        'danger', 'rehab', 'punish',
+                                        'gendet', 'specdet', 'incap'
+                                      ),
+                              hist = TRUE,
+                              dens = TRUE,
+                              qq = TRUE,
+                              sd = TRUE,
+                              variance = TRUE,
+                              se = TRUE,
+                              skew = TRUE,
+                              kurt = TRUE,
+                              missing = TRUE,
+                              freq = TRUE
+                            )
+print(my_descr)
+
+```
+
+### Correlation Plots - Raw Data
+
+Visualize the covariance matrix to understand correlations between PVs and any continous OVs.   
+Generally speaking this helps us verify independence of our observations
+
+
+```{r correlation_plots_raw}
+
+# Centered correlations.
+cont_subset = this_dat[ c( 'danger_cent', 'rehab_cent', 'punish_cent',
+                           'gendet_cent', 'specdet_cent', 'incap_cent'
+                         ) 
+                      ]
+corr_dat <- stats::cor( cont_subset )
+corrplot( corr_dat,
+          method="color",
+          type = "full",
+          addCoef.col = "black",
+          col = rb_colmap,
+          tl.col = font_color )
+
+# Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
+# 1 for tables, but oh well)
+corr_tab <- jmv::corrMatrix(cont_subset, flag = TRUE)
+print( corr_tab )
+
+
+```
+### Logit Fit Plots 
+
+We want to plot the outcome variable, verdict, as a function of all other vars in the dataset to help us understand  
+what *might* help us predict the ultimate verdict outcome.
+
+
+**NOTE:** I'm not using centered data for the logit plots as it's unintuitive but I may add them later if necessary
+
+```{r logit_plots_raw}
+
+# Logit plot 1: Verdict Probability vs. Perceived Defendant Danger
+logi.hist.plot(  this_dat$danger, this_dat$verdict, boxp=FALSE, type="hist", col=font_color,
+                 xlabel = "Perceived Defendant Danger",
+                 ylabel = "Prob(Verdict)",
+                 ylabel2 = "Freq(Verdict)"
+               ) + 
+               my_gg_theme
+
+# Logit plot 2: Verdict Probability vs. Rehabilitation Goal Weighting
+logi.hist.plot(  this_dat$rehab, this_dat$verdict, boxp=FALSE, type="hist", col=font_color,
+                 xlabel = "Rehabilitation Goal Weighting",
+                 ylabel = "Prob(Verdict)",
+                 ylabel2 = "Freq(Verdict)"
+               ) + 
+               my_gg_theme
+
+# Logit plot 3: Verdict Probability vs. Punishment Goal Weighting
+logi.hist.plot(  this_dat$punish, this_dat$verdict, boxp=FALSE, type="hist", col=font_color,
+                 xlabel = "Punishment Goal Weighting",
+                 ylabel = "Prob(Verdict)",
+                 ylabel2 = "Freq(Verdict)"
+               ) + 
+               my_gg_theme
+
+# Logit plot 4: Verdict Probability vs. General Deterrence Goal Weighting
+logi.hist.plot(  this_dat$gendet, this_dat$verdict, boxp=FALSE, type="hist", col=font_color,
+                 xlabel = "General Deterrence Goal Weighting",
+                 ylabel = "Prob(Verdict)",
+                 ylabel2 = "Freq(Verdict)"
+               ) + 
+               my_gg_theme
+
+# Logit plot 5: Verdict Probability vs. Specific Deterrence Goal Weighting
+logi.hist.plot(  this_dat$specdet, this_dat$verdict, boxp=FALSE, type="hist", col=font_color,
+                 xlabel = "Specific Deterrence Goal Weighting",
+                 ylabel = "Prob(Verdict)",
+                 ylabel2 = "Freq(Verdict)"
+               ) + 
+               my_gg_theme
+
+# Logit plot 6: Verdict Probability vs. InCap
+logi.hist.plot(  this_dat$incap, this_dat$verdict, boxp=FALSE, type="hist", col=font_color,
+                 xlabel = "Belief about Defendent ability to Reform",
+                 ylabel = "Prob(Verdict)",
+                 ylabel2 = "Freq(Verdict)"
+               ) + 
+               my_gg_theme
+
+```
+
+### Null Model Defintion
+
+We evaluate the null model, explicitly, for comparison purposes only.
+
+```{r null_model_definition}
+
+#null model, just for illustrative purposes
+#glm here means *generalized* linear model. 
+#"family = binomial" indicates to use a binary logistic regression
+null <- glm(this_dat$verdict ~ 1, family = binomial) 
+summary(null)
+
+```
+
+### Data Cleaning - OPTIONAL
+At first glance there was no need to revisit the data (clean the data), but this is kept here as a placeholder
+
+
+
+``` {r data_cleaning_raw}
+
+```
+
+### Build Multiple Binary Logistic Regression Models
+
+We're going to build up the binary regression model one variable at a time. We're going to add predictors in the   
+following order, as, given the logit plots above, this roughly looked like the vars most likely to predict verdict  
+first:  
+ - Perceived Danger of Defendant  
+ - General Deterrence Goal Weighting   
+ - Specific Deterrence Goal Weighting  
+ - Rehabilitation Goal Weighting  
+ - Punishment Goal Weighting  
+ - Individual Capacity to Reform Belief 
+ 
+```{r bi_lo_re_buildup}
+
+# 
+bin_model <- logRegBin( this_dat,
+                        dep = verdict,
+                        covs = vars('danger_cent', 'gendet_cent', 'specdet_cent', 'rehab_cent', 'punish_cent', 'incap_cent'),
+                        blocks = list(
+                                       list('danger_cent'),
+                                       list('gendet_cent'),
+                                       list('specdet_cent'),
+                                       list('rehab_cent'),
+                                       list('punish_cent'),
+                                       list('incap_cent')
+                                     ),
+                        refLevels = list( list(var = 'verdict', ref = '0') ), #reference group
+                        modelTest = TRUE,
+                        aic = FALSE,
+                        OR = TRUE,   # output odds ratio
+                        class = TRUE,#class table
+                        collin = TRUE, # output tolerance tables
+                        acc = TRUE) #overall classification rate
+bin_model
+ 
+ 
+```
+### Fiddling w/ Findings - Model 1: Best Expected Model
+
+Now that we've seen which predictors generally add predictive power to our model, we're going to start with the minimum    
+set of predictors that were significant over their prior models, and then try adding predictors in a different order.  
+  
+Notably, the following three predictors seemed to add significant predictive power in the previous buildup section, so   
+we start with them:
+ Danger, General Deterrence, Rehabilitation
+ 
+Then we add individual predictors on top of those three in a different order than we tried last time, just to see if   
+different combos than the previous buildup add anything  
+
+
+```{r bi_lo_re_fiddle}
+
+# 
+bin_mod02 <- logRegBin( this_dat,
+                        dep = verdict,
+                        covs = vars('danger_cent', 'gendet_cent', 'specdet_cent', 'rehab_cent', 'punish_cent', 'incap_cent'),
+                        blocks = list(
+                                       list('danger_cent', 'gendet_cent', 'rehab_cent'),
+                                       list('punish_cent'),
+                                       list('incap_cent'),
+                                       list('specdet_cent')
+                                     ),
+                        refLevels = list( list(var = 'verdict', ref = '0') ), #reference group
+                        modelTest = TRUE,
+                        aic = FALSE,
+                        OR = TRUE,   # output odds ratio
+                        class = TRUE,#class table
+                        collin = TRUE, # output tolerance tables
+                        acc = TRUE) #overall classification rate
+bin_mod02
+ 
+ 
+```
+### Second Model Fiddling - Compare All bad Predictors to Weakest Sign Predictor
+
+Just to be sure we like our model of danger, rehab, and general deterrence we do one more analysis where we build a   
+model with the weakest single predictor (rehab) and all the non-significant predictors, and then we remove the  
+significant predictor. We're trying to see if the combined effects of all the non-significant predictors can add   
+add anything to a relatively weak model.
+
+```{r bi_lo_re_fiddle2}
+
+# Want to compare the set of non-sigificant predictors against the BEST significant predictor and see if that's any  
+# improvement
+bin_mod02a <- logRegBin( this_dat,
+                         dep = verdict,
+                         covs = vars('danger_cent', 'gendet_cent', 'specdet_cent', 'rehab_cent', 'punish_cent', 'incap_cent'),
+                         blocks = list(
+                                        list('rehab_cent', 'specdet_cent', 'punish_cent', 'incap_cent'),
+                                        list('incap_cent', 'punish_cent', 'specdet_cent')
+                                      ),
+                         refLevels = list( list(var = 'verdict', ref = '0') ), #reference group
+                         modelTest = TRUE,
+                         aic = FALSE,
+                         OR = TRUE,   # output odds ratio
+                         class = TRUE,#class table
+                         collin = TRUE, # output tolerance tables
+                         acc = TRUE) #overall classification rate
+bin_mod02a
+ 
+ 
+```
+
+### Question 3 Model
+
+Question three specifically asks us to evaluate the probability of a verdict outcome based on rehab, punishment, and  
+general deterrence. Our preferred model, based on danger, rehab, and general deterrence doesn't allow evaluating this   
+as punishment is left out. So we'll build the question 3 model and see if punishment adds anything significant to just  
+general deterrence and rehab. 
+
+```{r question_3_model}
+
+bin_mod03 <- logRegBin( this_dat,
+                        dep = verdict,
+                        covs = vars('danger_cent', 'gendet_cent', 'specdet_cent', 'rehab_cent', 'punish_cent', 'incap_cent'),
+                        blocks = list(
+                                       list('gendet_cent', 'rehab_cent'),
+                                       list('punish_cent')
+                                     ),
+                        refLevels = list( list(var = 'verdict', ref = '0') ), #reference group
+                        modelTest = TRUE,
+                        aic = FALSE,
+                        OR = TRUE,   # output odds ratio
+                        class = TRUE,#class table
+                        collin = TRUE, # output tolerance tables
+                        acc = TRUE) #overall classification rate
+bin_mod03
+
+```
+
+
+### Question 3 Predictions
+
+```{r computing_probability}
+# Question 3 asks what the probability of a death penalty verdict (verdict = 1) is from a juror with a:
+#   rehab score of 7, 
+#   a punish score of 2, and 
+#   a gendet score of 4.
+# So we input those probabilities here to vet our final model.
+
+rehab_uc  = 7
+punish_uc = 2
+gendet_uc = 4
+
+# Get means of each PV from descriptives
+rehab_mean  = my_descr$descriptives$asDF$`rehab[mean]`
+punish_mean = my_descr$descriptives$asDF$`punish[mean]` 
+gendet_mean = my_descr$descriptives$asDF$`gendet[mean]` 
+
+# Compute centered values of each PV
+rehab_c  = ( rehab_uc - rehab_mean )
+gendet_c = ( gendet_uc - gendet_mean )
+punish_c = ( punish_uc - punish_mean ) 
+
+# Copy-pasta Coefficients from bin_mod03 - Model 2, which has all three PVs for problem 3 in it
+# We pull the B-values, or coefficients. NOT the Z-values nor the odds ratios
+rehab_b   = -0.19455253
+punish_b  =  0.03732782 
+gendet_b  =  0.18296626  
+q3_m2_int = -0.08296193 
+
+# Coefficients from model 1.
+rehab_b_m1  = -0.19096754 
+gendet_b_m1 =  0.18289582
+q3_m1_int   = -0.08531196 
+
+# Compute the Logit from Model 2, with all three coefficients.
+logit_q3_m2_3x_coeffs =   q3_m2_int + 
+                        ( rehab_b  * rehab_c ) + 
+                        ( gendet_b * gendet_c ) + 
+                        ( punish_b * punish_c )
+
+# Compute the Logit from Model 2, with only the significant coefficients.
+logit_q3_m2_2x_coeffs =   q3_m2_int + 
+                        ( rehab_b  * rehab_c ) + 
+                        ( gendet_b * gendet_c )
+
+
+# Compute the Logit from Model 1, which included ONLY rehab and gendet, since punishment is not discernable from
+#  a coefficient of 0
+logit_q3_m1_2x_coeffs =   q3_m1_int + 
+                        ( rehab_b_m1  * rehab_c ) + 
+                        ( gendet_b_m1 * gendet_c )
+
+# Compute the Logit from Model 2, with only the significant coefficients, no intercept.
+logit_q3_m2_2x_coeffs_noint = ( rehab_b  * rehab_c ) + 
+                              ( gendet_b * gendet_c )
+
+
+
+# Convert All 3 Logit flavors to odds
+# Recall logit = ln(odds) so odds = e^logit
+odds_dp_m2_3x_coeffs = exp(logit_q3_m2_3x_coeffs)
+odds_dp_m2_2x_coeffs = exp(logit_q3_m2_2x_coeffs)
+odds_dp_m2_2x_coeffs_noint = exp(logit_q3_m2_2x_coeffs_noint)
+odds_dp_m1_2x_coeffs = exp(logit_q3_m1_2x_coeffs)
+
+
+# Convert All 3 flavors of odds to probabilities
+# Recall that odds = P(A) / (1 - P(A)) so:
+# odds - odds(P(A)) = P(A)
+# odds = P(A) + odds(P(A))
+# odds = P(A) * (1 + odds)
+# odds / (1 + odds) = P(A)
+prob_dp_m2_3x_coeffs = odds_dp_m2_3x_coeffs / ( 1 + odds_dp_m2_3x_coeffs)
+prob_dp_m2_2x_coeffs = odds_dp_m2_2x_coeffs / ( 1 + odds_dp_m2_2x_coeffs)
+prob_dp_m2_2x_coeffs_noint = odds_dp_m2_2x_coeffs_noint / ( 1 + odds_dp_m2_2x_coeffs_noint)
+prob_dp_m1_2x_coeffs = odds_dp_m1_2x_coeffs / ( 1 + odds_dp_m1_2x_coeffs)
+
+# Print Output:
+line1_out = sprintf("P(verdict = Death) using Model 2 w/ 3x Coefficients: %.4f", prob_dp_m2_3x_coeffs)
+line2_out = sprintf("P(verdict = Death) using Model 2 w/ 2x Coefficients: %.4f", prob_dp_m2_2x_coeffs)
+line3_out = sprintf("P(verdict = Death) using Model 1 w/ 3x Coefficients: %.4f", prob_dp_m1_2x_coeffs)
+line4_out = sprintf("P(verdict = Death) using Model 2 w/ 2x Coefficients and No INtercept: %.4f", prob_dp_m2_2x_coeffs_noint)
+
+cat(paste(line1_out, line2_out, line3_out, line4_out, sep="\n"))
+
+```
+

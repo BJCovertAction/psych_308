@@ -1,0 +1,248 @@
+---
+title: "BLR Demo Spring 2025"
+author: "Jessica Diaz"
+date: "2/29/2025"
+output: word_document
+---
+
+```{r}
+library(jmv)
+library(magrittr)
+library(psych)
+library(popbio)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+For the last four decades, the Michigan Employment Security Commission (MESC) has offered a version of their Job Opportunities and Basic Skills (JOBS) program to help promote reemployment of workers who lose their job and to prevent the negative effects of unemployment on mental health and well-being. In their 1995 study, Vinokur and colleagues found that program participation facilitated reemployment and reduced depressive symptoms. Two years later, Vinokur & Schul (1997) investigated the psychological processes that drive reemployment.
+
+Participants
+•	1,801 respondents were initially recruited to the study. Accounting for screener results and program drop out, a total of 1,285 participant scores were retained for analysis. All participants had been unemployed for less than 13 weeks, were still seeking a job, and were not expecting to retire within the next 2 years or to be recalled back to their former jobs.  
+
+Variables Brief
+•	treat: JOBS II Participation
+•	econ_hard: economic hardship 
+•	depress: time 2 depression symptoms
+•	mastery: latent factor combination of job seeking self-efficacy, locus of control, self-esteem
+•	Demographics (sex, age, occupation, marital status, race, education, income)
+•	employ: dichotomous variable indicating employment status 6 months following the intervention
+
+```{r}
+#Read in your data. As long as its in the same folder as the RMD file, this is the only code you need. 
+dat <- read.csv("blrdatsp2022.csv")
+
+#convert to lower case for ease of entering in variable names
+colnames(dat) %<>% tolower()
+
+# Convert all classification variables to factors
+dat$sex_fac <- as.factor(dat$sex)
+dat$race_fac <- as.factor(dat$race)
+dat$treat_fac <- as.factor(dat$treat)
+dat$employ_fac <- as.factor(dat$employ)
+
+```
+
+```{r}
+#descriptives of your data
+# NOTE: freq should output extra tables that give you breakdown of %'s in sample
+desc_vars = c( "econ_hard", "age", "depress", "mastery", "jobseek_se",
+               "sex_fac", "race_fac", "treat_fac", "employ_fac"
+              )
+
+desc.all = jmv::descriptives(dat[desc_vars], hist = TRUE, sd = TRUE, range = TRUE, skew = TRUE, kurt = TRUE, freq = TRUE)
+desc.all
+```
+
+```{r}
+#correlation table - columns included are based on looking at the data set and identifying my continuous variables (correlation tables aren't appropriate for pearson correlations)
+cor <- corrMatrix(dat[c(2,4,6,7, 14)]) 
+cor
+```
+
+```{r}
+#graphing logit functions for each predictor variable
+logi.hist.plot(  dat$econ_hard, dat$employ, boxp=FALSE, type="hist", col="gray",
+                 xlabel = "Economic Hardship",
+                 ylabel = "Prob(Employment)",
+                 ylabel2 = "Freq(Employment)"
+               )
+logi.hist.plot(  dat$mastery, dat$employ, boxp=FALSE, type="hist", col="gray",
+                 xlabel = "Self Mastery",
+                 ylabel = "Prob(Employment)",
+                 ylabel2 = "Freq(Employment)"
+               )
+logi.hist.plot(  dat$depress, dat$employ, boxp=FALSE, type="hist", col="gray",
+                 xlabel = "Depression Symptoms",
+                 ylabel = "Prob(Employment)",
+                 ylabel2 = "Freq(Employment)"
+               )
+logi.hist.plot(  dat$age, dat$employ, boxp=FALSE, type="hist", col="gray",
+                 xlabel = "Age",
+                 ylabel = "Prob(Employment)",
+                 ylabel2 = "Freq(Employment)"
+               )
+logi.hist.plot(  dat$treat, dat$employ, boxp=FALSE, type="hist", col="gray",
+                 xlabel = "Treatment Exposure",
+                 ylabel = "Prob(Employment)",
+                 ylabel2 = "Freq(Employment)"
+               )
+logi.hist.plot(  dat$jobseek_se, dat$employ, boxp=FALSE, type="hist", col="gray",
+                 xlabel = "Job Seeking Self Efficacy",
+                 ylabel = "Prob(Employment)",
+                 ylabel2 = "Freq(Employment)"
+               )
+```
+
+```{r}
+#Center continous data
+dat$econ_hard.c <- dat$econ_hard - mean(dat$econ_hard)
+dat$depress.c <- dat$depress - mean(dat$depress)
+dat$mastery.c <- dat$mastery - mean(dat$mastery)
+dat$age.c <- dat$age - mean(dat$age)
+```
+
+```{r}
+# NOTE: Looks like linreg, but different function (LogRegBin). ALso from JMV
+# NOTE: Using centered continuous predictors.
+# NOTE: Need to use refLevels to indicate what the binary reference is. Since we "dummy coded" our employed vs. 
+#       not employed we need to tell R, "0 is the ref group, means not-employed"
+#        
+
+model1 <- logRegBin(dat,
+                    dep = employ,
+                    covs = vars('econ_hard.c', 'depress.c', 'mastery.c', 'age.c', 'race', 'treat', 'race', 'sex'),
+                    blocks = list(
+                      list('econ_hard.c', 'depress.c', 'mastery.c', 'age.c', 'race', 'treat', 'sex')),
+                    refLevels = list(list(var = 'employ', ref = '0')), #reference group
+                    modelTest = TRUE,
+                    aic = FALSE,
+                    OR = TRUE,   # output odds ratio
+                    class = TRUE,#class table
+                    collin = TRUE, # output tolerance tables
+                    acc = TRUE) #overall classification rate
+model1
+```
+
+```{r}
+#null model, just for illustrative purposes
+null <- glm(dat$employ ~ 1, family = binomial) #glm here means generalized* linear model. #"family = binomial" indicates to use a binary logistic regression
+summary(null)
+```
+
+```{r}
+model2 <- logRegBin(dat,
+                    dep = employ,
+                    covs = vars('econ_hard.c', 'depress.c', 'mastery.c', 'age.c', 'race', 'treat', 'race', 'sex'),
+                    blocks = list(
+                      list('econ_hard.c', 'depress.c', 'mastery.c', 'race', 'treat')),
+                    refLevels = list(list(var = 'employ', ref = '0')), #reference group
+                    modelTest = TRUE,
+                    aic = FALSE,
+                    OR = TRUE,
+                    class = TRUE,
+                    collin = TRUE,
+                    acc = TRUE)
+model2
+```
+
+```{r}
+model3 <- logRegBin(dat,
+                    dep = employ,
+                    covs = vars('econ_hard.c', 'depress.c', 'mastery.c', 'age.c', 'race', 'treat', 'race', 'sex'),
+                    blocks = list(
+                      list('econ_hard.c', 'depress.c', 'mastery.c', 'treat')),
+                    refLevels = list(list(var = 'employ', ref = '0')), #reference group
+                    modelTest = TRUE,
+                    aic = FALSE,
+                    OR = TRUE,
+                    class = TRUE,
+                    collin = TRUE,
+                    acc = TRUE)
+model3
+```
+
+```{r}
+# NOTE: Adding treatment from base demo
+#
+model4a <- logRegBin(dat,
+                    dep = employ,
+                    covs = vars('econ_hard.c', 'depress.c', 'mastery.c', 'age.c', 'race', 'treat', 'race', 'sex'),
+                    blocks = list(
+                      list('treat'),    
+                      list('mastery.c'),
+                      list('depress.c'),
+                      list('econ_hard.c')),
+                    refLevels = list(list(var = 'employ', ref = '0')), #reference group
+                    modelTest = TRUE,
+                    aic = FALSE,
+                    OR = TRUE,
+                    class = TRUE,
+                    collin = TRUE,
+                    acc = TRUE)
+model4a
+```
+
+```{r}
+# NOTE: Adding treatment from base demo
+#
+model4 <- logRegBin(dat,
+                    dep = employ,
+                    covs = vars('econ_hard.c', 'depress.c', 'mastery.c', 'age.c', 'race', 'treat', 'race', 'sex'),
+                    blocks = list(
+                      list('mastery.c'),
+                      list('depress.c'),
+                      list('econ_hard.c')),
+                    refLevels = list(list(var = 'employ', ref = '0')), #reference group
+                    modelTest = TRUE,
+                    aic = FALSE,
+                    OR = TRUE,
+                    class = TRUE,
+                    collin = TRUE,
+                    acc = TRUE)
+model4
+```
+
+Using the model
+```{r}
+#What's the probability that a person with the following scores is employed?
+# NOTE: This part shows us how to use unstandardized (LOGIT UNITS) coefficients to predict probability of employment 
+#       FROM mastery, depression, and econ hardship
+M = 4.3
+D = 1.2
+E = 2.8
+
+#Manually imputting the means from descriptives
+#  Y = 0.72 +  (5.24(Mast.C)) +(0.82(Depr.C)) + (0.27(Econ.c))
+#  SO: subtract mean from centered scores above...
+# Means hard-coded from Descr table
+predlogit <- 0.72 + (5.24*(M-3.88)) + (0.82*(D-1.77)) + (0.27*(E-3.07))
+predlogit
+
+# Means pulled from mean function
+#using mean formula (not rounded so answer will be slightly different)
+predlogit2 <- 0.72 + (5.24*(M-mean(dat$mastery))) + (0.82*(D-mean(dat$depress))) + (0.27*(E-mean(dat$econ_hard)))
+predlogit2
+
+# OR: Just center the values
+M.c = M - mean(dat$mastery)
+D.c = D - mean(dat$depress)
+E.c = E - mean(dat$econ_hard)
+
+predlogit3 <- 0.72 + (5.24*(M.c)) + (0.82*(D.c)) + (0.27*(E.c))
+predlogit3
+```
+
+```{r}
+# Converts Logit output from ln(odss) to odds
+predodds <- exp(predlogit2)
+predodds
+
+# Converts odds of outcome -> emp : outcome -> unemp to prob(emp)
+predprob <- predodds / (1 + predodds)
+
+predlogit
+predodds
+predprob
+```
