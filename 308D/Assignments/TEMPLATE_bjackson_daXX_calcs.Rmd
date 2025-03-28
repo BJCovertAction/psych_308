@@ -133,6 +133,23 @@ rb_colmap = colorRampPalette( c("firebrick", "grey86", "dodgerblue3") )(200)
 # }
 ```
 
+### Add Centered Data
+
+
+```{r center_data}
+
+# # Center all continuous predictor data for models. We DON'T center outcome var (transition success) or categorical vars  
+# # (HS graduation times)
+# this_dat$fa_cent      <- this_dat$fa - mean(this_dat$fa)
+# this_dat$ppr_cent     <- this_dat$ppr - mean(this_dat$ppr)
+# # this_dat$p_mod_f_cent <- this_dat$p_mod_f - mean(this_dat$p_mod_f) # THIS DOESN'T WORK, WRONG WAY TO CRATE A CENTERED
+# #                                                                    # MODERATOR. DOESN'T HANDLE TRANSITIVE TERM OF
+# #                                                                    # SUBTRACTING MEANS CORRECTLY
+# this_dat$p_mod_f_cent <- this_dat$ppr_cent * this_dat$fa_cent
+
+```
+
+
 ### Descriptive Statistics - Raw Data
 
 This section will look at base descriptive statistics of the raw data to help identify data anomalies and check   
@@ -140,21 +157,20 @@ normality of predictor variables (break length - minutes)
 
 ```{r descriptive_stats_raw}
 
-# SAMPLE CODE
-# # Get JMV descriptives of raw productivity, enjoyment, and break length
-# # Tabulate mean, variance, skew, and kurtosis so we can check normality.
-# # Output histograms and qq plots so we can spot outliers and review distribution shape
-# breaks_descr = jmv::descriptives( breaks_raw_dat[c(2:4)],
-#                                   hist = TRUE,
-#                                   dens = TRUE,
-#                                   qq = TRUE,
-#                                   sd = TRUE, 
-#                                   variance = TRUE,
-#                                   se = TRUE, 
-#                                   skew = TRUE, 
-#                                   kurt = TRUE,
-#                                   missing = TRUE)
-# print(breaks_descr)
+# # We'll need to check both univariate normality and multi-variate normality. 
+# my_descr = jmv::descriptives( this_dat,
+#                               vars = c('fa', 'ppr', 'agg', 'p_mod_f'),
+#                               hist = TRUE,
+#                               dens = TRUE,
+#                               qq = TRUE,
+#                               sd = TRUE,
+#                               variance = TRUE,
+#                               se = TRUE,
+#                               skew = TRUE,
+#                               kurt = TRUE,
+#                               missing = TRUE
+#                             )
+# print(my_descr)
 
 ```
 
@@ -165,56 +181,221 @@ Visualize the covariance matrix to understand correlation between break length a
 
 ```{r correlation_plots_raw}
 
-# SAMPLE CODE
-# # Given that we're working explicitly on break length and productivity, I want to create a second dataframe that 
-# # consists only of those columns for simplicity. I'll maintain the original as well so I can get some insight into
-# # employee enjoyment as well, but since that's not the focus I want a clean dataset as well.
-# breaks_dat <- breaks_raw_dat
-# breaks_dat$subject <- NULL
-# breaks_dat$enjoy <- NULL
+# # We look at correlations for both the centered and uncentered data.... turns out it doesn't matter
 # 
-# # Produce a correlation matrix plot that includes the numbers printed with a color gradient for easy reading.
-# # par(bg = "lightgrey")
-# breaks_full_cor <- stats::cor(breaks_raw_dat)
-# corrplot( breaks_full_cor, 
-#           method="color", 
-#           type = "full", 
-#           addCoef.col = "black", 
-#           col = rb_colmap, 
+# # Uncentered correlations
+# m1_subset = this_dat[ c('agg', 'fa', 'ppr') ]
+# agg_cor_m1 <- stats::cor( m1_subset )
+# corrplot( agg_cor_m1,
+#           method="color",
+#           type = "full",
+#           addCoef.col = "black",
+#           col = rb_colmap,
 #           tl.col = font_color )
 # 
-# breaks_short_cor <- stats::cor(breaks_dat)
-# corrplot( breaks_short_cor, 
-#           method="color", 
-#           type = "full",  
-#           addCoef.col = "black", 
-#           col = rb_colmap,  
+# # Centered correlations.
+# m2_subset = this_dat[ c('agg', 'fa_cent', 'ppr_cent') ]
+# agg_cor_m1 <- stats::cor( m2_subset )
+# corrplot( agg_cor_m1,
+#           method="color",
+#           type = "full",
+#           addCoef.col = "black",
+#           col = rb_colmap,
 #           tl.col = font_color )
-# 
 # 
 # # Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
 # # 1 for tables, but oh well)
-# breaks_full_cor_tab <- jmv::corrMatrix(breaks_raw_dat[2:4], flag = TRUE)
-# print(breaks_full_cor_tab)
-# 
-# breaks_short_cor_tab <- jmv::corrMatrix(breaks_dat, flag = TRUE)
-# print(breaks_short_cor_tab)
-# 
-# # Finally dump a correlation table to Word Doc format for easy table formatting / to save time in writing
-# # the assignment
-# apa.cor.table( breaks_raw_dat[2:4], 
-#                filename = "full_corr_table_breaks_v_prod.doc", 
-#                table.number = 1, 
-#                show.sig.stars = TRUE, 
-#                landscape = TRUE)
-# 
-# apa.cor.table( breaks_dat, 
-#                filename = "short_corr_table_breaks_v_prod.doc", 
-#                table.number = 1, 
-#                show.sig.stars = TRUE, 
-#                landscape = TRUE)
+# agg_cor_tab_m2 <- jmv::corrMatrix(m2_subset, flag = TRUE)
+# print( agg_cor_tab_m2 )
 
 ```
+
+### Scatterplots of Variables
+
+```{r scatter_plots}
+# 
+# # Scatterplot 1: Aggression vs. Family Adversity  (uncentered)
+# agg_scatter_faunc <- ggplot(this_dat, aes(agg, fa) )
+# 
+# agg_scatter_faunc +
+#     geom_point() +
+#     geom_smooth(method = "lm", colour = "Red") +
+#     ggtitle("Childhood Aggression as a Function of Family Adversity") +
+#     labs(y = "Childhood Aggression (1-20)", x = "Family Adversity (1-20)") +
+#     my_gg_theme
+# 
+# 
+# # Scatterplot 2: Aggression vs. Positive Peer Support  (uncentered)
+# agg_scatter_ppruc <- ggplot(this_dat, aes(agg, ppr) )
+# 
+# agg_scatter_ppruc +
+#     geom_point() +
+#     geom_smooth(method = "lm", colour = "Red") +
+#     ggtitle("Childhood Aggression as a Function of Positve Peer Relationships") +
+#     labs(y = "Childhood Aggression (1-20)", x = "Positive Peer Relationships (1-20)") +
+#     my_gg_theme
+
+# Make sure you plot OV as fncn of both PV and Mediator.
+
+# Make sure you plot Mediator as function of PV
+
+```
+
+### Construct Standardized Dataframe
+
+```{r standardize_variables}
+
+# We can use the scale function to center and standardize the data in the original dataframe
+
+
+```
+
+### Build Simple Linear Models (lm)
+
+```{r linear_model_definition}
+
+# # We create a simple linear model using the two main effect predictors (FA and PPR) w/o accounting for moderation
+# # to aid in simple data assumption checks later on (homoscedasticity and multi-variate normality.)
+#  
+# # Aggression regressed onto family adversity and positive peer support as main effect predictors.
+# agg_simp_mod_uc <- lm( agg ~ fa + ppr, data = this_dat)
+# 
+# # Model performance checks for all models
+# performance::check_model(agg_simp_mod_uc)
+# 
+# # We'll create a simple model that includes the moderation term as well
+# # NOTE: We're using uncentered data here:
+# agg_me_w_mod_model_uc <- lm(agg ~ fa + ppr + p_mod_f, data = this_dat)
+# # Notice funny grouping when we define model as above. Spot checked these alternative models and it's not clear which is  
+# # better.
+# # agg_me_w_mod_model_uc <- lm(agg ~ p_mod_f, data = this_dat)
+# # agg_me_w_mod_model_uc <- lm(agg ~ fa_cent + ppr_cent + p_mod_f_cent, data = this_dat)
+
+# Unstandardized linear model definition
+
+# Unstandardized Path a
+
+# Unstandardized Paths b + c'
+
+
+# Standardized linear model definition
+
+# Standardized Path a
+
+# Standardized Path b + c'
+
+
+```
+
+
+### Residuals Plots
+```{r residuals_figures}
+
+# # Check Residuals plot (Heteroscedasticity)
+# # Fitted values vs. residuals to examine homoscedasticity
+# # NOTE use of .resid to plot residuals
+# 
+# 
+# # Main Effects: agg ~ fa + ppr
+# agg_resid_me_fig = ggplot( agg_simp_mod_uc, aes(.fitted, .resid) )
+# 
+# agg_resid_me_fig +
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Childhood Aggression Levels (1-20)") +
+#     ylab("Aggression Residuals (1 - 20)") +
+#     ggtitle("Main Effects Childhood Aggression Residual vs. Fitted Plot") +
+#     my_gg_theme
+# 
+# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+# agg_resid_me_sd_fig = ggplot( agg_simp_mod_uc,
+#                               aes(.fitted , .resid / my_descr$descriptives$asDF$`agg[sd]` )
+#                             )
+# 
+# agg_resid_me_sd_fig +
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Childhood Aggression Levels (1-20)") +
+#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+#     ggtitle("Main Effects Childhood Aggression Residual vs. Fitted Plot") +
+#     my_gg_theme
+# 
+# # Create Residuals plot for Fitted values with Moderation Accounted for
+# 
+# # Moderation Effects: agg ~ fa + ppr + p_mod_f
+# agg_resid_mod_fig = ggplot( agg_me_w_mod_model_uc, aes(.fitted, .resid) )
+# 
+# agg_resid_mod_fig +
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Childhood Aggression Levels (1-20)") +
+#     ylab("Aggression Residuals (1 - 20)") +
+#     ggtitle("Main + Moderation Effects Childhood Aggression Residual vs. Fitted Plot") +
+#     my_gg_theme
+# 
+# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+# agg_resid_mod_sd_fig = ggplot( agg_me_w_mod_model_uc,
+#                               aes(.fitted , .resid / my_descr$descriptives$asDF$`agg[sd]` )
+#                             )
+# 
+# agg_resid_mod_sd_fig +
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Childhood Aggression Levels (1-20)") +
+#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+#     ggtitle("Main + Moderation Childhood Aggression Residual vs. Fitted Plot") +
+#     my_gg_theme
+
+```
+
+
+### Homoscedasticity Checks
+```{r homoscedasticity_checks}
+
+# # Run a Breusch Pagan Test of homoscedasticity for both models, for both reference grad values
+# 
+# cat( paste("  ", "---- Breusch-Pagan Main Effects ----", " ", sep = "\n") )
+# car::ncvTest(agg_simp_mod_uc)
+# 
+# cat( paste("  ", "---- Breusch-Pagan Main + Moderation Effects ----", " ", sep = "\n") )
+# car::ncvTest(agg_me_w_mod_model_uc)
+
+
+```
+
+
+### Multi-Variate Normality
+
+```{r multivar_norm}
+
+
+# # Code below manually produces QQ Plot for better alignment with general plot styles
+# ggplot(agg_simp_mod_uc, 
+#          aes( 
+#                qqnorm( .stdresid,
+#                        xlab = "", ylab = "", 
+#                        conf.level = 0.945, 
+#                        conf.args = list(col = "lightgrey", exact = TRUE) 
+#                       )[[1]],
+#                .stdresid ) 
+#        ) + 
+#     geom_point(na.rm = TRUE) +
+#     xlab("Theoretical Quantiles") + 
+#     ylab("Standardized Residuals") +
+#     ggtitle("Normal Q-Q of Main Effects Model") + 
+#     my_gg_theme
+# 
+# # Henze-Zirkler test of multivariate normality
+# # Columns 2-4 are Aggression, Family Adversity, and Positive Peer Support respectively.
+# HZ.test(this_dat[2:4])
+
+
+```
+
+
+
+
+
 
 ### Assumptions, Figures, and Plots - Raw Data
 
@@ -329,6 +510,66 @@ If there are data issues that need to be adjusted, clean the data here.
 ``` {r data_cleaning_raw}
 
 ```
+
+### Construct Mediation Models
+
+We need to perform multiple mediation analysis methods, including B&K's OG method, that same supplemented with Sobel's  
+test, and bootstrapping our best answer. For bootstrapping, we'll want both standardized and unstandardized coefficient  
+outputs which means we'll need to define our linear regression models with both standardized data and unstandardized   
+data.
+
+#### Baron and Kenny
+
+Here we use B&K's method to evaluate the impact of mediation
+
+
+```{r baron_and_kenny_method}
+
+# SAMPLE CODE - SIMPLE REGRESSION
+# #simple regression looking at self-efficacy (centered) as a predictor of desire to lead in a group (e.g. self-efficacy (centered) regressed on desire to lead)
+# breaks_model_lin_reg <- linReg( data = breaks_dat, 
+#                                 dep = 'product', 
+#                                 covs = c('length_centered'), 
+#                                 blocks = list( c( 'length_centered') ), 
+#                                 modelTest = TRUE, 
+#                                 stdEst = TRUE,
+#                                 ci = TRUE)
+# breaks_model_lin_reg
+
+# Model 1: Evaluate Total Effect (Path c), regress OV onto PV
+
+# Model 2: Evaluate Path a (regress mediator onto PV)
+
+# Model 3: Evaluate Path b and c'  regress OV onto Mediator and PV
+
+```
+
+#### Sobel's Test
+
+Now we need to perform the Null Hypothesis test to evaluate if the a+b effects are significantly discernable from 0  
+
+```{r sobel_test}
+# Do Sobel Things
+
+
+```
+
+#### Bootstrap's Bootstraps - Unstandardized Bootstraps
+```{r unstandardized_bootstrap}
+# mediation::mediate()
+
+
+```
+
+
+
+#### Bootstrap me Baby, One More Time - Standardized Bootstraps
+
+```{r standardized_bootstrap}
+# mediation::mediate()
+
+```
+
 
 ### Build Simple Regression Model
 
