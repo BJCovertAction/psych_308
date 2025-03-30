@@ -39,9 +39,9 @@ Input Variable Table HERE
 
 | Variable | Type | Description |
 |:-----|:---|:------------------|
-| `Parent_Anx` | 1-20 scale | Higher scores indicating higher anxiety symptoms |
-| `Child_Anx`  | 1-20 scale | Higher scores indicating higher anxiety symptoms    |
-| `Parent_OC`  | 1-20 scale | Higher scores indicating greater use of overcontrol |
+| `Parent_Anx` | 1-20 scale | PV: Higher scores indicating higher anxiety symptoms      |
+| `Child_Anx`  | 1-20 scale | OV: Higher scores indicating higher anxiety symptoms      |
+| `Parent_OC`  | 1-20 scale | MedV: Higher scores indicating greater use of overcontrol |
 
 ## Research Question  
   
@@ -113,107 +113,131 @@ grid_color_minor = "#C8D7EA"
 back_color = "gray95"
 rb_colmap = colorRampPalette( c("firebrick", "grey86", "dodgerblue3") )(200)
 
+# I'm going to try to save off my preferred ggplot theme combinations as a unqiue theme object that I can just reference
+# later in the code....totally unclear if ggplot works this way....
+my_gg_theme = theme_minimal() +
+              theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+                     axis.title.x = element_text(color = font_color),
+                     axis.title.y = element_text(color = font_color),
+                     axis.text.x = element_text(color = font_color),
+                     axis.text.y = element_text(color = font_color),
+                     legend.title = element_text(color = font_color),
+                     legend.text = element_text(color = font_color),
+                     panel.grid.minor = element_line(color = grid_color_minor),
+                     panel.grid.major = element_line(color = grid_color_major),
+                     panel.background = element_rect(fill = back_color, color = font_color)
+                   )
 
 ```
 
 ### Load and View data
 
+Here we load the dataframe from the CSV file provided for the assignment, and we 
+
+
 ```{r load_raw_data}
 
-# SAMPLE CODE
-# # Stuff goes here
-# breaks_raw_dat = read.csv("./da01.csv")
-# 
-# # Rename columns to lower because why not
-# colnames(breaks_raw_dat) <- tolower( colnames(breaks_raw_dat) )
-# 
-# # View data
+# Load the assignment data from CSV
+raw_dat = read.csv("./308D.DA1 Mediation.Data.csv")
+
+# Rename columns to lower because why not
+colnames(raw_dat) <- tolower( colnames(raw_dat) )
+
+# View data
 # glimpse(breaks_raw_dat)
-# 
-# # Ensure that the employee numbers of each subject in the study are unique to prevent any duplicate data
-# # if the size of the unique-entries only is the same as the whole vector then there are no duplicate subjects
-# test_unique = (length(unique(breaks_raw_dat$subject)) == length(breaks_raw_dat$subject))
-# if(!test_unique){
-#     print("WARNING: There are duplicate data entries in the raw data")
-# }else{
-#     print("No duplicate entries detected in raw data")
-# }
+
+# Ensure that the numbers of each subject in the study are unique to prevent any duplicate data
+# if the size of the unique-entries only is the same as the whole vector then there are no duplicate subjects
+# NOTE: This fails if the colname of the subject ID is input wrong (e.g. if the subject ID is not named "participant"
+#       in the dataframe. So check that the colname exists before blindly believing)
+test_unique = (length(unique(raw_dat$participant)) == length(raw_dat$participant))
+if(!test_unique){
+    print("WARNING: There are duplicate data entries in the raw data")
+}else{
+    print("No duplicate entries detected in raw data")
+}
 ```
 
 ### Add Centered Data
 
+It is often useful to have the centered data in addition to the uncentered data. So we add that here manually.
 
 ```{r center_data}
 
-# # Center all continuous predictor data for models. We DON'T center outcome var (transition success) or categorical vars  
-# # (HS graduation times)
-# this_dat$fa_cent      <- this_dat$fa - mean(this_dat$fa)
-# this_dat$ppr_cent     <- this_dat$ppr - mean(this_dat$ppr)
-# # this_dat$p_mod_f_cent <- this_dat$p_mod_f - mean(this_dat$p_mod_f) # THIS DOESN'T WORK, WRONG WAY TO CRATE A CENTERED
-# #                                                                    # MODERATOR. DOESN'T HANDLE TRANSITIVE TERM OF
-# #                                                                    # SUBTRACTING MEANS CORRECTLY
-# this_dat$p_mod_f_cent <- this_dat$ppr_cent * this_dat$fa_cent
-
+# Center all continuous data, which, in our dataframe, is the predictor variable, outcome variable, and mediator variable
+raw_dat$parent_anx_cent <- raw_dat$parent_anx - mean(raw_dat$parent_anx)
+raw_dat$parent_oc_cent  <- raw_dat$parent_oc - mean(raw_dat$parent_oc)
+raw_dat$child_anx_cent  <- raw_dat$child_anx - mean(raw_dat$child_anx)
 ```
 
+### Construct Standardized Dataframe and add Centered Values
+
+For the purposes of mediation models, we need manually defined models that rely on standardized data (centered and   
+scaled by standard deviation). We could compute this manually after extracting the mean and SD from the descriptives   
+dataframe, but the "scale" function builds this capability automagically in R so we just use it here.
+
+```{r standardize_variables}
+
+# We can use the scale function to center and standardize the data in the original dataframe
+# NOTE: We have to access the contents of the dataframe returned by scale with [,1] as scale will natrually return a 
+#       whole dataframe, not just a numeric array. So this gets everything defined as the correct datatype to match the  
+#       other contents in raw_dat
+raw_dat$parent_anx_std = scale(raw_dat$parent_anx, center = TRUE, scale = TRUE)[,1]
+raw_dat$parent_oc_std = scale(raw_dat$parent_oc, center = TRUE, scale = TRUE)[,1]
+raw_dat$child_anx_std = scale(raw_dat$child_anx, center = TRUE, scale = TRUE)[,1]
+```
 
 ### Descriptive Statistics - Raw Data
 
-This section will look at base descriptive statistics of the raw data to help identify data anomalies and check   
-normality of predictor variables (break length - minutes)
+This section will look at base descriptive statistics of the raw data to help identify data anomalies and check     
+normality of variables.   
+  NOTE: While including the descriptives of the centered and standardized vars looks redundant, it gives us a way of   
+        confirming those computations did what we thought they would.
 
 ```{r descriptive_stats_raw}
 
-# # We'll need to check both univariate normality and multi-variate normality. 
-# my_descr = jmv::descriptives( this_dat,
-#                               vars = c('fa', 'ppr', 'agg', 'p_mod_f'),
-#                               hist = TRUE,
-#                               dens = TRUE,
-#                               qq = TRUE,
-#                               sd = TRUE,
-#                               variance = TRUE,
-#                               se = TRUE,
-#                               skew = TRUE,
-#                               kurt = TRUE,
-#                               missing = TRUE
-#                             )
-# print(my_descr)
+# We'll need to check both univariate normality and multi-variate normality.
+my_descr = jmv::descriptives( raw_dat,
+                              vars = c('parent_anx', 'parent_oc', 'child_anx', 
+                                       'parent_anx_cent', 'parent_oc_cent', 'child_anx_cent', 
+                                       'parent_anx_std', 'parent_oc_std', 'child_anx_std'),
+                              hist = TRUE,
+                              dens = TRUE,
+                              qq = TRUE,
+                              sd = TRUE,
+                              variance = TRUE,
+                              se = TRUE,
+                              skew = TRUE,
+                              kurt = TRUE,
+                              missing = TRUE
+                            )
+print(my_descr)
 
 ```
 
 ### Correlation Plots - Raw Data
 
-Visualize the covariance matrix to understand correlation between break length and employee productivity
+Visualize the covariance matrix to understand correlations between all numeric variables. Note we have to manually  
+remove categorical variables from this output.
 
 
 ```{r correlation_plots_raw}
 
-# # We look at correlations for both the centered and uncentered data.... turns out it doesn't matter
-# 
-# # Uncentered correlations
-# m1_subset = this_dat[ c('agg', 'fa', 'ppr') ]
-# agg_cor_m1 <- stats::cor( m1_subset )
-# corrplot( agg_cor_m1,
-#           method="color",
-#           type = "full",
-#           addCoef.col = "black",
-#           col = rb_colmap,
-#           tl.col = font_color )
-# 
-# # Centered correlations.
-# m2_subset = this_dat[ c('agg', 'fa_cent', 'ppr_cent') ]
-# agg_cor_m1 <- stats::cor( m2_subset )
-# corrplot( agg_cor_m1,
-#           method="color",
-#           type = "full",
-#           addCoef.col = "black",
-#           col = rb_colmap,
-#           tl.col = font_color )
-# 
-# # Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
-# # 1 for tables, but oh well)
-# agg_cor_tab_m2 <- jmv::corrMatrix(m2_subset, flag = TRUE)
-# print( agg_cor_tab_m2 )
+# We look at correlations for both the raw data as they will be equivalent between both centered and uncenterd
+# variations
+raw_subset = raw_dat[ c('parent_anx', 'parent_oc', 'child_anx') ]
+corr_raw <- stats::cor( raw_subset )
+corrplot( corr_raw,
+          method="color",
+          type = "full",
+          addCoef.col = "black",
+          col = rb_colmap,
+          tl.col = font_color )
+
+# Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
+# 1 for tables, but oh well)
+cor_tab_raw <- jmv::corrMatrix(raw_subset, flag = TRUE)
+print( cor_tab_raw )
 
 ```
 
@@ -245,15 +269,6 @@ Visualize the covariance matrix to understand correlation between break length a
 # Make sure you plot OV as fncn of both PV and Mediator.
 
 # Make sure you plot Mediator as function of PV
-
-```
-
-### Construct Standardized Dataframe
-
-```{r standardize_variables}
-
-# We can use the scale function to center and standardize the data in the original dataframe
-
 
 ```
 
