@@ -468,19 +468,20 @@ test, and bootstrapping our best answer. For bootstrapping, we'll want both stan
 outputs which means we'll need to define our linear regression models with both standardized data and unstandardized   
 data.
 
-#### Baron and Kenny
+#### Baron and Kenny - Unstandardized Data
 
-Here we use B&K's method to evaluate the impact of mediation
+Here we use B&K's method to evaluate the impact of media
 
 
 ```{r baron_and_kenny_method}
 
 # SAMPLE CODE - BARON and KENNY
+
 # #Step 1: Regress X (treat_num) onto Y (depress2)
 # model.j1 <- linReg(data = dat.jobs, dep = 'depress2', 
 #                  covs = c('treat_num', 'depress1'), 
 #                  blocks = list(
-#                    list('treat_num', 'depress1')), 
+#                    list('treat_num', 'depress1')), tion
 #                 collin = TRUE, 
 #                 stdEst = TRUE,
 #                 ci = TRUE)
@@ -507,10 +508,48 @@ Here we use B&K's method to evaluate the impact of mediation
 # model.j3
 
 # Model 1: Evaluate Total Effect (Path c), regress OV onto PV
+regr_ca_v_pa <- linReg( raw_dat,
+                        dep = 'child_anx',
+                        covs = c('parent_anx'),
+                        blocks = list(
+                                       list( 'parent_anx' )
+                                      ),
+                        modelTest = TRUE,
+                        stdEst = TRUE,
+                        r2Adj = TRUE,
+                        collin = TRUE,
+                        ci = TRUE)
+regr_ca_v_pa
 
 # Model 2: Evaluate Path a (regress mediator onto PV)
+regr_po_v_pa <- linReg( raw_dat,
+                        dep = 'parent_oc',
+                        covs = c('parent_anx'),
+                        blocks = list(
+                                       list( 'parent_anx' )
+                                      ),
+                        modelTest = TRUE,
+                        stdEst = TRUE,
+                        r2Adj = TRUE,
+                        collin = TRUE,
+                        ci = TRUE)
+regr_po_v_pa
 
-# Model 3: Evaluate Path b and c'  regress OV onto Mediator and PV
+# Model 3: Evaluate Path b and c'  regress OV onto Mediator and PV. We build up two models here, recasting Model 1 
+#          above, so we can directly compare it.
+regr_ca_v_pa_and_po <- linReg( raw_dat,
+                               dep = 'child_anx',
+                               covs = c('parent_anx', 'parent_oc'),
+                               blocks = list(
+                                              list( 'parent_anx' ),
+                                              list( 'parent_oc' )
+                                             ),
+                               modelTest = TRUE,
+                               stdEst = TRUE,
+                               r2Adj = TRUE,
+                               collin = TRUE,
+                               ci = TRUE)
+regr_ca_v_pa_and_po
 
 ```
 
@@ -520,8 +559,13 @@ Now we need to perform the Null Hypothesis test to evaluate if the a+b effects a
 
 ```{r sobel_test}
 
-# # Test the indirect path with sobels test based on previous section models
-# test_mediation(depress2 ~ treat_num + m(mastery), covariates = c("depress1"), test = c("sobel"), data = dat.jobs)
+# Test the indirect path with sobels test based on previous section models
+#  NOTE: We don't need to define a covariate here since we don't have any control variables.
+#        Additionally, we use the m(MedV) syntax to define the mediator per the help docs       
+test_mediation( child_anx ~ parent_anx + m(parent_oc),
+                test = c("sobel"), 
+                data = raw_dat
+              )
 
 
 ```
