@@ -97,7 +97,7 @@ library(GGally)
 library(lsr)
 library(car)
 library(mvnTest)     # Multivariate Normality
-library(lm.beta)
+library(lm.beta)     # For extracting coefficients from bootstrap runs
 
 ```
 
@@ -243,28 +243,48 @@ print( cor_tab_raw )
 
 ### Scatterplots of Variables
 
+Since we're basing our models of assumed linear relationships we need to look at scatterplots of our various PV->OV  
+relationships. In  making mediation models, we'll be building the following 3x regressions:
+ OV   ~ PV   
+ OV   ~ PV + MedV   
+ MedV ~ PV   
+   
+ So we need to build each of these scatterplots
+
 ```{r scatter_plots}
-# 
-# # Scatterplot 1: Aggression vs. Family Adversity  (uncentered)
-# agg_scatter_faunc <- ggplot(this_dat, aes(agg, fa) )
-# 
-# agg_scatter_faunc +
-#     geom_point() +
-#     geom_smooth(method = "lm", colour = "Red") +
-#     ggtitle("Childhood Aggression as a Function of Family Adversity") +
-#     labs(y = "Childhood Aggression (1-20)", x = "Family Adversity (1-20)") +
-#     my_gg_theme
-# 
-# 
-# # Scatterplot 2: Aggression vs. Positive Peer Support  (uncentered)
-# agg_scatter_ppruc <- ggplot(this_dat, aes(agg, ppr) )
-# 
-# agg_scatter_ppruc +
-#     geom_point() +
-#     geom_smooth(method = "lm", colour = "Red") +
-#     ggtitle("Childhood Aggression as a Function of Positve Peer Relationships") +
-#     labs(y = "Childhood Aggression (1-20)", x = "Positive Peer Relationships (1-20)") +
-#     my_gg_theme
+
+# All scatterplots are uncentered 
+
+# Scatterplot 1: Child Anxiety vs. Parent Anxiety  (uncentered)
+scatter_ca_v_pa <- ggplot(raw_dat, aes(child_anx, parent_anx) )
+
+scatter_ca_v_pa +
+    geom_point() +
+    geom_smooth(method = "lm", colour = "Red") +
+    ggtitle("Childhood Anxiety as a Function of Parent Anxiety") +
+    labs(y = "Childhood Anxiety (1-20)", x = "Parent Anxiety (1-20)") +
+    my_gg_theme
+
+
+# Scatterplot 2: Child Anxiety vs. Parent Overcontrol  (uncentered)
+scatter_ca_v_po <- ggplot(raw_dat, aes(child_anx, parent_oc) )
+
+scatter_ca_v_po +
+    geom_point() +
+    geom_smooth(method = "lm", colour = "Red") +
+    ggtitle("Childhood Anxiety as a Function of Parent Overcontrol") +
+    labs(y = "Childhood Anxiety (1-20)", x = "Parent Overcontrol (1-20)") +
+    my_gg_theme
+
+# Scatterplot 3: Parent Overcontrol vs. Parent Anxiety  (uncentered)
+scatter_po_v_pa <- ggplot(raw_dat, aes(parent_oc, parent_anx) )
+
+scatter_po_v_pa +
+    geom_point() +
+    geom_smooth(method = "lm", colour = "Red") +
+    ggtitle("Parent Overcontrol as a Function of Parent Anxiety") +
+    labs(y = "Parent Overcontrol (1-20)", x = "Parent Anxiety (1-20)") +
+    my_gg_theme
 
 # Make sure you plot OV as fncn of both PV and Mediator.
 
@@ -273,6 +293,9 @@ print( cor_tab_raw )
 ```
 
 ### Build Simple Linear Models (lm)
+
+For the purpose of B&K, bootstrapping, and assumption checks we need to define multiple linear models. Some will be
+in the unstandardized space, while others are in the standardized space
 
 ```{r linear_model_definition}
 
@@ -296,77 +319,79 @@ print( cor_tab_raw )
 # Unstandardized linear model definition
 
 # Unstandardized Path a
+mod_po_v_pa_unstd = lm(parent_oc ~ parent_anx, data = raw_dat)
 
 # Unstandardized Paths b + c'
-
+mod_ca_v_pa_and_po_unstd = lm(child_anx ~ parent_anx + parent_oc, data = raw_dat)
 
 # Standardized linear model definition
 
 # Standardized Path a
+mod_po_v_pa_std = lm(parent_oc_std ~ parent_anx_std, data = raw_dat)
 
 # Standardized Path b + c'
-
-
+mod_ca_v_pa_and_po_std = lm(child_anx_std ~ parent_anx_std + parent_oc_std, data = raw_dat)
 ```
 
-
 ### Residuals Plots
+
+For the purposes of heteroscedasticity, we're going to look at unstandardized, saturated models. The saturated model  
+in mediation models are the b + c' path.
+
 ```{r residuals_figures}
 
-# # Check Residuals plot (Heteroscedasticity)
-# # Fitted values vs. residuals to examine homoscedasticity
-# # NOTE use of .resid to plot residuals
-# 
-# 
-# # Main Effects: agg ~ fa + ppr
-# agg_resid_me_fig = ggplot( agg_simp_mod_uc, aes(.fitted, .resid) )
-# 
-# agg_resid_me_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Childhood Aggression Levels (1-20)") +
-#     ylab("Aggression Residuals (1 - 20)") +
-#     ggtitle("Main Effects Childhood Aggression Residual vs. Fitted Plot") +
-#     my_gg_theme
-# 
-# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-# agg_resid_me_sd_fig = ggplot( agg_simp_mod_uc,
-#                               aes(.fitted , .resid / my_descr$descriptives$asDF$`agg[sd]` )
-#                             )
-# 
-# agg_resid_me_sd_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Childhood Aggression Levels (1-20)") +
-#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
-#     ggtitle("Main Effects Childhood Aggression Residual vs. Fitted Plot") +
-#     my_gg_theme
-# 
-# # Create Residuals plot for Fitted values with Moderation Accounted for
-# 
-# # Moderation Effects: agg ~ fa + ppr + p_mod_f
-# agg_resid_mod_fig = ggplot( agg_me_w_mod_model_uc, aes(.fitted, .resid) )
-# 
-# agg_resid_mod_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Childhood Aggression Levels (1-20)") +
-#     ylab("Aggression Residuals (1 - 20)") +
-#     ggtitle("Main + Moderation Effects Childhood Aggression Residual vs. Fitted Plot") +
-#     my_gg_theme
-# 
-# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-# agg_resid_mod_sd_fig = ggplot( agg_me_w_mod_model_uc,
-#                               aes(.fitted , .resid / my_descr$descriptives$asDF$`agg[sd]` )
-#                             )
-# 
-# agg_resid_mod_sd_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Childhood Aggression Levels (1-20)") +
-#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
-#     ggtitle("Main + Moderation Childhood Aggression Residual vs. Fitted Plot") +
-#     my_gg_theme
+# Check Residuals plot (Heteroscedasticity)
+# Fitted values vs. residuals to examine homoscedasticity
+# NOTE use of .resid to plot residuals
+
+
+# Unstandardized Residuals Plot: Childhood anxiety
+fig_ca_v_pa_and_po_unstd = ggplot( mod_ca_v_pa_and_po_unstd, aes(.fitted, .resid) )
+
+fig_ca_v_pa_and_po_unstd +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Childhood Anxiety Levels (1-20)") +
+    ylab("Childhood Anxiety Residuals (1 - 20)") +
+    ggtitle("Unstandardized - Childhood Anxiety Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+# We can use our standardized models here to check this.
+fig_ca_v_pa_and_po_std = ggplot( mod_ca_v_pa_and_po_std, aes(.fitted, .resid) )
+
+fig_ca_v_pa_and_po_std +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Childhood Anxiety Levels (Multiples of SD)") +
+    ylab("Childhood Anxiety Residuals (Multiples of SD)") +
+    ggtitle("Standardized - Childhood Anxiety Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# Finally, we need to check the same residuals plots for parental overcontrol as a function of parental anxiety 
+# (Mediator regressed onto PV)
+
+# Unstandardized Residuals Plot: Parental Overcontrol
+fig_po_v_pa_unstd = ggplot( mod_po_v_pa_unstd, aes(.fitted, .resid) )
+
+fig_po_v_pa_unstd +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Parental Overcontrol Levels (1-20)") +
+    ylab("Parental Overcontrol Residuals (1 - 20)") +
+    ggtitle("Unstandardized - Parental Overcontrol Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# Standardized Residuals Plot: Parental Overcontrol
+fig_po_v_pa_std = ggplot( mod_po_v_pa_std, aes(.fitted, .resid) )
+
+fig_po_v_pa_std +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Parental Overcontrol Levels (Multiples of SD)") +
+    ylab("Parental Overcontrol Residuals (Multiples of SD)") +
+    ggtitle("Standardized - Parental Overcontrol Residual vs. Fitted Plot") +
+    my_gg_theme
 
 ```
 
@@ -374,15 +399,13 @@ print( cor_tab_raw )
 ### Homoscedasticity Checks
 ```{r homoscedasticity_checks}
 
-# # Run a Breusch Pagan Test of homoscedasticity for both models, for both reference grad values
-# 
-# cat( paste("  ", "---- Breusch-Pagan Main Effects ----", " ", sep = "\n") )
-# car::ncvTest(agg_simp_mod_uc)
-# 
-# cat( paste("  ", "---- Breusch-Pagan Main + Moderation Effects ----", " ", sep = "\n") )
-# car::ncvTest(agg_me_w_mod_model_uc)
+# Run a Breusch Pagan Test of homoscedasticity for both the saturated model, and the mediator model
+#  NOTE: Results will be the same for equivalent standardized and unstandardized models
+cat( paste("  ", "---- Breusch-Pagan Path b + c' ----", " ", sep = "\n") )
+car::ncvTest(mod_ca_v_pa_and_po_unstd)
 
-
+cat( paste("  ", "---- Breusch-Pagan Path a ----", " ", sep = "\n") )
+car::ncvTest(mod_po_v_pa_unstd)
 ```
 
 
@@ -390,144 +413,49 @@ print( cor_tab_raw )
 
 ```{r multivar_norm}
 
+# Code below manually produces QQ Plot for better alignment with general plot styles
+# Unstandardized QQ plot for saturated (path b + c', model)
+ggplot(mod_ca_v_pa_and_po_unstd,
+         aes(
+               qqnorm( .stdresid,
+                       xlab = "", ylab = "",
+                       conf.level = 0.945,
+                       conf.args = list(col = "lightgrey", exact = TRUE)
+                      )[[1]],
+               .stdresid )
+       ) +
+    geom_point(na.rm = TRUE) +
+    xlab("Theoretical Quantiles") +
+    ylab("Standardized Residuals") +
+    ggtitle("Normal Q-Q: Childhood Anxiety ~ Parental Anxiety + Overcontrol") +
+    my_gg_theme
 
-# # Code below manually produces QQ Plot for better alignment with general plot styles
-# ggplot(agg_simp_mod_uc, 
-#          aes( 
-#                qqnorm( .stdresid,
-#                        xlab = "", ylab = "", 
-#                        conf.level = 0.945, 
-#                        conf.args = list(col = "lightgrey", exact = TRUE) 
-#                       )[[1]],
-#                .stdresid ) 
-#        ) + 
-#     geom_point(na.rm = TRUE) +
-#     xlab("Theoretical Quantiles") + 
-#     ylab("Standardized Residuals") +
-#     ggtitle("Normal Q-Q of Main Effects Model") + 
-#     my_gg_theme
-# 
-# # Henze-Zirkler test of multivariate normality
-# # Columns 2-4 are Aggression, Family Adversity, and Positive Peer Support respectively.
-# HZ.test(this_dat[2:4])
+# Unstandardized QQ plot for saturated (path a, model)
+ggplot(mod_po_v_pa_unstd,
+         aes(
+               qqnorm( .stdresid,
+                       xlab = "", ylab = "",
+                       conf.level = 0.945,
+                       conf.args = list(col = "lightgrey", exact = TRUE)
+                      )[[1]],
+               .stdresid )
+       ) +
+    geom_point(na.rm = TRUE) +
+    xlab("Theoretical Quantiles") +
+    ylab("Standardized Residuals") +
+    ggtitle("Normal Q-Q: Parental Overcontrol ~ Parental Anxiety") +
+    my_gg_theme
+
+# Henze-Zirkler test of multivariate normality
+# Columns 2-4 are Parental Anxiety, Parental Overcontrol, and Childhood Anxiety - all unstandardized
+HZ.test(raw_dat[2:4])
 
 
-```
-
-
-
-
-
-
-### Assumptions, Figures, and Plots - Raw Data
-
-Descriptives section already checked normality so here we need to focus on linearity and homoscedasticity. We're  
-going to center the data outright because I don't want to run everything multiple times.
-
-```{r assumptions_and_figures_raw}
-
-# SAMPLE CODE
-# # Centering the data
-# breaks_dat$length_centered <- breaks_dat$length - mean(breaks_dat$length)
-# 
-# 
-# # Check Scatterplot of Centered data: Break Length is PV, Productivity is OV
-# breaks_raw_scatter <- ggplot(breaks_dat, aes(length, product) )
-# 
-# breaks_raw_scatter + 
-#     geom_point() + 
-#     geom_smooth(method = "lm", colour = "Red") + 
-#     ggtitle("Break Length Relation to Employee Productivity") + 
-#     labs(x = "Break Length (m)", y = "Employee Productivity (0-100)") +
-#     theme_minimal() +
-#     theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
-#            axis.title.x = element_text(color = font_color),
-#            axis.title.y = element_text(color = font_color),
-#            axis.text.x = element_text(color = font_color),
-#            axis.text.y = element_text(color = font_color),
-#            legend.title = element_text(color = font_color),
-#            legend.text = element_text(color = font_color),
-#            panel.grid.minor = element_line(color = grid_color_minor),
-#            panel.grid.major = element_line(color = grid_color_major),
-#            panel.background = element_rect(fill = back_color, color = font_color)
-#          )
-# 
-# breaks_cent_scatter <- ggplot(breaks_dat, aes(length_centered, product) )
-# 
-# breaks_cent_scatter + 
-#     geom_point() + 
-#     geom_smooth(method = "lm", colour = "Red") + 
-#     ggtitle("Break Length Relation to Employee Productivity") + 
-#     labs(x = "Break Length - Centered (m)", y = "Employee Productivity (0-100)") +
-#     theme_minimal() +
-#     theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
-#            axis.title.x = element_text(color = font_color),
-#            axis.title.y = element_text(color = font_color),
-#            axis.text.x = element_text(color = font_color),
-#            axis.text.y = element_text(color = font_color),
-#            legend.title = element_text(color = font_color),
-#            legend.text = element_text(color = font_color),
-#            panel.grid.minor = element_line(color = grid_color_minor),
-#            panel.grid.major = element_line(color = grid_color_major),
-#            panel.background = element_rect(fill = back_color, color = font_color)
-#          )
-# 
-# 
-# # Check Residuals plot (Heteroscedasticity)
-# # To compute residuals we need to define the model as productivity regressed onto break length in a linear fashion
-# breaks_model_lin <- lm(product ~ length, data = breaks_dat)
-# 
-# # Fitted values vs. residuals to examine homoscedasticity
-# # NOTE use of .resid to plot residuals
-# breaks_resid_fig = ggplot( breaks_model_lin, aes(.fitted, .resid) )
-# 
-# breaks_resid_fig + 
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Productivity Values (0 - 100)") +
-#     ylab("Productivity Residuals (0 - 100)") +
-#     ggtitle("Residual vs. Fitted Plot") +
-#     theme_minimal() +
-#     theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
-#            axis.title.x = element_text(color = font_color),
-#            axis.title.y = element_text(color = font_color),
-#            axis.text.x = element_text(color = font_color),
-#            axis.text.y = element_text(color = font_color),
-#            legend.title = element_text(color = font_color),
-#            legend.text = element_text(color = font_color),
-#            panel.grid.minor = element_line(color = grid_color_minor),
-#            panel.grid.major = element_line(color = grid_color_major),
-#            panel.background = element_rect(fill = back_color, color = font_color)
-#          )
-# 
-# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-# breaks_resid_sd_fig = ggplot( breaks_model_lin, aes(.fitted , .resid / breaks_descr$descriptives$asDF$`product[sd]` ) )
-# 
-# breaks_resid_sd_fig + 
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Productivity Values") +
-#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
-#     ggtitle("Productivity Residual vs. Fitted Plot") +
-#     theme_minimal() +
-#     theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
-#            axis.title.x = element_text(color = font_color),
-#            axis.title.y = element_text(color = font_color),
-#            axis.text.x = element_text(color = font_color),
-#            axis.text.y = element_text(color = font_color),
-#            legend.title = element_text(color = font_color),
-#            legend.text = element_text(color = font_color),
-#            panel.grid.minor = element_line(color = grid_color_minor),
-#            panel.grid.major = element_line(color = grid_color_major),
-#            panel.background = element_rect(fill = back_color, color = font_color)
-#          )  
-# 
-# # Run a Breusch Pagan Test of homoscedasticity
-# car::ncvTest(breaks_model_lin)
 ```
 
 ### Data Cleaning - OPTIONAL
-If there are data issues that need to be adjusted, clean the data here.
+
+After reviewing all assumptions and data homogeneity matters above, found no need to dataclean
 
 ``` {r data_cleaning_raw}
 
@@ -547,16 +475,36 @@ Here we use B&K's method to evaluate the impact of mediation
 
 ```{r baron_and_kenny_method}
 
-# SAMPLE CODE - SIMPLE REGRESSION
-# #simple regression looking at self-efficacy (centered) as a predictor of desire to lead in a group (e.g. self-efficacy (centered) regressed on desire to lead)
-# breaks_model_lin_reg <- linReg( data = breaks_dat, 
-#                                 dep = 'product', 
-#                                 covs = c('length_centered'), 
-#                                 blocks = list( c( 'length_centered') ), 
-#                                 modelTest = TRUE, 
-#                                 stdEst = TRUE,
-#                                 ci = TRUE)
-# breaks_model_lin_reg
+# SAMPLE CODE - BARON and KENNY
+# #Step 1: Regress X (treat_num) onto Y (depress2)
+# model.j1 <- linReg(data = dat.jobs, dep = 'depress2', 
+#                  covs = c('treat_num', 'depress1'), 
+#                  blocks = list(
+#                    list('treat_num', 'depress1')), 
+#                 collin = TRUE, 
+#                 stdEst = TRUE,
+#                 ci = TRUE)
+# model.j1
+# 
+# #Step 2: Regress M (mastery) onto X (treat_num)
+# model.j2 <- linReg(data = dat.jobs, dep = 'mastery', 
+#                  covs = c('treat_num'), 
+#                  blocks = list(
+#                    list('treat_num')), 
+#                 collin = TRUE, 
+#                 stdEst = TRUE,
+#                 ci = TRUE)
+# model.j2
+# 
+# #Step 3: Regress X (treat_num) and M (mastery) onto Y (depress2)
+# model.j3 <- linReg(data = dat.jobs, dep = 'depress2', 
+#                  covs = c('treat_num', 'mastery', 'depress1'), 
+#                  blocks = list(
+#                    list('treat_num', 'mastery', 'depress1')), 
+#                 collin = TRUE, 
+#                 stdEst = TRUE,
+#                 ci = TRUE)
+# model.j3
 
 # Model 1: Evaluate Total Effect (Path c), regress OV onto PV
 
@@ -571,14 +519,53 @@ Here we use B&K's method to evaluate the impact of mediation
 Now we need to perform the Null Hypothesis test to evaluate if the a+b effects are significantly discernable from 0  
 
 ```{r sobel_test}
-# Do Sobel Things
+
+# # Test the indirect path with sobels test based on previous section models
+# test_mediation(depress2 ~ treat_num + m(mastery), covariates = c("depress1"), test = c("sobel"), data = dat.jobs)
 
 
 ```
 
 #### Bootstrap's Bootstraps - Unstandardized Bootstraps
+
+Our standardized and unstandardized models are already defined, so here we can focus on the boostrapping code
+
 ```{r unstandardized_bootstrap}
-# mediation::mediate()
+# Define number of sims to run
+nsims = 10000
+
+# Unstandardized Bootstrap
+# Estimate parameters of the model using a bootstrap sampling method.
+#  Our mediator linear model is passed first (a), followed by our outcome variable saturated model (b + c')
+#  Asking for 10,0000 bootstrap simulations with confidence intervals ("perc"). CI level set at 95%
+#  Need to tell R which variable is the predictor and which is the mediator ("mediator"). 
+#  Adding in identity centrality as a covariate so we can control for this ("treat").
+bootstrap_unstd <- mediation::mediate( mod_po_v_pa_unstd, mod_ca_v_pa_and_po_unstd,
+                                       treat = "parent_anx", 
+                                       mediator = "parent_oc", 
+                                       sims = nsims, 
+                                       boot = TRUE, 
+                                       boot.ci.type = "perc",
+                                       conf.level = 0.95, 
+                                       long = TRUE
+                                     )
+
+#summarize the parameter estimates
+summary(bootstrap_unstd)
+
+# This produces the individual a and b path betas
+unstd_coeff_a = lm.beta(mod_po_v_pa_unstd)
+unstd_coeff_b = lm.beta(mod_ca_v_pa_and_po_unstd)
+
+cat( paste( "  ", "---- Unstandardized Coefficients a and b ----", " ", 
+            "Path a Coefficient (B_a): ", unstd_coeff_a$coefficients["parent_anx"],
+            "Path b Coefficient (B_b): ", unstd_coeff_b$coefficients["parent_oc"],
+            "   ",
+            sep = "\n"
+          ) 
+   )
+
+
 
 
 ```
@@ -587,8 +574,39 @@ Now we need to perform the Null Hypothesis test to evaluate if the a+b effects a
 
 #### Bootstrap me Baby, One More Time - Standardized Bootstraps
 
+Our standardized and unstandardized models are already defined, so here we can focus on the boostrapping code
+
 ```{r standardized_bootstrap}
-# mediation::mediate()
+# Standardized Bootstrap
+# Estimate parameters of the model using a bootstrap sampling method.
+#  Our mediator linear model is passed first (a), followed by our outcome variable saturated model (b + c')
+#  Asking for 10,0000 bootstrap simulations with confidence intervals ("perc"). CI level set at 95%
+#  Need to tell R which variable is the predictor and which is the mediator ("mediator"). 
+#  Adding in identity centrality as a covariate so we can control for this ("treat").
+bootstrap_std <- mediation::mediate( mod_po_v_pa_std, mod_ca_v_pa_and_po_std,
+                                     treat = "parent_anx_std", 
+                                     mediator = "parent_oc_std", 
+                                     sims = nsims, 
+                                     boot = TRUE, 
+                                     boot.ci.type = "perc",
+                                     conf.level = 0.95, 
+                                     long = TRUE
+                                   )
+
+#summarize the parameter estimates
+summary(bootstrap_std)
+
+# This produces the individual a and b path betas
+std_coeff_a = lm.beta(mod_po_v_pa_std)
+std_coeff_b = lm.beta(mod_ca_v_pa_and_po_std)
+
+cat( paste( "  ", "---- Standardized Coefficients a and b ----", " ", 
+            "Path a Coefficient (Beta_a): ", std_coeff_a$standardized.coefficients["parent_anx_std"],
+            "Path b Coefficient (Beta_b): ", std_coeff_b$standardized.coefficients["parent_oc_std"],
+            "   ",
+            sep = "\n"
+          ) 
+   )
 
 ```
 
