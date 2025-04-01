@@ -1,0 +1,36 @@
+---
+title: "PSY.308c.DA5"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Prompt**
+
+Parents with anxiety disorders tend to have children with anxiety disorders as well (see everything ever written by Bogels, Borelli, Wood, or Rapee). This has led some to hypothesize that anxiety is genetically transmitted. However, you think there might be something else going on. Parental overcontrol, the excess regulation of a child's emotion, cognition, and behavior is strongly related to child anxiety. You wonder if anxious parents are more overcontrolling, leading to child anxiety. You decided to conduct a study to figure this out. 
+
+*Variables:*
+Parent_Anx: 1-20 (higher scores indicating higher anxiety symptoms)
+Child_Anx: 1-20 (higher scores indicating higher anxiety symptoms)
+Parent_OC: 1-20 (higher scores indicating greater use of overcontrol)
+
+**Research Question:** Does parental overcontrol mediate the relationship between parent anxiety and child anxiety?
+
+**Part 1:** 
+Conduct the appropriate analysis using both the Baron & Kenney method and bootstrapping techniques and write an APA results section. Report all the proper assumptions and statistics in the results section. Don't forget to include all appropriate tables and figures for both methods. 
+
+**Part 2:**
+1. Interpret your findings for a lay audience. 
+2. Run Sobels test and compare your results to your bootstrapped analysis findings. If the two analyses found different outcomes, determine which results are more appropriate and justify your decision. (Hint: What is a known issue with the Sobel test?)
+3. If you bootstrapped a mediation analysis with 1000 iterations twice, would you obtain the same exact statistics both times? Explain why or why not. 
+
+
+
+
+
+
+

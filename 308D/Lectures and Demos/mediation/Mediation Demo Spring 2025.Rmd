@@ -1,0 +1,325 @@
+---
+title: "Mediation Demo"
+author: "Jessica Diaz"
+date: "3/21/2024"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(foreign)
+library(broom)
+library(robmed)
+library(tidyverse)
+library(mediation)
+library(multilevel)
+library(psych)
+library(jmv)
+library(ggplot2)
+library(magrittr)
+library(apaTables)
+library(GGally)
+library(lsr)
+library(car)
+library(mvnTest)
+library(lm.beta)
+```
+
+***Demo 1***
+For the last four decades, the Michigan Employment Security Commission (MESC) has offered a version of their Job Opportunities and Basic Skills (jobs) program to help promote reemployment of workers who lose their job and to prevent the negative effects of unemployment on mental health and well-being. In their 1995 study, Vinokur and colleagues found that program participation facilitated reemployment and reduced depressive symptoms. Two years later, Vinokur & Schul (1997) investigated the mediational processes underlying these relationships. 
+
+Participants
+1,801 respondents were initially recruited to the study. Accounting for screener results and program drop out, a total of 1,285 participant scores were retained for analysis. All participants had been unemployed for less than 13 weeks, were still seeking a job, and were not expecting to retire within the next 2 years or to be recalled back to their former jobs.  
+
+Variables of Interest (Brief)
+•	treat: Participation in the JOBS II program
+•	depress1: baseline depression symptoms
+•	job_seek: job seeking self efficacy 
+•	depress2: time 2 depression symptoms
+•	mastery: latent factor combination of job seeking self-efficacy, locus of control, self-esteem
+•	treat_num: dummy coded variable of treatment condition
+
+Measure Detail
+•	Program participation: Study participants in the experimental condition participated in the full JOBS II program, which consisted of five 4-hr sessions conducted during the morning hours of a 1-week period. Participants in the control condition were given a booklet briefly describing job-search methods and tips equivalent to three single-spaced pages of text. This booklet was mailed to individuals after they were randomized into the control condition.
+•	Depressive Symptoms: Depressive symptoms level was measured with a subscale of 11 items (a = .90) based on Hopkins Symptom Checklist (Derogatis, Lipman, Rickles, Uhlenhuth, & Covi, 1974). The 11-item scale required respondents to indicate how much ( 1 = not at all, 5 = extremely) they had been bothered or distressed in the past 2 weeks by various depressive symptoms such as feeling blue, having thoughts of ending one's life, and crying easily
+•	Job Search Self-Efficacy: We assessed job-search self-efficacy using a six-item index (a = .87). Regardless of reemployment status, respondents were asked to rate on a 5-point scale the degree of their confidence in being able to successfully perform six essential job-search activities such as completing a job application or resume, using their social network to discover promising job openings, and getting their point across in a job interview. 
+•	Locus of Control: Locus of control measure was based on a 10-item index (a = .68) from Rotter's Locus of Control scale (1966). These items were demonstrated by Gurin, Gurin, and Morrison (1978) to best capture a personal, rather than ideological, orientation and are very similar to those used in another widely used self-mastery scale (Pearlin et al., 1981 ). 
+•	Self-Esteem: The self-esteem measure included ratings on eight items from Rosenberg's (1965) self-esteem scale. The ratings formed an index with an alpha of .83. 
+•	Mastery: We then constructed the mastery measure by computing the mean scores of job-search self-efficacy, locus of control, and self-esteem. This combined measure was constructed following a confirmatory factor analysis that tested whether the three constructs could be accounted for by a latent factor conceived of as personal mastery. Analysis with structural equation modeling (Bentler, 1995) provided a very good fit to the model as measured by several fit indexes including the Bentler and Bonnett (1980) normed fit index (NFI = .98), nonnormed fit index (NNFI = .97), and comparative fit index (CFI = .98).
+
+```{r}
+#Read in your data. As long as its in the same folder as the RMD file, this is the only code you need. 
+datjobs <- read.dta("jobs.dta")
+
+#convert to lower case for ease of entering in variable names
+colnames(datjobs) %<>% tolower()
+```
+
+```{r}
+#create a smaller data set with only our variables of interest
+dat.jobs <- datjobs[c(1,3,11:14)]
+```
+
+```{r}
+#generating the count of missing data in each item
+na_count.jobs <-sapply(dat.jobs, function(y) sum(length(which(is.na(y)))))
+#putting those counts into a nice neat table
+na_count.jobs <- data.frame(na_count.jobs)
+#calling the table so we can see it
+na_count.jobs
+```
+
+```{r}
+#descriptives of your data
+desc.jobs <- descriptives(data = dat.jobs[c(1,2:5)], hist = TRUE, sd = TRUE, range = TRUE, skew = TRUE, kurt = TRUE, splitBy = 'treat')
+desc.jobs
+```
+
+```{r}
+#correlation table - columns included are based on looking at the data set and identifying my continuous variables (correlation tables arent appropriate for pearson correlations)
+cor.jobs <- corrMatrix(dat.jobs[c(2:5)]) 
+cor.jobs
+```
+
+```{r}
+#scatterplots for continuous predictor and your outcome variable
+scatter.jobs.seek <- ggplot(dat.jobs, aes(job_seek, depress2))
+scatter.jobs.seek + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Job Seeking", y = "Depression")
+
+scatter.jobs.mast <- ggplot(dat.jobs, aes(mastery, depress2))
+scatter.jobs.mast + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Mastery", y = "Depression")
+
+scatter.jobs.se <- ggplot(dat.jobs, aes(job_seek, depress2))
+scatter.jobs.se + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Job Search Self-Efficacy", y = "Depression")
+
+scatter.jobs.treat <- ggplot(dat.jobs, aes(treat_num, depress2))
+scatter.jobs.treat + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Intervention Condition", y = "Depression")
+```
+
+```{r}
+#create a saturated models to test normality and homoscedascity
+model.jobs.sat <- lm(depress2~mastery+treat_num, data=dat.jobs)
+
+#HOMOSCEDASTICITY
+#plot fitted values v. residuals to examine homoscedasticity
+ggplot(model.jobs.sat, aes(.fitted, .resid))+geom_point()+geom_hline(yintercept=0, col="red", linetype="dashed")+xlab("Fitted values")+ylab("Residuals")+ggtitle("Residual vs Fitted Plot")+theme_bw()
+#test of homoscedasticity
+ncvTest(model.jobs.sat)
+
+#MULTIVARIATE NORMALITY
+#qqplot to look at multivariate normality
+ggplot(model.jobs.sat, aes(qqnorm(.stdresid)[[1]], .stdresid))+geom_point(na.rm = TRUE)+xlab("Theoretical Quantiles")+ylab("Standardized Residuals")+ggtitle("Normal Q-Q")
+
+#Henze-Zingler test of multivariate normality
+HZ.test(dat.jobs[c(2:6)], qq = FALSE)
+```
+
+***Program Participation to Depression, Mediated by Mastery (Controlling for Depression at T1)***
+***Baron and Kenny Approach***
+```{r}
+#Step 1: Regress X (treat_num) onto Y (depress2)
+model.j1 <- linReg(data = dat.jobs, dep = 'depress2', 
+                 covs = c('treat_num', 'depress1'), 
+                 blocks = list(
+                   list('treat_num', 'depress1')), 
+                collin = TRUE, 
+                stdEst = TRUE,
+                ci = TRUE)
+model.j1
+
+#Step 2: Regress M (mastery) onto X (treat_num)
+model.j2 <- linReg(data = dat.jobs, dep = 'mastery', 
+                 covs = c('treat_num'), 
+                 blocks = list(
+                   list('treat_num')), 
+                collin = TRUE, 
+                stdEst = TRUE,
+                ci = TRUE)
+model.j2
+
+#Step 3: Regress X (treat_num) and M (mastery) onto Y (depress2)
+model.j3 <- linReg(data = dat.jobs, dep = 'depress2', 
+                 covs = c('treat_num', 'mastery', 'depress1'), 
+                 blocks = list(
+                   list('treat_num', 'mastery', 'depress1')), 
+                collin = TRUE, 
+                stdEst = TRUE,
+                ci = TRUE)
+model.j3
+```
+
+```{r}
+#Test the indirect path with sobels test
+test_mediation(depress2 ~ treat_num + m(mastery), covariates = c("depress1"), test = c("sobel"), data = dat.jobs)
+```
+
+```{r}
+#using the mediate function from the package mediation we can run the entire model using bootstrapping to avoid the normality issue with Sobel's test and the constraints of the Baron and Kenny method. We can also control for someone's baseline depression by adding it to the outcome model. 
+
+#specify the mediator model first
+model.jobs.med <- lm(mastery ~ treat_num, dat.jobs)
+#specify the outcome model second
+model.jobs.out <- lm(depress2 ~ treat_num + mastery + depress1, dat.jobs)
+
+#estimate parameters of the model. Asking for 10,0000 bootstrap simulations with confidence intervals ("perc"). Need to tell R which variable is the predictor and which is the mediator. Adding in identity centrality as a covariate so we can control for this.
+jobs.med <- mediation::mediate(model.jobs.med, model.jobs.out, sims = 1000, boot = TRUE, boot.ci.type = "perc", treat = "treat_num", mediator = "mastery", conf.level = 0.95, long = TRUE)
+
+#summarize the parameter estimates
+summary(jobs.med)
+
+#if you want the individual a and b paths, you need to ask for them
+library(lm.beta)
+lm.beta(model.jobs.med)
+lm.beta(model.jobs.out)
+```
+
+
+***Demo 2***
+This study tests a portion of Diaz' social identity theory of psychological safety. According to the theory, identity-activating cues in an individual's environment have the potential to trigger social identity threat (real or perceived threat to one's self-concept based on their social identity - in this case racial identity). Increased levels of social identity threat then relate to lower levels of psychological safety (perception that it is safe to take interpersonal risks). In this example, we're testing whether social identity threat mediates the relationship between organizational hierarchy (AKA hierarchical structures) and psychological safety. 
+
+Variables:
+Hierarchy: Perceived degree or organizational hierarchy (predictor)
+Social identity threat: Real or perceived threats to an individuals [racial] identity (mediator)
+Psychological Safety: The feeling that a team or organization is safe for interpersonal risk taking
+Centrality: Level of identity centrality (how central an individual's racial identity is to their self-concept)
+
+```{r}
+#read in your data
+dat.sit <- read.csv('sit.csv')
+
+#convert to lower case for ease of entering in variable names
+colnames(dat.sit) %<>% tolower()
+
+#remove the drop column that I don't need
+dat.sit <- dat.sit %>% dplyr::select(-drop)
+```
+
+```{r}
+#reverse code my three psych safety items
+dat.sit$ps1_r <- dplyr::recode(dat.sit$ps1_r, '1'=7, '2'=6, '3'=5, '4'=4, '5'=3, '6'=2, '7'=1)
+dat.sit$ps3_r <- dplyr::recode(dat.sit$ps3_r, '1'=7, '2'=6, '3'=5, '4'=4, '5'=3, '6'=2, '7'=1)
+dat.sit$ps5_r <- dplyr::recode(dat.sit$ps5_r, '1'=7, '2'=6, '3'=5, '4'=4, '5'=3, '6'=2, '7'=1)
+```
+
+```{r}
+#generating the count of missing data in each item
+na_count <-sapply(dat.sit, function(y) sum(length(which(is.na(y)))))
+#putting those counts into a nice neat table
+na_count <- data.frame(na_count)
+#calling the table so we can see it
+na_count
+```
+
+```{r}
+#listwise deleting the people with missing centrality items since it's only two participants
+dat.sit.complete <- na.omit(dat.sit)
+```
+
+```{r}
+#create composites
+dat.sit.complete$hierarchy <- rowMeans(dat.sit.complete[2:14])
+dat.sit.complete$psychsafety <- rowMeans(dat.sit.complete[24:30])
+dat.sit.complete$sit <- rowMeans(dat.sit.complete[15:23])
+dat.sit.complete$centrality <- rowMeans(dat.sit.complete[31:37])
+```
+
+```{r}
+#create a new data set with only ID and our composite scores
+dat.sit.comp <- dat.sit.complete[c(1,38:42)]
+```
+
+```{r}
+#glimpse classifications
+glimpse(dat.sit.comp)
+
+#make race a factor rather than a character
+dat.sit.comp$race <- as.factor(dat.sit.comp$race)
+
+#examine overall descriptives for each variable (except participant ID)
+desc.sit <- descriptives(dat.sit.comp[-c(1)], hist = TRUE, sd = TRUE, min = TRUE, max = TRUE, skew = TRUE, kurt = TRUE, freq = TRUE)
+desc.sit
+```
+
+```{r}
+#examine descriptives for each variable by race
+desc.sit.race <- descriptives(dat.sit.comp[-c(1)], splitBy = "race", hist = TRUE, sd = TRUE)
+desc.sit.race
+```
+
+```{r}
+#look at correlations between continuous variables
+cor.sit <- corrMatrix(dat.sit.comp[3:6], flag = TRUE)
+cor.sit
+```
+
+```{r}
+#scatterplots for continuous predictor and your outcome variable
+scatter.sit.hierarchy <- ggplot(dat.sit.comp, aes(hierarchy, psychsafety))
+scatter.sit.hierarchy + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Hierarchy", y = "Psychological Safety")
+
+scatter.sit.sit <- ggplot(dat.sit.comp, aes(sit, psychsafety))
+scatter.sit.sit + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Social Identity Threat", y = "Psychological Safety")
+
+scatter.sit.centrality <- ggplot(dat.sit.comp, aes(centrality, psychsafety))
+scatter.sit.centrality + geom_point() + geom_smooth(method = "lm", colour = "Blue", se = FALSE) + labs(x = "Identity Centrality", y = "Psychological Safety")
+```
+
+```{r}
+#create a saturated models to test normality and homoscedascity
+model.sit.sat <- lm(psychsafety~hierarchy + sit + centrality, data=dat.sit.comp)
+
+#HOMOSCEDASTICITY
+#plot fitted values v. residuals to examine homoscedasticity
+ggplot(model.sit.sat, aes(.fitted, .resid))+geom_point()+geom_hline(yintercept=0, col="red", linetype="dashed")+xlab("Fitted values")+ylab("Residuals")+ggtitle("Residual vs Fitted Plot")+theme_bw()
+#test of homoscedasticity
+ncvTest(model.sit.sat)
+
+#MULTIVARIATE NORMALITY
+#qqplot to look at multivariate normality
+ggplot(model.sit.sat, aes(qqnorm(.stdresid)[[1]], .stdresid))+geom_point(na.rm = TRUE)+xlab("Theoretical Quantiles")+ylab("Standardized Residuals")+ggtitle("Normal Q-Q")
+
+#Henze-Zingler test of multivariate normality
+HZ.test(dat.sit.comp[c(3:6)], qqplot = FALSE)
+```
+
+```{r}
+#Baron & Kenny Causal Steps Approach
+
+#Step 1: Y~X
+model.sit1 <- linReg(data = dat.sit.comp, dep = 'psychsafety', covs = c('hierarchy'), blocks = list(c('hierarchy')), collin = TRUE, stdEst = TRUE)
+model.sit1
+
+#Step 2: X~M
+model.sit2 <- linReg(data = dat.sit.comp, dep = 'sit', covs = c('hierarchy'), blocks = list(c('hierarchy')), collin = TRUE, stdEst = TRUE)
+model.sit2
+
+#Step 3 & 4: Y~X+M 
+model.sit3and4 <- linReg(data = dat.sit.comp, dep = 'psychsafety', covs = c('hierarchy', 'sit'), blocks = list(c('hierarchy', 'sit')), collin = TRUE, stdEst = TRUE)
+model.sit3and4
+```
+
+```{r}
+#Test the indirect path with sobels test 
+test_mediation(psychsafety ~ hierarchy+ m(sit), covariates = c("centrality"), test = c("sobel"), data = dat.sit.comp)
+```
+
+```{r}
+#using the mediate function from the package mediation we can run the entire model using bootstrapping to avoid the normality issue with Sobel's test and the constraints of the Baron and Kenny method.  
+
+#specify the mediator model first. Keeping centrality as a control variable.
+model.sit.med <- lm(sit ~ hierarchy + centrality, dat.sit.comp)
+#specify the outcome model second. Keeping centrality as a control variable.
+model.sit.out <- lm(psychsafety ~ hierarchy + sit + centrality, dat.sit.comp)
+
+#estimate parameters of the model. Asking for 1,000 bootstrap simulations with confidence intervals ("perc"). Need to tell R which variable is the predictor and which is the mediator. 
+sit.med <- mediation::mediate(model.sit.med, model.sit.out, sims = 1000, boot = TRUE, boot.ci.type = "perc", treat = "hierarchy", mediator = "sit", conf.level = 0.95)
+
+#view a summary of the results. ACME stands for average causal mediation effects. ADE stands for average direct effect
+summary(sit.med)
+```
+
