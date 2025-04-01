@@ -475,38 +475,6 @@ Here we use B&K's method to evaluate the impact of media
 
 ```{r baron_and_kenny_method}
 
-# SAMPLE CODE - BARON and KENNY
-
-# #Step 1: Regress X (treat_num) onto Y (depress2)
-# model.j1 <- linReg(data = dat.jobs, dep = 'depress2', 
-#                  covs = c('treat_num', 'depress1'), 
-#                  blocks = list(
-#                    list('treat_num', 'depress1')), tion
-#                 collin = TRUE, 
-#                 stdEst = TRUE,
-#                 ci = TRUE)
-# model.j1
-# 
-# #Step 2: Regress M (mastery) onto X (treat_num)
-# model.j2 <- linReg(data = dat.jobs, dep = 'mastery', 
-#                  covs = c('treat_num'), 
-#                  blocks = list(
-#                    list('treat_num')), 
-#                 collin = TRUE, 
-#                 stdEst = TRUE,
-#                 ci = TRUE)
-# model.j2
-# 
-# #Step 3: Regress X (treat_num) and M (mastery) onto Y (depress2)
-# model.j3 <- linReg(data = dat.jobs, dep = 'depress2', 
-#                  covs = c('treat_num', 'mastery', 'depress1'), 
-#                  blocks = list(
-#                    list('treat_num', 'mastery', 'depress1')), 
-#                 collin = TRUE, 
-#                 stdEst = TRUE,
-#                 ci = TRUE)
-# model.j3
-
 # Model 1: Evaluate Total Effect (Path c), regress OV onto PV
 regr_ca_v_pa <- linReg( raw_dat,
                         dep = 'child_anx',
@@ -563,6 +531,15 @@ Now we need to perform the Null Hypothesis test to evaluate if the a+b effects a
 #  NOTE: We don't need to define a covariate here since we don't have any control variables.
 #        Additionally, we use the m(MedV) syntax to define the mediator per the help docs       
 test_mediation( child_anx ~ parent_anx + m(parent_oc),
+                test = c("sobel"), 
+                data = raw_dat
+              )
+
+# To get the standardized axb coefficent we need to repeat the test with standardized data
+# Test the indirect path with sobels test based on previous section models
+#  NOTE: We don't need to define a covariate here since we don't have any control variables.
+#        Additionally, we use the m(MedV) syntax to define the mediator per the help docs       
+test_mediation( child_anx_std ~ parent_anx_std + m(parent_oc_std),
                 test = c("sobel"), 
                 data = raw_dat
               )
