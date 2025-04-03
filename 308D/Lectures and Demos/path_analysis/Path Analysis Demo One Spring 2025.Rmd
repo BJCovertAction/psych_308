@@ -1,0 +1,204 @@
+---
+title: "308D Path Analysis Demo"
+author: "Jessica Diaz"
+date: "04/02/24"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(haven)
+library(psych)
+library(foreign)
+library(jmv)
+library(multilevel)
+library(tidyverse)
+library(lavaan)
+library(MVN)
+library(performance)
+library(magrittr)
+library(dplyr)
+```
+
+
+***Demo 1***
+Ruybal, A. L., & Siegel, J. T. (2021). Increasing social support for women with postpartum depression through attribution theory guided vignettes and video messages: The understudied role of effort. Journal of Experimental Social Psychology, 97, 104197.
+
+```{r}
+ppd <- read.csv("ppd2.csv")
+```
+
+```{r}
+#do we have any missing data?
+sum(is.na(ppd))
+```
+
+```{r}
+#create composite scores
+ppd$wpss <- rowMeans(ppd[18:23])
+ppd$wpgs <- rowMeans(ppd[24:28])
+ppd$anger <- rowMeans(ppd[7:11])
+ppd$symp <- rowMeans(ppd[2:6])
+ppd$ssoe <- rowMeans(ppd[12:17])
+```
+
+```{r}
+#create new data set with only composites (don't forget experimental variables)
+dat.ppd.comp <- ppd[c(1, 29:36)]
+```
+
+```{r}
+cor.ppd <- corrMatrix(dat.ppd.comp[5:9])
+cor.ppd
+```
+
+```{r}
+desc.ppd <- descriptives(dat.ppd.comp[-c(1)], hist = TRUE, splitBy = "stability", sd = TRUE, min = TRUE, max = TRUE, skew = TRUE, kurt = TRUE, freq = TRUE)
+desc.ppd
+
+ppd.comp <- dat.ppd.comp %>% rename_with(str_to_lower)
+```
+
+```{r}
+mvn(dat.ppd.comp[5:9], subset = NULL, mvnTest = "hz", covariance = TRUE, tol = 1e-25, alpha = 0.5,
+  scale = FALSE, desc = TRUE, transform = "none", R = 1000,
+  univariatePlot = "none", multivariatePlot = "qq",
+  multivariateOutlierMethod = "none", bc = FALSE, bcType = "rounded",
+  showOutliers = FALSE, showNewData = FALSE)
+```
+
+```{r}
+library(parallel)
+#detect processors
+detectCores()
+detectCores()/2
+c <- detectCores()/2 - 1
+c
+```
+
+```{r}
+#Model 1 specification with indirect paths defined (effect of stability)
+modelst <- '
+#regression paths
+wpss ~ st_ss*stability + an_ss*anger + sy_ss*symp + oe_ss*ssoe
+wpgs ~ st_gs*stability + sy_gs*symp + oe_gs*ssoe + an_gs*anger
+anger ~ st_an*stability	
+symp ~ st_sy*stability
+ssoe ~ st_oe*stability
+
+#Indirect paths
+#Indirect paths
+st_an_ss:= st_an*an_ss
+st_sy_ss:= st_sy*sy_ss
+st_oe_ss:= st_oe*oe_ss
+st_an_gs:= st_an*an_gs
+st_sy_gs:= st_sy*sy_gs
+st_oe_gs:= st_oe*oe_gs
+
+#total indirect paths
+indss:= st_an_ss  + st_sy_ss  + st_oe_ss 
+indgs:= st_an_gs  + st_sy_gs  + st_oe_gs 
+
+#total effect
+totalss:= indss + st_ss
+totalgs:= indgs + st_gs'
+
+fitmodelst <- sem(modelst, data=dat.ppd.comp, se="bootstrap", ordered = "stability", estimator = "WLS", bootstrap = 1000, parallel ="snow", ncpus = c)
+
+summary(fitmodelst, fit.measures=TRUE, standardized=TRUE, rsquare=TRUE)
+
+standardizedSolution(fitmodelst, type = "std.all")
+```
+
+```{r}
+#Model 1 respecification with indirect paths defined (effect of stability)
+modelst2 <- '
+#regression paths
+wpss ~  an_ss*anger + oe_ss*ssoe
+wpgs ~ an_gs*anger + oe_gs*ssoe
+anger ~ st_an*stability
+ssoe ~ st_oe*stability
+
+#Indirect paths
+st_an_ss:= st_an*an_ss
+st_oe_ss:= st_oe*oe_ss
+st_an_gs:= st_an*an_gs
+st_oe_gs:= st_oe*oe_gs'
+
+
+fitmodelst2 <- sem(modelst2, data=dat.ppd.comp, se="bootstrap", ordered = "stability", estimator = "WLS", bootstrap = 1000, parallel ="snow", ncpus = c)
+
+summary(fitmodelst2, fit.measures=TRUE, standardized=TRUE, rsquare=TRUE)
+
+standardizedSolution(fitmodelst2, type = "std.all")
+```
+
+```{r}
+#modification indices to see what we might be missing. Always report this.
+modindices(fitmodelst2, sort. = TRUE)
+```
+
+```{r}
+#Lets respecify one more time with a path from sympathy to ssoe. 
+modelst3 <- '
+#regression paths
+wpss ~  an_ss*anger + oe_ss*ssoe
+wpgs ~ an_gs*anger + oe_gs*ssoe
+anger ~ st_an*stability
+ssoe ~ st_oe*stability + an_oe*anger
+
+#Indirect paths
+st_an_ss:= st_an*an_ss
+st_oe_ss:= st_oe*oe_ss
+st_an_gs:= st_an*an_gs
+st_oe_gs:= st_oe*oe_gs
+
+#serial indirect effect...COOL
+st_an_oe_gs:=st_an*an_oe*oe_gs
+st_an_oe_ss:=st_an*an_oe*oe_ss'
+
+
+fitmodelst3 <- sem(modelst3, data=dat.ppd.comp, se="bootstrap", ordered = "stability", estimator = "WLS", bootstrap = 1000, parallel ="snow", ncpus = c)
+
+summary(fitmodelst3, fit.measures=TRUE, standardized=TRUE, rsquare=TRUE)
+
+standardizedSolution(fitmodelst3, type = "std.all")
+```
+
+```{r}
+#Model 2 specification with indirect paths defined (effect of onset)
+modelon <- '
+#regression paths
+wpss ~ on_ss*onset + an_ss*anger + sy_ss*symp + oe_ss*ssoe
+wpgs ~ on_gs*onset + sy_gs*symp + oe_gs*ssoe 
+anger ~ on_an*onset	
+symp ~ on_sy*onset
+ssoe ~ on_oe*onset'
+
+
+fitmodelon <- sem(modelon, data=dat.ppd.comp, se="bootstrap", ordered = "stability", estimator = "WLS", bootstrap = 1000, parallel ="snow", ncpus = c)
+summary(fitmodelon, fit.measures=TRUE, standardized=TRUE, rsquare=TRUE)
+standardizedSolution(fitmodelon, type = "std.all")
+```
+
+```{r}
+#Model 3 specification with indirect paths defined (effect of effort)
+modelef <- '
+#regression paths
+wpss ~ ef_ss*effort + an_ss*anger + sy_ss*symp + oe_ss*ssoe
+wpgs ~ ef_gs*effort + sy_gs*symp + oe_gs*ssoe 
+anger ~ ef_an*effort	
+symp ~ ef_sy*effort
+ssoe ~ ef_oe*effort'
+
+
+fitmodelef <- sem(modelef, data=dat.ppd.comp, se="bootstrap", ordered = "stability", estimator = "WLS", bootstrap = 1000, parallel ="snow", ncpus = c)
+summary(fitmodelef, fit.measures=TRUE, standardized=TRUE, rsquare=TRUE)
+standardizedSolution(fitmodelef, type = "std.all")
+```
