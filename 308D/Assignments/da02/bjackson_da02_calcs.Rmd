@@ -203,6 +203,36 @@ for(iii in seq_along(cont_names) ){
 
 ```
 
+### Center and Standardize Moderation Terms
+
+Since moderation terms are products of other predictor variables, we need them to be defined based off of centered    
+variables, not raw variables. So we need to create our centered and standardized moderator terms independently    
+of our loops
+
+```{r mod_cent_std}
+
+# Create interaction terms between work passion (p) and job variety (v) as well as work passion (p) and job autonomy (a)   
+# These are our NON-CENTERED moderators, which we won't use for anything but they're here for reference in case we need 
+#  them
+raw_dat$pxv = raw_dat$wp * raw_dat$jv
+raw_dat$pxa = raw_dat$wp * raw_dat$ja
+
+# Create centered moderators as function of centered predictors
+raw_dat$pxv_cent = raw_dat$wp_cent * raw_dat$jv_cent
+raw_dat$pxa_cent = raw_dat$wp_cent * raw_dat$ja_cent
+
+# Create standardized moderators as function of standardized predictors
+raw_dat$pxv_std = raw_dat$wp_std * raw_dat$jv_std
+raw_dat$pxa_std = raw_dat$wp_std * raw_dat$ja_std
+
+# Append new names to our name arrays
+cont_names <- c(cont_names, 'pxv', 'pxa')
+cent_names <- c(cent_names, 'pxv_cent', 'pxa_cent')
+std_names <- c(std_names, 'pxv_std', 'pxa_std')
+
+```
+
+
 ### Descriptive Statistics - Raw Data
 
 This section will look at base descriptive statistics of the raw data to help identify data anomalies and check   
@@ -211,10 +241,10 @@ normality of predictor variables (break length - minutes)
 ```{r descriptive_stats_raw}
 
 # We'll need to check both univariate normality and multi-variate normality.
-#    NOTE: We need to use the vars = cont_names[] syntax with [] included to access the contents of 
-#          cont_names. Otherwise jamovi recognizes it as a character array object and it craps out.
+#    NOTE: We need to use the vars = cent_names[] syntax with [] included to access the contents of 
+#          csnt_names. Otherwise jamovi recognizes it as a character array object and it craps out.
 my_descr = jmv::descriptives( raw_dat,
-                              vars = cont_names[],
+                              vars = cent_names[],
                               hist = TRUE,
                               dens = TRUE,
                               qq = TRUE,
@@ -226,6 +256,20 @@ my_descr = jmv::descriptives( raw_dat,
                               missing = TRUE
                             )
 print(my_descr)
+
+# We'll check uncentered descriptives as well so we can get means. Note the moderation means must be ignored here as  
+# Uncentered moderators are not properly defined. We don't output plots for this one.
+uc_descr = jmv::descriptives( raw_dat,
+                              vars = cont_names[],
+                              sd = TRUE,
+                              variance = TRUE,
+                              se = TRUE,
+                              skew = TRUE,
+                              kurt = TRUE,
+                              missing = TRUE
+                            )
+print(uc_descr)
+
 
 ```
 
@@ -548,12 +592,12 @@ If there are data issues that need to be adjusted, clean the data here.
 
 ```
 
-### Construct Mediation Models
+### Construct Path Models
 
-We need to perform multiple mediation analysis methods, including B&K's OG method, that same supplemented with Sobel's  
-test, and bootstrapping our best answer. For bootstrapping, we'll want both standardized and unstandardized coefficient  
-outputs which means we'll need to define our linear regression models with both standardized data and unstandardized   
-data.
+We need to perform multiple path analyse. Our first model, Model 1, uses work passion as a moderator for both job   
+autonomy and job variety to predict job satisfaction.
+
+Out second mode, Model 2,  uses...
 
 #### Baron and Kenny
 
