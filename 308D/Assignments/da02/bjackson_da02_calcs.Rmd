@@ -616,7 +616,8 @@ model1_def <- '
               # names followed by * are path names
               js_cent ~ p_s*wp_cent + v_s*jv_cent + pxv_s*pxv_cent + a_s*ja_cent + pxa_s*pxa_cent
               
-              # Covariances
+              # Covariances: NOTE: Homework picture does not include this, but I am adding it for best practices
+              #                    might change my answer from what is expected
               jv_cent ~~ ja_cent
               
               # Main Effects Only - No Moderation
