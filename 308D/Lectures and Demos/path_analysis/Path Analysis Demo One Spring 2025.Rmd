@@ -109,6 +109,7 @@ indgs:= st_an_gs  + st_sy_gs  + st_oe_gs
 totalss:= indss + st_ss
 totalgs:= indgs + st_gs'
 
+# Must use WLS because we have "ordered" variables (i.e. categorical)
 fitmodelst <- sem(modelst, data=dat.ppd.comp, se="bootstrap", ordered = "stability", estimator = "WLS", bootstrap = 1000, parallel ="snow", ncpus = c)
 
 summary(fitmodelst, fit.measures=TRUE, standardized=TRUE, rsquare=TRUE)
