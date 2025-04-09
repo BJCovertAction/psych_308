@@ -166,10 +166,18 @@ dataframe, but the "scale" function builds this capability automagically in R so
 ```{r center_data}
 
 # # Center all continuous data as defined by the cont_names array below
-# cont_names = c('ja', 'jv', 'js', 'ti', 'wp')
+# cont_names <- c('ja', 'jv', 'js', 'ti', 'wp')
 # 
+# # Pre-allocate name arrays of new vars
+# cent_names <- character( length(cont_names) )
+# std_names <- cent_names
+#     
 # # We're using a for loop because I'm done copy-pasting
-# for(col in cont_names){
+# for(iii in seq_along(cont_names) ){
+#     
+#     # Get the column name we care about
+#     col = cont_names[iii]
+#     
 #     # First we create new column names for centered and standardized data.
 #     cent_name = paste0(col, "_cent")
 #     std_name  = paste0(col, "_std")
@@ -179,6 +187,10 @@ dataframe, but the "scale" function builds this capability automagically in R so
 #     
 #     # And we standardize using the scale function
 #     raw_dat[[std_name]] <- scale( raw_dat[[col]], center = TRUE, scale = TRUE )[,1]
+#     
+#     # Save off new names
+#     cent_names[iii] <- cent_name
+#     std_names[iii] <- std_name
 #     
 # }
 
