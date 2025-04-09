@@ -180,7 +180,7 @@ dataframe, but the "scale" function builds this capability automagically in R so
 #     # And we standardize using the scale function
 #     raw_dat[[std_name]] <- scale( raw_dat[[col]], center = TRUE, scale = TRUE )[,1]
 #     
-}
+# }
 
 ```
 
