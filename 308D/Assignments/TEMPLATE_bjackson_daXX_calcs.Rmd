@@ -154,38 +154,34 @@ Here we load the dataframe from the CSV file provided for the assignment, and we
 
 ```
 
-### Add Centered Data
+### Add Centered and Standardized Data
 
-It is often useful to have the centered data in addition to the uncentered data. So we add that here manually.
-
-```{r center_data}
-
-# # Center all continuous predictor data for models. We DON'T center outcome var (transition success) or categorical vars  
-# # (HS graduation times)
-# this_dat$fa_cent      <- this_dat$fa - mean(this_dat$fa)
-# this_dat$ppr_cent     <- this_dat$ppr - mean(this_dat$ppr)
-# # this_dat$p_mod_f_cent <- this_dat$p_mod_f - mean(this_dat$p_mod_f) # THIS DOESN'T WORK, WRONG WAY TO CRATE A CENTERED
-# #                                                                    # MODERATOR. DOESN'T HANDLE TRANSITIVE TERM OF
-# #                                                                    # SUBTRACTING MEANS CORRECTLY
-# this_dat$p_mod_f_cent <- this_dat$ppr_cent * this_dat$fa_cent
-
-```
-
-### Construct Standardized Dataframe and add Centered Values
+It is often useful to have the centered data and standardized data in addition to the uncentered data.
+So we add that here manually.
 
 For the purposes of mediation models, we need manually defined models that rely on standardized data (centered and   
 scaled by standard deviation). We could compute this manually after extracting the mean and SD from the descriptives   
 dataframe, but the "scale" function builds this capability automagically in R so we just use it here.
 
-```{r standardize_variables}
+```{r center_data}
 
-# # We can use the scale function to center and standardize the data in the original dataframe
-# # NOTE: We have to access the contents of the dataframe returned by scale with [,1] as scale will natrually return a 
-# #       whole dataframe, not just a numeric array. So this gets everything defined as the correct datatype to match the  
-# #       other contents in raw_dat
-# raw_dat$parent_anx_std = scale(raw_dat$parent_anx, center = TRUE, scale = TRUE)[,1]
-# raw_dat$parent_oc_std = scale(raw_dat$parent_oc, center = TRUE, scale = TRUE)[,1]
-# raw_dat$child_anx_std = scale(raw_dat$child_anx, center = TRUE, scale = TRUE)[,1]
+# # Center all continuous data as defined by the cont_names array below
+# cont_names = c('ja', 'jv', 'js', 'ti', 'wp')
+# 
+# # We're using a for loop because I'm done copy-pasting
+# for(col in cont_names){
+#     # First we create new column names for centered and standardized data.
+#     cent_name = paste0(col, "_cent")
+#     std_name  = paste0(col, "_std")
+#     
+#     # Now we center
+#     raw_dat[[cent_name]] <- raw_dat[[col]] - mean( raw_dat[[col]], na.rm = TRUE )
+#     
+#     # And we standardize using the scale function
+#     raw_dat[[std_name]] <- scale( raw_dat[[col]], center = TRUE, scale = TRUE )[,1]
+#     
+}
+
 ```
 
 ### Descriptive Statistics - Raw Data
