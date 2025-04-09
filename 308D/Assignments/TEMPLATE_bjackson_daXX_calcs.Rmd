@@ -229,22 +229,13 @@ Visualize the covariance matrix to understand correlation between break length a
 
 ```{r correlation_plots_raw}
 
-# # We look at correlations for both the centered and uncentered data.... turns out it doesn't matter
-# 
-# # Uncentered correlations
-# m1_subset = this_dat[ c('agg', 'fa', 'ppr') ]
-# agg_cor_m1 <- stats::cor( m1_subset )
-# corrplot( agg_cor_m1,
-#           method="color",
-#           type = "full",
-#           addCoef.col = "black",
-#           col = rb_colmap,
-#           tl.col = font_color )
+# # We look at correlations for the centered data for ease of interpretation (and because it's the same for cent and 
+# # uncent)
 # 
 # # Centered correlations.
-# m2_subset = this_dat[ c('agg', 'fa_cent', 'ppr_cent') ]
-# agg_cor_m1 <- stats::cor( m2_subset )
-# corrplot( agg_cor_m1,
+# cent_subset <- raw_dat[ cent_names ]
+# corr_cent   <- stats::cor( cent_subset )
+# corrplot( corr_cent,
 #           method="color",
 #           type = "full",
 #           addCoef.col = "black",
@@ -253,8 +244,8 @@ Visualize the covariance matrix to understand correlation between break length a
 # 
 # # Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
 # # 1 for tables, but oh well)
-# agg_cor_tab_m2 <- jmv::corrMatrix(m2_subset, flag = TRUE)
-# print( agg_cor_tab_m2 )
+# corr_cent_tab <- jmv::corrMatrix(cent_subset, flag = TRUE)
+# print( corr_cent_tab )
 
 ```
 
