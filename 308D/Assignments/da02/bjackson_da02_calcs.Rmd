@@ -100,6 +100,7 @@ library(lm.beta)
 library(lavaan)      # Structural Equation Modeling
 library(haven)
 library(foreign)
+library(parallel)
 # library(AER)
 ```
 
@@ -129,6 +130,10 @@ my_gg_theme = theme_minimal() +
                      panel.grid.major = element_line(color = grid_color_major),
                      panel.background = element_rect(fill = back_color, color = font_color)
                    )
+
+# Extract cores for parallel processing. We want to use all but 2 threads in the system
+n_cores   <- detectCores()
+use_cores <- n_cores - 2
 
 ```
 
@@ -599,78 +604,164 @@ autonomy and job variety to predict job satisfaction.
 
 Out second mode, Model 2,  uses...
 
-#### Baron and Kenny
+#### Model 1: Homework Model
 
-Here we use B&K's method to evaluate the impact of mediation
-
-
-```{r baron_and_kenny_method}
-
-# SAMPLE CODE - SIMPLE REGRESSION
-# #simple regression looking at self-efficacy (centered) as a predictor of desire to lead in a group (e.g. self-efficacy (centered) regressed on desire to lead)
-# breaks_model_lin_reg <- linReg( data = breaks_dat, 
-#                                 dep = 'product', 
-#                                 covs = c('length_centered'), 
-#                                 blocks = list( c( 'length_centered') ), 
-#                                 modelTest = TRUE, 
-#                                 stdEst = TRUE,
-#                                 ci = TRUE)
-# breaks_model_lin_reg
-
-# Model 1: Evaluate Total Effect (Path c), regress OV onto PV
-
-# Model 2: Evaluate Path a (regress mediator onto PV)
-
-# Model 3: Evaluate Path b and c'  regress OV onto Mediator and PV
-
-```
-
-#### Sobel's Test
-
-Now we need to perform the Null Hypothesis test to evaluate if the a+b effects are significantly discernable from 0  
-
-```{r sobel_test}
-# Do Sobel Things
+Here we define and evaluate the model as discussed in the homework assignment
 
 
-```
+```{r path_model_1}
 
-#### Bootstrap's Bootstraps - Unstandardized Bootstraps
-```{r unstandardized_bootstrap}
-# mediation::mediate()
-
-
-```
-
-
-
-#### Bootstrap me Baby, One More Time - Standardized Bootstraps
-
-```{r standardized_bootstrap}
-# mediation::mediate()
-
-```
-
-
-### Build Simple Regression Model
-
-Centered data is already saved from scatter plots above (shift the y-intercept to the mean of the dataset).  
-Now we can build the regression model.  
-
-```{r simple_regression}
-
-# SAMPLE CODE
-# #simple regression looking at self-efficacy (centered) as a predictor of desire to lead in a group (e.g. self-efficacy (centered) regressed on desire to lead)
-# breaks_model_lin_reg <- linReg( data = breaks_dat, 
-#                                 dep = 'product', 
-#                                 covs = c('length_centered'), 
-#                                 blocks = list( c( 'length_centered') ), 
-#                                 modelTest = TRUE, 
-#                                 stdEst = TRUE,
-#                                 ci = TRUE)
-# breaks_model_lin_reg
+model1_def <- '
+              # Primary regression paths (equiv of b and c-prime)
+              # names followed by * are path names
+              js_cent ~ p_s*wp_cent + v_s*jv_cent + pxv_s*pxv_cent + a_s*ja_cent + pxa_s*pxa_cent
+              
+              # Covariances
+              jv_cent ~~ ja_cent
+              
+              # Main Effects Only - No Moderation
+              # js_cent ~ p_s*wp_cent + v_s*jv_cent + a_s*ja_cent
+              
+              # Moderated Effects Only - No Main Effects
+              # js_cent ~ pxv_s*pxv_cent + pxa_s*pxa_cent
+              
+              # Work Passion Isolated
+              me_pw := p_s
+              
+              # Variety Isolated
+              me_vs   := v_s
+              vs_comb := v_s + p_s + pxv_s
+              
+              # Autonomy Isolated
+              me_as   := a_s
+              as_comb := a_s + a_s + pxa_s
+              
+              # Total Effects - Combination of All Vars
+              te := p_s + a_s + pxa_s + v_s + pxv_s
+              
+              
+              # Simple Slopes for Variety to Satisfaction
+              pxv_low_slp :=  (v_s + pxv_s * -1)
+              pxv_avg_slp :=  (v_s)
+              pxv_high_slp := (v_s + pxv_s * 1)
+              
+              # Simple Slopes for Autonomy to Satisfaction
+              pxa_low_slp :=  (a_s + pxa_s * -1)
+              pxa_avg_slp :=  (a_s)
+              pxa_high_slp := (a_s + pxa_s * 1)
+              
+              # Indirect Paths (Mediation) -> None
+              # Total Indirect Paths - EndV Regressed onto Mediation Bridges -> None
+              '
+# Must use MLR since we have no categorical variables.
+# Must use WLS if we do have ordered vars.
+model1_fit <- lavaan::sem( model1_def, 
+                           data = raw_dat, 
+                           se = "bootstrap",
+                           estimator = "ML", 
+                           bootstrap = 10000, 
+                           parallel ="snow", 
+                           ncpus = use_cores
+                         )
 
 
 ```
 
+#### Model 1: Fit Reporting
 
+Separate model fit reporting from model construction so we don't have to rerun bootstrap a bunch
+
+```{r mod1_reporting}
+
+# Decent text output of model fit and coefficients
+summary( model1_fit, 
+         fit.measures=TRUE, 
+         standardized=TRUE, 
+         rsquare=TRUE
+       )
+
+
+# Scrollable table in HTML output
+standardizedSolution(model1_fit, type = "std.all")
+
+# Additional modelfit output with CIs that's a bit more user friendly to text editors
+parameterEstimates(model1_fit, standardized = TRUE, boot.ci.type = "perc", level=0.95)
+
+
+```
+
+
+#### Model 2: My  Model w/ Modifications
+
+Here we define and evaluate the model as modified by me
+
+
+```{r path_model_2}
+
+model2_def <- '
+              # Primary regression paths (equiv of b and c-prime)
+              # names followed by * are path names
+              js_cent ~ p_s*wp_cent + v_s*jv_cent + a_s*ja_cent
+              wp_cent ~ v_p*jv_cent
+              wp_cent ~ a_p*ja_cent
+              ti_cent ~ s_t*js_cent
+              
+              # Covariances
+              jv_cent ~~ ja_cent
+              
+              # Indirect Paths (Mediation) -> sat via var and pass, sat via auto and pass
+              # To Job Satisfaction
+              v_p_s := v_p*p_s 
+              a_p_s := a_p*p_s
+              
+              # To Turnover Intent
+              v_s_t   := v_s*s_t
+              a_s_t   := v_s*s_t
+              v_p_s_t := v_p_s*s_t 
+              a_p_s_t := a_p_s*s_t 
+              
+              
+              # Total Indirect Paths - Total Effects of All Bridges (instead of roads)
+              in_te_s := v_p_s + a_p_s
+              
+              # Total Effects
+              te_s := in_te_s + v_s + a_s
+              te_t := te_s + s_t
+              '
+
+# Must use ML since we have no categorical variables.
+# Must use WLS if we do have ordered vars.
+model2_fit <- lavaan::sem( model2_def, 
+                           data = raw_dat, 
+                           se = "bootstrap",
+                           estimator = "ML", 
+                           bootstrap = 10000, 
+                           parallel ="snow", 
+                           ncpus = use_cores
+                         )
+
+
+```
+
+#### Model 2: Fit Reporting
+
+Separate model fit reporting from model construction so we don't have to rerun bootstrap a bunch
+
+```{r mod2_reporting}
+
+# Decent text output of model fit and coefficients
+summary( model2_fit, 
+         fit.measures=TRUE, 
+         standardized=TRUE, 
+         rsquare=TRUE
+       )
+
+
+# Scrollable table in HTML output
+standardizedSolution(model2_fit, type = "std.all")
+
+# Additional modelfit output with CIs that's a bit more user friendly to text editors
+parameterEstimates(model2_fit, standardized = TRUE, boot.ci.type = "perc", level=0.95)
+
+
+```
