@@ -57,13 +57,17 @@ Include tables and figures as necessary.
 
 ## Code
 
-### Libraries
-
 Load all requisite libraries here.
 
 ```{r package_loading, message=FALSE, warning=FALSE}
 # Load packages. Set messages and warnings to FALSE so I don't have to see the
 # masking messages in the output.
+library(jmv)       # for descriptive
+library(ggplot2)
+library(dplyr)
+library(corrplot)    # For fancy covariance matrix plots
+library(apaTables)   # For Word formatted tables
+library(car)         # for ncvTest (Breusch Pagan)
 library(tidyverse)
 library(jmv)       # for descriptive
 library(ggplot2)
@@ -84,8 +88,11 @@ library(GGally)
 library(lsr)
 library(car)
 library(mvnTest)     # Multivariate Normality
-library(lm.beta)     # For extracting coefficients from bootstrap runs
-
+library(lm.beta)
+library(lavaan)      # Structural Equation Modeling
+library(haven)
+library(foreign)
+# library(AER)
 
 ```
 
