@@ -64,12 +64,6 @@ Load all requisite libraries here.
 ```{r package_loading, message=FALSE, warning=FALSE}
 # Load packages. Set messages and warnings to FALSE so I don't have to see the
 # masking messages in the output.
-library(jmv)       # for descriptive
-library(ggplot2)
-library(dplyr)
-library(corrplot)    # For fancy covariance matrix plots
-library(apaTables)   # For Word formatted tables
-library(car)         # for ncvTest (Breusch Pagan)
 library(tidyverse)
 library(jmv)       # for descriptive
 library(ggplot2)
@@ -90,8 +84,9 @@ library(GGally)
 library(lsr)
 library(car)
 library(mvnTest)     # Multivariate Normality
-library(lm.beta)
-# library(AER)
+library(lm.beta)     # For extracting coefficients from bootstrap runs
+
+
 ```
 
 ### Metadata
@@ -106,35 +101,55 @@ grid_color_minor = "#C8D7EA"
 back_color = "gray95"
 rb_colmap = colorRampPalette( c("firebrick", "grey86", "dodgerblue3") )(200)
 
+# I'm going to try to save off my preferred ggplot theme combinations as a unqiue theme object that I can just reference
+# later in the code....totally unclear if ggplot works this way....
+my_gg_theme = theme_minimal() +
+              theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+                     axis.title.x = element_text(color = font_color),
+                     axis.title.y = element_text(color = font_color),
+                     axis.text.x = element_text(color = font_color),
+                     axis.text.y = element_text(color = font_color),
+                     legend.title = element_text(color = font_color),
+                     legend.text = element_text(color = font_color),
+                     panel.grid.minor = element_line(color = grid_color_minor),
+                     panel.grid.major = element_line(color = grid_color_major),
+                     panel.background = element_rect(fill = back_color, color = font_color)
+                   )
 
 ```
 
 ### Load and View data
 
-```{r load_raw_data}
+Here we load the dataframe from the CSV file provided for the assignment, and we 
 
-# SAMPLE CODE
-# # Stuff goes here
-# breaks_raw_dat = read.csv("./da01.csv")
+
+```{r load_raw_data}
+# 
+# # Load the assignment data from CSV
+# raw_dat = read.csv("./308D.DA1 Mediation.Data.csv")
 # 
 # # Rename columns to lower because why not
-# colnames(breaks_raw_dat) <- tolower( colnames(breaks_raw_dat) )
+# colnames(raw_dat) <- tolower( colnames(raw_dat) )
 # 
 # # View data
-# glimpse(breaks_raw_dat)
+# # glimpse(breaks_raw_dat)
 # 
-# # Ensure that the employee numbers of each subject in the study are unique to prevent any duplicate data
+# # Ensure that the numbers of each subject in the study are unique to prevent any duplicate data
 # # if the size of the unique-entries only is the same as the whole vector then there are no duplicate subjects
-# test_unique = (length(unique(breaks_raw_dat$subject)) == length(breaks_raw_dat$subject))
+# # NOTE: This fails if the colname of the subject ID is input wrong (e.g. if the subject ID is not named "participant"
+# #       in the dataframe. So check that the colname exists before blindly believing)
+# test_unique = (length(unique(raw_dat$participant)) == length(raw_dat$participant))
 # if(!test_unique){
 #     print("WARNING: There are duplicate data entries in the raw data")
 # }else{
 #     print("No duplicate entries detected in raw data")
 # }
+
 ```
 
 ### Add Centered Data
 
+It is often useful to have the centered data in addition to the uncentered data. So we add that here manually.
 
 ```{r center_data}
 
@@ -149,6 +164,22 @@ rb_colmap = colorRampPalette( c("firebrick", "grey86", "dodgerblue3") )(200)
 
 ```
 
+### Construct Standardized Dataframe and add Centered Values
+
+For the purposes of mediation models, we need manually defined models that rely on standardized data (centered and   
+scaled by standard deviation). We could compute this manually after extracting the mean and SD from the descriptives   
+dataframe, but the "scale" function builds this capability automagically in R so we just use it here.
+
+```{r standardize_variables}
+
+# # We can use the scale function to center and standardize the data in the original dataframe
+# # NOTE: We have to access the contents of the dataframe returned by scale with [,1] as scale will natrually return a 
+# #       whole dataframe, not just a numeric array. So this gets everything defined as the correct datatype to match the  
+# #       other contents in raw_dat
+# raw_dat$parent_anx_std = scale(raw_dat$parent_anx, center = TRUE, scale = TRUE)[,1]
+# raw_dat$parent_oc_std = scale(raw_dat$parent_oc, center = TRUE, scale = TRUE)[,1]
+# raw_dat$child_anx_std = scale(raw_dat$child_anx, center = TRUE, scale = TRUE)[,1]
+```
 
 ### Descriptive Statistics - Raw Data
 
@@ -238,15 +269,6 @@ Visualize the covariance matrix to understand correlation between break length a
 # Make sure you plot OV as fncn of both PV and Mediator.
 
 # Make sure you plot Mediator as function of PV
-
-```
-
-### Construct Standardized Dataframe
-
-```{r standardize_variables}
-
-# We can use the scale function to center and standardize the data in the original dataframe
-
 
 ```
 
