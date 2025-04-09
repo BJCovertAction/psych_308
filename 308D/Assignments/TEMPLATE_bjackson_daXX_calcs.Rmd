@@ -191,9 +191,11 @@ normality of predictor variables (break length - minutes)
 
 ```{r descriptive_stats_raw}
 
-# # We'll need to check both univariate normality and multi-variate normality. 
-# my_descr = jmv::descriptives( this_dat,
-#                               vars = c('fa', 'ppr', 'agg', 'p_mod_f'),
+# # We'll need to check both univariate normality and multi-variate normality.
+# #    NOTE: We need to use the vars = cont_names[] syntax with [] included to access the contents of 
+# #          cont_names. Otherwise jamovi recognizes it as a character array object and it craps out.
+# my_descr = jmv::descriptives( raw_dat,
+#                               vars = cont_names[],
 #                               hist = TRUE,
 #                               dens = TRUE,
 #                               qq = TRUE,
