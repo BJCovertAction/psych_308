@@ -191,6 +191,25 @@
       ],
       "Hash": "7da7103d9c305280bf307a224b340579"
     },
+    "MVN": {
+      "Package": "MVN",
+      "Version": "5.9",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "MASS",
+        "R",
+        "boot",
+        "car",
+        "energy",
+        "methods",
+        "moments",
+        "nortest",
+        "plyr",
+        "psych"
+      ],
+      "Hash": "c85bff8460f62394a47f05877c31922d"
+    },
     "Matrix": {
       "Package": "Matrix",
       "Version": "1.7-2",
@@ -1043,6 +1062,20 @@
       ],
       "Hash": "80fa277f6bb5d98d0889fa33930f0b56"
     },
+    "energy": {
+      "Package": "energy",
+      "Version": "1.7-12",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "Rcpp",
+        "boot",
+        "gsl",
+        "stats"
+      ],
+      "Hash": "bedbcd2df44262c374062791966f7d4c"
+    },
     "estimability": {
       "Package": "estimability",
       "Version": "1.5.1",
@@ -1120,7 +1153,7 @@
     },
     "foreign": {
       "Package": "foreign",
-      "Version": "0.8-89",
+      "Version": "0.8-90",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
@@ -1129,7 +1162,7 @@
         "stats",
         "utils"
       ],
-      "Hash": "04b49afd23730c33abe32c9fc3ad9959"
+      "Hash": "f8bb52cf63a7ba97c87e47ede10976ad"
     },
     "fs": {
       "Package": "fs",
@@ -1365,6 +1398,16 @@
         "utils"
       ],
       "Hash": "7d7f283939f563670a697165b2cf5560"
+    },
+    "gsl": {
+      "Package": "gsl",
+      "Version": "2.1-8",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R"
+      ],
+      "Hash": "8f8205cbb9f1066a94e22898fe949184"
     },
     "gtable": {
       "Package": "gtable",
@@ -1955,6 +1998,13 @@
       ],
       "Hash": "4f50122dc256b1b6996a4703fecea821"
     },
+    "moments": {
+      "Package": "moments",
+      "Version": "0.14.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "bb94fd8ee5f7f127eae2bddbff26864d"
+    },
     "multcomp": {
       "Package": "multcomp",
       "Version": "1.4-28",
@@ -2062,6 +2112,16 @@
         "utils"
       ],
       "Hash": "c955edf99ff24a32e96bd0a22645af60"
+    },
+    "nortest": {
+      "Package": "nortest",
+      "Version": "1.0-4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "stats"
+      ],
+      "Hash": "e587e7a30c737ad415590976481332e4"
     },
     "numDeriv": {
       "Package": "numDeriv",
