@@ -339,29 +339,9 @@ print( corr_cent_tab )
 ### Build Simple Linear Models (lm)
 
 ```{r linear_model_definition}
-
-# # We create a simple linear model using the two main effect predictors (FA and PPR) w/o accounting for moderation
-# # to aid in simple data assumption checks later on (homoscedasticity and multi-variate normality.)
-#  
-# # Aggression regressed onto family adversity and positive peer support as main effect predictors.
-# agg_simp_mod_uc <- lm( agg ~ fa + ppr, data = this_dat)
-# 
-# # Model performance checks for all models
-# performance::check_model(agg_simp_mod_uc)
-# 
-# # We'll create a simple model that includes the moderation term as well
-# # NOTE: We're using uncentered data here:
-# agg_me_w_mod_model_uc <- lm(agg ~ fa + ppr + p_mod_f, data = this_dat)
-# # Notice funny grouping when we define model as above. Spot checked these alternative models and it's not clear which is  
-# # better.
-# # agg_me_w_mod_model_uc <- lm(agg ~ p_mod_f, data = this_dat)
-# # agg_me_w_mod_model_uc <- lm(agg ~ fa_cent + ppr_cent + p_mod_f_cent, data = this_dat)
-
-# Unstandardized linear model definition
-
-# Unstandardized Path a
-
-# Unstandardized Paths b + c'
+# Build simple linear models, one with and one without moderation based off of centered data
+me_simp_model <- lm(js_cent ~ wp_cent + jv_cent + ja_cent, data = raw_dat)
+me_mod_model  <- lm(js_cent ~ wp_cent + jv_cent + pxv_cent + ja_cent + pxa_cent, data = raw_dat)
 
 
 # Standardized linear model definition
@@ -436,15 +416,16 @@ print( corr_cent_tab )
 
 
 ### Homoscedasticity Checks
+
 ```{r homoscedasticity_checks}
 
-# # Run a Breusch Pagan Test of homoscedasticity for both models, for both reference grad values
-# 
-# cat( paste("  ", "---- Breusch-Pagan Main Effects ----", " ", sep = "\n") )
-# car::ncvTest(agg_simp_mod_uc)
-# 
-# cat( paste("  ", "---- Breusch-Pagan Main + Moderation Effects ----", " ", sep = "\n") )
-# car::ncvTest(agg_me_w_mod_model_uc)
+# Run a Breusch Pagan Test of homoscedasticity for both moderation models, main effects and w/ moderation
+
+cat( paste("  ", "---- Breusch-Pagan Main Effects ----", " ", sep = "\n") )
+car::ncvTest(me_simp_model)
+
+cat( paste("  ", "---- Breusch-Pagan Main + Moderation Effects ----", " ", sep = "\n") )
+car::ncvTest(me_mod_model)
 
 
 ```
@@ -455,25 +436,41 @@ print( corr_cent_tab )
 ```{r multivar_norm}
 
 
-# # Code below manually produces QQ Plot for better alignment with general plot styles
-# ggplot(agg_simp_mod_uc, 
-#          aes( 
-#                qqnorm( .stdresid,
-#                        xlab = "", ylab = "", 
-#                        conf.level = 0.945, 
-#                        conf.args = list(col = "lightgrey", exact = TRUE) 
-#                       )[[1]],
-#                .stdresid ) 
-#        ) + 
-#     geom_point(na.rm = TRUE) +
-#     xlab("Theoretical Quantiles") + 
-#     ylab("Standardized Residuals") +
-#     ggtitle("Normal Q-Q of Main Effects Model") + 
-#     my_gg_theme
-# 
-# # Henze-Zirkler test of multivariate normality
-# # Columns 2-4 are Aggression, Family Adversity, and Positive Peer Support respectively.
-# HZ.test(this_dat[2:4])
+# Code below manually produces QQ Plot for better alignment with general plot styles
+ggplot(me_mod_model,
+         aes(
+               qqnorm( .stdresid,
+                       xlab = "", ylab = "",
+                       conf.level = 0.95,
+                       conf.args = list(col = "lightgrey", exact = TRUE)
+                      )[[1]],
+               .stdresid )
+       ) +
+    geom_point(na.rm = TRUE) +
+    xlab("Theoretical Quantiles") +
+    ylab("Standardized Residuals") +
+    ggtitle("Normal Q-Q of Main Effects Model") +
+    my_gg_theme
+
+# Code below manually produces QQ Plot for better alignment with general plot styles
+ggplot(me_simp_model,
+         aes(
+               qqnorm( .stdresid,
+                       xlab = "", ylab = "",
+                       conf.level = 0.95,
+                       conf.args = list(col = "lightgrey", exact = TRUE)
+                      )[[1]],
+               .stdresid )
+       ) +
+    geom_point(na.rm = TRUE) +
+    xlab("Theoretical Quantiles") +
+    ylab("Standardized Residuals") +
+    ggtitle("Normal Q-Q of Main Effects w/ Moderation Model") +
+    my_gg_theme
+
+# Henze-Zirkler test of multivariate normality
+# Columns 2-6 are ja, ti, wp, js and jv
+HZ.test(raw_dat[2:6])
 
 
 ```
