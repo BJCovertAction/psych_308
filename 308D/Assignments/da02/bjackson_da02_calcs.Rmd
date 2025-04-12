@@ -134,8 +134,8 @@ my_gg_theme = theme_minimal() +
 
 # Extract cores for parallel processing. We want to use all but 2 threads in the system
 n_cores   <- detectCores()
-#use_cores <- n_cores - 2
-use_cores <- n_cores / 2 - 1
+use_cores <- n_cores - 2
+# use_cores <- n_cores / 2 - 1
 
 ```
 
@@ -821,18 +821,20 @@ model2_def <- '
               
               # To Turnover Intent
               v_s_t   := v_s*s_t
-              a_s_t   := v_s*s_t
+              a_s_t   := a_s*s_t
               v_p_s_t := v_p_s*s_t 
               a_p_s_t := a_p_s*s_t 
-              
-              
-              # Total Indirect Paths - Total Effects of All Bridges (instead of roads)
+                            
+              # Combined Indirect Paths - Total Effects of All Bridges (instead of roads)
               # To Job Satisfaction
-              in_te_s := v_p_s + a_p_s
-              
+              in_te_s  := v_p_s + a_p_s
+              in_te_t1 := v_s_t + a_s_t
+              in_te_t2 := v_p_s_t + a_p_s_t
+                            
               # Total Effects
               te_s := in_te_s + v_s + a_s
-              te_t := te_s + s_t
+              te_t  := in_te_t1 + in_te_t2
+              #te_t := te_s + s_t
               '
 
 # Must use ML since we have no categorical variables and we're using bootstrap (maximum likelihood)
