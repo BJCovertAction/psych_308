@@ -276,72 +276,74 @@ combos <- combos[combos$treat != combos$mediator &
 # Optional: create a results list to store outputs
 results_list <- list()
 
-# Initialize empty data.frame to store summary results
-summary_df <- data.frame(
-  model = character(),
-  r_squared = numeric(),
-  med_type = character(),
-  stringsAsFactors = FALSE
-)
+# # Initialize empty data.frame to store summary results
+# summary_df <- data.frame(
+#   model = character(),
+#   r_squared = numeric(),
+#   med_type = character(),
+#   stringsAsFactors = FALSE
+# )
+# 
+# # Loop over the valid combinations
+# for (i in seq_len(nrow(combos))) {
+#   treat_var <- combos$treat[i]
+#   med_var   <- combos$mediator[i]
+#   out_var   <- combos$outcome[i]
+# 
+#   # Build models dynamically
+#   mod_1 <- lm(as.formula(paste(med_var, "~", treat_var)), data = raw_dat)
+#   mod_2 <- lm(as.formula(paste(out_var, "~", treat_var, "+", med_var)), data = raw_dat)
+# 
+#   # Run mediation
+#   med_result <- mediation::mediate(
+#     model.m = mod_1,
+#     model.y = mod_2,
+#     treat = treat_var,
+#     mediator = med_var,
+#     sims = nsims,
+#     boot = TRUE,
+#     boot.ci.type = "perc",
+#     conf.level = 0.95,
+#     long = TRUE
+#   )
+# 
+#   # Name and save results
+#   model_name <- paste(treat_var, med_var, out_var, sep = "_")
+#   results_list[[model_name]] <- med_result
+# 
+#   # Get R^2 of the outcome model
+#   r_squared <- summary(mod_2)$r.squared
+# 
+#     # Summarize mediation result
+#     med_sum <- summary(med_result)
+#     
+#     # Extract CI for indirect (ACME) and direct (ADE) effects
+#     acme_ci <- med_sum$d0.ci  # Indirect effect CI
+#     ade_ci  <- med_sum$z0.ci  # Direct effect CI
+#     
+#     # Check if the CI excludes zero (i.e., significant)
+#     acme_sig <- !(acme_ci[1] < 0 & acme_ci[2] > 0)
+#     ade_sig  <- !(ade_ci[1] < 0 & ade_ci[2] > 0)
+#     
+#     # Apply your classification logic
+#     mediation_type <- if (acme_sig & ade_sig) {
+#       "Partial Mediation"
+#     } else if (acme_sig & !ade_sig) {
+#       "Full Mediation"
+#     } else {
+#       "No Mediation"
+#     }
+# 
+#   # Append to summary dataframe
+#   summary_df <- rbind(summary_df, data.frame(
+#     model = model_name,
+#     r_squared = r_squared,
+#     med_type = mediation_type,
+#     stringsAsFactors = FALSE
+#   ))
+# }
 
-# Loop over the valid combinations
-for (i in seq_len(nrow(combos))) {
-  treat_var <- combos$treat[i]
-  med_var   <- combos$mediator[i]
-  out_var   <- combos$outcome[i]
-
-  # Build models dynamically
-  mod_1 <- lm(as.formula(paste(med_var, "~", treat_var)), data = raw_dat)
-  mod_2 <- lm(as.formula(paste(out_var, "~", treat_var, "+", med_var)), data = raw_dat)
-
-  # Run mediation
-  med_result <- mediation::mediate(
-    model.m = mod_1,
-    model.y = mod_2,
-    treat = treat_var,
-    mediator = med_var,
-    sims = nsims,
-    boot = TRUE,
-    boot.ci.type = "perc",
-    conf.level = 0.95,
-    long = TRUE
-  )
-
-  # Name and save results
-  model_name <- paste(treat_var, med_var, out_var, sep = "_")
-  results_list[[model_name]] <- med_result
-
-  # Get R^2 of the outcome model
-  r_squared <- summary(mod_2)$r.squared
-
-    # Summarize mediation result
-    med_sum <- summary(med_result)
-    
-    # Extract CI for indirect (ACME) and direct (ADE) effects
-    acme_ci <- med_sum$d0.ci  # Indirect effect CI
-    ade_ci  <- med_sum$z0.ci  # Direct effect CI
-    
-    # Check if the CI excludes zero (i.e., significant)
-    acme_sig <- !(acme_ci[1] < 0 & acme_ci[2] > 0)
-    ade_sig  <- !(ade_ci[1] < 0 & ade_ci[2] > 0)
-    
-    # Apply your classification logic
-    mediation_type <- if (acme_sig & ade_sig) {
-      "Partial Mediation"
-    } else if (acme_sig & !ade_sig) {
-      "Full Mediation"
-    } else {
-      "No Mediation"
-    }
-
-  # Append to summary dataframe
-  summary_df <- rbind(summary_df, data.frame(
-    model = model_name,
-    r_squared = r_squared,
-    med_type = mediation_type,
-    stringsAsFactors = FALSE
-  ))
-}
+summary_df <- readRDS("/home/brady/programming/r/psyd/cgu/coursework/psych_308/308D/Assignments/capstone/mediation_summary.rds")
 
 write.table(summary_df, file = "mediation_summary.txt", row.names = FALSE, sep = "\t")
 
@@ -349,377 +351,12 @@ write.table(summary_df, file = "mediation_summary.txt", row.names = FALSE, sep =
 
 ```
 
-### Scatterplots of Variables
-
-```{r scatter_plots}
-# 
-# # Scatterplot 1: Aggression vs. Family Adversity  (uncentered)
-# agg_scatter_faunc <- ggplot(this_dat, aes(agg, fa) )
-# 
-# agg_scatter_faunc +
-#     geom_point() +
-#     geom_smooth(method = "lm", colour = "Red") +
-#     ggtitle("Childhood Aggression as a Function of Family Adversity") +
-#     labs(y = "Childhood Aggression (1-20)", x = "Family Adversity (1-20)") +
-#     my_gg_theme
-# 
-# 
-# # Scatterplot 2: Aggression vs. Positive Peer Support  (uncentered)
-# agg_scatter_ppruc <- ggplot(this_dat, aes(agg, ppr) )
-# 
-# agg_scatter_ppruc +
-#     geom_point() +
-#     geom_smooth(method = "lm", colour = "Red") +
-#     ggtitle("Childhood Aggression as a Function of Positve Peer Relationships") +
-#     labs(y = "Childhood Aggression (1-20)", x = "Positive Peer Relationships (1-20)") +
-#     my_gg_theme
-
-# Make sure you plot OV as fncn of both PV and Mediator.
-
-# Make sure you plot Mediator as function of PV
+```{write_csv}
+# Save / load data. CSV didn't work. Need to add path for later
+saveRDS(summary_df, file = "mediation_summary.rds")
+#summary_df <- readRDS("mediation_summary.rds")
 
 ```
 
-### Build Simple Linear Models (lm)
-
-```{r linear_model_definition}
-
-# # We create a simple linear model using the two main effect predictors (FA and PPR) w/o accounting for moderation
-# # to aid in simple data assumption checks later on (homoscedasticity and multi-variate normality.)
-#  
-# # Aggression regressed onto family adversity and positive peer support as main effect predictors.
-# agg_simp_mod_uc <- lm( agg ~ fa + ppr, data = this_dat)
-# 
-# # Model performance checks for all models
-# performance::check_model(agg_simp_mod_uc)
-# 
-# # We'll create a simple model that includes the moderation term as well
-# # NOTE: We're using uncentered data here:
-# agg_me_w_mod_model_uc <- lm(agg ~ fa + ppr + p_mod_f, data = this_dat)
-# # Notice funny grouping when we define model as above. Spot checked these alternative models and it's not clear which is  
-# # better.
-# # agg_me_w_mod_model_uc <- lm(agg ~ p_mod_f, data = this_dat)
-# # agg_me_w_mod_model_uc <- lm(agg ~ fa_cent + ppr_cent + p_mod_f_cent, data = this_dat)
-
-# Unstandardized linear model definition
-
-# Unstandardized Path a
-
-# Unstandardized Paths b + c'
-
-
-# Standardized linear model definition
-
-# Standardized Path a
-
-# Standardized Path b + c'
-
-
-```
-
-
-### Residuals Plots
-```{r residuals_figures}
-
-# # Check Residuals plot (Heteroscedasticity)
-# # Fitted values vs. residuals to examine homoscedasticity
-# # NOTE use of .resid to plot residuals
-# 
-# 
-# # Main Effects: agg ~ fa + ppr
-# agg_resid_me_fig = ggplot( agg_simp_mod_uc, aes(.fitted, .resid) )
-# 
-# agg_resid_me_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Childhood Aggression Levels (1-20)") +
-#     ylab("Aggression Residuals (1 - 20)") +
-#     ggtitle("Main Effects Childhood Aggression Residual vs. Fitted Plot") +
-#     my_gg_theme
-# 
-# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-# agg_resid_me_sd_fig = ggplot( agg_simp_mod_uc,
-#                               aes(.fitted , .resid / my_descr$descriptives$asDF$`agg[sd]` )
-#                             )
-# 
-# agg_resid_me_sd_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Childhood Aggression Levels (1-20)") +
-#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
-#     ggtitle("Main Effects Childhood Aggression Residual vs. Fitted Plot") +
-#     my_gg_theme
-# 
-# # Create Residuals plot for Fitted values with Moderation Accounted for
-# 
-# # Moderation Effects: agg ~ fa + ppr + p_mod_f
-# agg_resid_mod_fig = ggplot( agg_me_w_mod_model_uc, aes(.fitted, .resid) )
-# 
-# agg_resid_mod_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Childhood Aggression Levels (1-20)") +
-#     ylab("Aggression Residuals (1 - 20)") +
-#     ggtitle("Main + Moderation Effects Childhood Aggression Residual vs. Fitted Plot") +
-#     my_gg_theme
-# 
-# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-# agg_resid_mod_sd_fig = ggplot( agg_me_w_mod_model_uc,
-#                               aes(.fitted , .resid / my_descr$descriptives$asDF$`agg[sd]` )
-#                             )
-# 
-# agg_resid_mod_sd_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Childhood Aggression Levels (1-20)") +
-#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
-#     ggtitle("Main + Moderation Childhood Aggression Residual vs. Fitted Plot") +
-#     my_gg_theme
-
-```
-
-
-### Homoscedasticity Checks
-```{r homoscedasticity_checks}
-
-# # Run a Breusch Pagan Test of homoscedasticity for both models, for both reference grad values
-# 
-# cat( paste("  ", "---- Breusch-Pagan Main Effects ----", " ", sep = "\n") )
-# car::ncvTest(agg_simp_mod_uc)
-# 
-# cat( paste("  ", "---- Breusch-Pagan Main + Moderation Effects ----", " ", sep = "\n") )
-# car::ncvTest(agg_me_w_mod_model_uc)
-
-
-```
-
-
-### Multi-Variate Normality
-
-```{r multivar_norm}
-
-
-# # Code below manually produces QQ Plot for better alignment with general plot styles
-# ggplot(agg_simp_mod_uc, 
-#          aes( 
-#                qqnorm( .stdresid,
-#                        xlab = "", ylab = "", 
-#                        conf.level = 0.945, 
-#                        conf.args = list(col = "lightgrey", exact = TRUE) 
-#                       )[[1]],
-#                .stdresid ) 
-#        ) + 
-#     geom_point(na.rm = TRUE) +
-#     xlab("Theoretical Quantiles") + 
-#     ylab("Standardized Residuals") +
-#     ggtitle("Normal Q-Q of Main Effects Model") + 
-#     my_gg_theme
-# 
-# # Henze-Zirkler test of multivariate normality
-# # Columns 2-4 are Aggression, Family Adversity, and Positive Peer Support respectively.
-# HZ.test(this_dat[2:4])
-
-
-```
-
-
-
-
-
-
-### Assumptions, Figures, and Plots - Raw Data
-
-Descriptives section already checked normality so here we need to focus on linearity and homoscedasticity. We're  
-going to center the data outright because I don't want to run everything multiple times.
-
-```{r assumptions_and_figures_raw}
-
-# SAMPLE CODE
-# # Centering the data
-# breaks_dat$length_centered <- breaks_dat$length - mean(breaks_dat$length)
-# 
-# 
-# # Check Scatterplot of Centered data: Break Length is PV, Productivity is OV
-# breaks_raw_scatter <- ggplot(breaks_dat, aes(length, product) )
-# 
-# breaks_raw_scatter + 
-#     geom_point() + 
-#     geom_smooth(method = "lm", colour = "Red") + 
-#     ggtitle("Break Length Relation to Employee Productivity") + 
-#     labs(x = "Break Length (m)", y = "Employee Productivity (0-100)") +
-#     theme_minimal() +
-#     theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
-#            axis.title.x = element_text(color = font_color),
-#            axis.title.y = element_text(color = font_color),
-#            axis.text.x = element_text(color = font_color),
-#            axis.text.y = element_text(color = font_color),
-#            legend.title = element_text(color = font_color),
-#            legend.text = element_text(color = font_color),
-#            panel.grid.minor = element_line(color = grid_color_minor),
-#            panel.grid.major = element_line(color = grid_color_major),
-#            panel.background = element_rect(fill = back_color, color = font_color)
-#          )
-# 
-# breaks_cent_scatter <- ggplot(breaks_dat, aes(length_centered, product) )
-# 
-# breaks_cent_scatter + 
-#     geom_point() + 
-#     geom_smooth(method = "lm", colour = "Red") + 
-#     ggtitle("Break Length Relation to Employee Productivity") + 
-#     labs(x = "Break Length - Centered (m)", y = "Employee Productivity (0-100)") +
-#     theme_minimal() +
-#     theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
-#            axis.title.x = element_text(color = font_color),
-#            axis.title.y = element_text(color = font_color),
-#            axis.text.x = element_text(color = font_color),
-#            axis.text.y = element_text(color = font_color),
-#            legend.title = element_text(color = font_color),
-#            legend.text = element_text(color = font_color),
-#            panel.grid.minor = element_line(color = grid_color_minor),
-#            panel.grid.major = element_line(color = grid_color_major),
-#            panel.background = element_rect(fill = back_color, color = font_color)
-#          )
-# 
-# 
-# # Check Residuals plot (Heteroscedasticity)
-# # To compute residuals we need to define the model as productivity regressed onto break length in a linear fashion
-# breaks_model_lin <- lm(product ~ length, data = breaks_dat)
-# 
-# # Fitted values vs. residuals to examine homoscedasticity
-# # NOTE use of .resid to plot residuals
-# breaks_resid_fig = ggplot( breaks_model_lin, aes(.fitted, .resid) )
-# 
-# breaks_resid_fig + 
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Productivity Values (0 - 100)") +
-#     ylab("Productivity Residuals (0 - 100)") +
-#     ggtitle("Residual vs. Fitted Plot") +
-#     theme_minimal() +
-#     theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
-#            axis.title.x = element_text(color = font_color),
-#            axis.title.y = element_text(color = font_color),
-#            axis.text.x = element_text(color = font_color),
-#            axis.text.y = element_text(color = font_color),
-#            legend.title = element_text(color = font_color),
-#            legend.text = element_text(color = font_color),
-#            panel.grid.minor = element_line(color = grid_color_minor),
-#            panel.grid.major = element_line(color = grid_color_major),
-#            panel.background = element_rect(fill = back_color, color = font_color)
-#          )
-# 
-# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-# breaks_resid_sd_fig = ggplot( breaks_model_lin, aes(.fitted , .resid / breaks_descr$descriptives$asDF$`product[sd]` ) )
-# 
-# breaks_resid_sd_fig + 
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Productivity Values") +
-#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
-#     ggtitle("Productivity Residual vs. Fitted Plot") +
-#     theme_minimal() +
-#     theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
-#            axis.title.x = element_text(color = font_color),
-#            axis.title.y = element_text(color = font_color),
-#            axis.text.x = element_text(color = font_color),
-#            axis.text.y = element_text(color = font_color),
-#            legend.title = element_text(color = font_color),
-#            legend.text = element_text(color = font_color),
-#            panel.grid.minor = element_line(color = grid_color_minor),
-#            panel.grid.major = element_line(color = grid_color_major),
-#            panel.background = element_rect(fill = back_color, color = font_color)
-#          )  
-# 
-# # Run a Breusch Pagan Test of homoscedasticity
-# car::ncvTest(breaks_model_lin)
-```
-
-### Data Cleaning - OPTIONAL
-If there are data issues that need to be adjusted, clean the data here.
-
-``` {r data_cleaning_raw}
-
-```
-
-### Construct Mediation Models
-
-We need to perform multiple mediation analysis methods, including B&K's OG method, that same supplemented with Sobel's  
-test, and bootstrapping our best answer. For bootstrapping, we'll want both standardized and unstandardized coefficient  
-outputs which means we'll need to define our linear regression models with both standardized data and unstandardized   
-data.
-
-#### Baron and Kenny
-
-Here we use B&K's method to evaluate the impact of mediation
-
-
-```{r baron_and_kenny_method}
-
-# SAMPLE CODE - SIMPLE REGRESSION
-# #simple regression looking at self-efficacy (centered) as a predictor of desire to lead in a group (e.g. self-efficacy (centered) regressed on desire to lead)
-# breaks_model_lin_reg <- linReg( data = breaks_dat, 
-#                                 dep = 'product', 
-#                                 covs = c('length_centered'), 
-#                                 blocks = list( c( 'length_centered') ), 
-#                                 modelTest = TRUE, 
-#                                 stdEst = TRUE,
-#                                 ci = TRUE)
-# breaks_model_lin_reg
-
-# Model 1: Evaluate Total Effect (Path c), regress OV onto PV
-
-# Model 2: Evaluate Path a (regress mediator onto PV)
-
-# Model 3: Evaluate Path b and c'  regress OV onto Mediator and PV
-
-```
-
-#### Sobel's Test
-
-Now we need to perform the Null Hypothesis test to evaluate if the a+b effects are significantly discernable from 0  
-
-```{r sobel_test}
-# Do Sobel Things
-
-
-```
-
-#### Bootstrap's Bootstraps - Unstandardized Bootstraps
-```{r unstandardized_bootstrap}
-# mediation::mediate()
-
-
-```
-
-
-
-#### Bootstrap me Baby, One More Time - Standardized Bootstraps
-
-```{r standardized_bootstrap}
-# mediation::mediate()
-
-```
-
-
-### Build Simple Regression Model
-
-Centered data is already saved from scatter plots above (shift the y-intercept to the mean of the dataset).  
-Now we can build the regression model.  
-
-```{r simple_regression}
-
-# SAMPLE CODE
-# #simple regression looking at self-efficacy (centered) as a predictor of desire to lead in a group (e.g. self-efficacy (centered) regressed on desire to lead)
-# breaks_model_lin_reg <- linReg( data = breaks_dat, 
-#                                 dep = 'product', 
-#                                 covs = c('length_centered'), 
-#                                 blocks = list( c( 'length_centered') ), 
-#                                 modelTest = TRUE, 
-#                                 stdEst = TRUE,
-#                                 ci = TRUE)
-# breaks_model_lin_reg
-
-
-```
 
 
