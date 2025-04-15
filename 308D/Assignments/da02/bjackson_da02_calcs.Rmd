@@ -1,0 +1,876 @@
+---
+title: "PSYCH308D - Data Analysis 02 (DA02)"
+author: "Brady C. Jackson"
+date: "2025/04/10"
+
+# Write document output to HTML, Word, and PDF output types with a Table of
+# contents included.
+output: 
+  html_document:
+    toc: true
+  word_document:
+    toc: true
+#  Remove PDF to speed up knit time given that knitting takes forever w/ 10,000 bootstrap samples
+#  pdf_document:
+#    toc: true
+#    latex_engine: xelatex
+
+# This option here enables output to both HTML and PDF formats
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding,
+  output_format = "all") })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+
+# Prompt
+
+To complete this DA, first download the data set (job_satisfaction.csv). The data corresponds with the posted article  
+(Mustafa et al., 2020) which is available for you as a resource. The dataset includes 5 continuous variables –  
+job autonomy (A), turnover intentions (T), work passion (P), job satisfaction (S), and job variety (V) –   
+all measured on a scale of 1-7. Read the following instructions carefully. 
+
+A researcher hypothesized the following model for you to test: *SEE Model Figures PPT*
+
+# Variables 
+
+Input Variable Table HERE
+
+| Variable | Type | Description |
+|:-----|:---|:------------------|
+| `A` | 1 - 7 Scale | Job Autonomy |
+| `T` | 1 - 7 Scale | Turnover Intention |
+| `P` | 1 - 7 Scale | Work Passion |
+| `S` | 1 - 7 Scale | Job Satisfaction |
+| `V` | 1 - 7 Scale | Job Autonomy |
+
+# Assignment
+
+After conducting your analysis (don’t forget to check assumptions), write a complete APA results section; in lieu   
+of additional questions, discuss your findings and the implications in an APA discussion according to the DA Guide   
+(posted in resources).  Include all necessary tables and figures. Your figures should depict your models with path   
+estimates in APA format.  
+
+Along with testing the above, make at least 2 modifications to the given model to specify a second model. Once you   
+specify and test the model with at least 2 changes, explain why you made those changes (can be based on your own   
+background/curiosity or from ‘modindices’), and compare to model 1 to determine which it a better fit to the data.    
+Note: If your modifications lead to testing a mediation, make sure you report and specify indirect effects.
+
+---*ONLY WRITE CODE BELOW THIS LINE*---
+
+# Code
+
+## Libraries
+
+Load all requisite libraries here.
+
+```{r package_loading, message=FALSE, warning=FALSE}
+# Load packages. Set messages and warnings to FALSE so I don't have to see the
+# masking messages in the output.
+library(jmv)       # for descriptive
+library(ggplot2)
+library(dplyr)
+library(corrplot)    # For fancy covariance matrix plots
+library(apaTables)   # For Word formatted tables
+library(car)         # for ncvTest (Breusch Pagan)
+library(tidyverse)
+library(jmv)       # for descriptive
+library(ggplot2)
+library(dplyr)
+library(psych)
+library(corrplot)    # For fancy covariance matrix plots
+library(car)         # for ncvTest (Breusch Pagan)
+library(stringr)     # for sub_str operations
+library(Hmisc)       # for fun.dat substitution
+library(see)         # for outliers analysis 
+library(magrittr)
+library(foreign)
+library(broom)
+library(robmed)
+library(mediation)   # For mediation analysis
+library(multilevel)
+library(GGally)
+library(lsr)
+library(car)
+library(mvnTest)     # Multivariate Normality
+library(lm.beta)
+library(lavaan)      # Structural Equation Modeling
+library(haven)
+library(foreign)
+library(parallel)
+# library(AER)
+```
+
+## Metadata
+
+This section of code is to setup some general variables that we'll use throughout the code (e.g. figure colors, etc)
+
+```{r metadata}
+# First we'll defines some meta-data to use in all of our plots so they're nice and clean
+font_color = "#4F81BD"
+grid_color_major = "#9BB7D9"
+grid_color_minor = "#C8D7EA"
+back_color = "gray95"
+rb_colmap = colorRampPalette( c("firebrick", "grey86", "dodgerblue3") )(200)
+
+# I'm going to try to save off my preferred ggplot theme combinations as a unqiue theme object that I can just reference
+# later in the code....totally unclear if ggplot works this way....
+my_gg_theme = theme_minimal() +
+              theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+                     axis.title.x = element_text(color = font_color),
+                     axis.title.y = element_text(color = font_color),
+                     axis.text.x = element_text(color = font_color),
+                     axis.text.y = element_text(color = font_color),
+                     legend.title = element_text(color = font_color),
+                     legend.text = element_text(color = font_color),
+                     panel.grid.minor = element_line(color = grid_color_minor),
+                     panel.grid.major = element_line(color = grid_color_major),
+                     panel.background = element_rect(fill = back_color, color = font_color)
+                   )
+
+# Extract cores for parallel processing. We want to use all but 2 threads in the system
+n_cores   <- detectCores()
+use_cores <- n_cores - 2
+# use_cores <- n_cores / 2 - 1
+
+```
+
+## Load and View data
+
+Here we load the dataframe from the CSV file provided for the assignment, and we 
+
+
+```{r load_raw_data}
+
+# Load the assignment data from CSV
+raw_dat = read.csv("./job_satisfaction.csv")
+
+# Rename columns to lower because why not
+colnames(raw_dat) <- tolower( colnames(raw_dat) )
+
+# View data
+# glimpse(breaks_raw_dat)
+
+# Ensure that the numbers of each subject in the study are unique to prevent any duplicate data
+# if the size of the unique-entries only is the same as the whole vector then there are no duplicate subjects
+# NOTE: This fails if the colname of the subject ID is input wrong (e.g. if the subject ID is not named "participant"
+#       in the dataframe. So check that the colname exists before blindly believing)
+test_unique = (length(unique(raw_dat$participant)) == length(raw_dat$participant))
+if(!test_unique){
+    print("WARNING: There are duplicate data entries in the raw data")
+}else{
+    print("No duplicate entries detected in raw data")
+}
+
+```
+
+## Add Centered and Standardized Data
+
+It is often useful to have the centered data and standardized data in addition to the uncentered data.
+So we add that here manually.
+
+For the purposes of mediation models, we need manually defined models that rely on standardized data (centered and   
+scaled by standard deviation). We could compute this manually after extracting the mean and SD from the descriptives   
+dataframe, but the "scale" function builds this capability automagically in R so we just use it here.
+
+```{r center_data}
+
+# Center all continuous data as defined by the cont_names array below
+cont_names <- c('ja', 'jv', 'js', 'ti', 'wp')
+
+# Pre-allocate name arrays of new vars
+cent_names <- character( length(cont_names) )
+std_names <- cent_names
+    
+# We're using a for loop because I'm done copy-pasting
+for(iii in seq_along(cont_names) ){
+    
+    # Get the column name we care about
+    col = cont_names[iii]
+    
+    # First we create new column names for centered and standardized data.
+    cent_name = paste0(col, "_cent")
+    std_name  = paste0(col, "_std")
+    
+    # Now we center
+    raw_dat[[cent_name]] <- raw_dat[[col]] - mean( raw_dat[[col]], na.rm = TRUE )
+    
+    # And we standardize using the scale function
+    raw_dat[[std_name]] <- scale( raw_dat[[col]], center = TRUE, scale = TRUE )[,1]
+    
+    # Save off new names
+    cent_names[iii] <- cent_name
+    std_names[iii] <- std_name
+    
+}
+
+```
+
+## Center and Standardize Moderation Terms
+
+Since moderation terms are products of other predictor variables, we need them to be defined based off of centered    
+variables, not raw variables. So we need to create our centered and standardized moderator terms independently    
+of our loops
+
+```{r mod_cent_std}
+
+# Create interaction terms between work passion (p) and job variety (v) as well as work passion (p) and job autonomy (a)   
+# These are our NON-CENTERED moderators, which we won't use for anything but they're here for reference in case we need 
+#  them
+raw_dat$pxv = raw_dat$wp * raw_dat$jv
+raw_dat$pxa = raw_dat$wp * raw_dat$ja
+
+# Create centered moderators as function of centered predictors
+raw_dat$pxv_cent = raw_dat$wp_cent * raw_dat$jv_cent
+raw_dat$pxa_cent = raw_dat$wp_cent * raw_dat$ja_cent
+
+# Create standardized moderators as function of standardized predictors
+raw_dat$pxv_std = raw_dat$wp_std * raw_dat$jv_std
+raw_dat$pxa_std = raw_dat$wp_std * raw_dat$ja_std
+
+# Append new names to our name arrays
+cont_names <- c(cont_names, 'pxv', 'pxa')
+cent_names <- c(cent_names, 'pxv_cent', 'pxa_cent')
+std_names <- c(std_names, 'pxv_std', 'pxa_std')
+
+```
+
+
+## Descriptive Statistics - Raw Data
+
+This section will look at base descriptive statistics of the raw data to help identify data anomalies and check   
+normality of predictor variables (break length - minutes)
+
+```{r descriptive_stats_raw}
+
+# We'll need to check both univariate normality and multi-variate normality.
+#    NOTE: We need to use the vars = cent_names[] syntax with [] included to access the contents of 
+#          csnt_names. Otherwise jamovi recognizes it as a character array object and it craps out.
+my_descr = jmv::descriptives( raw_dat,
+                              vars = cent_names[],
+                              hist = TRUE,
+                              dens = TRUE,
+                              qq = TRUE,
+                              sd = TRUE,
+                              variance = TRUE,
+                              se = TRUE,
+                              skew = TRUE,
+                              kurt = TRUE,
+                              missing = TRUE
+                            )
+print(my_descr)
+
+# We'll check uncentered descriptives as well so we can get means. Note the moderation means must be ignored here as  
+# Uncentered moderators are not properly defined. We don't output plots for this one.
+uc_descr = jmv::descriptives( raw_dat,
+                              vars = cont_names[],
+                              sd = TRUE,
+                              variance = TRUE,
+                              se = TRUE,
+                              skew = TRUE,
+                              kurt = TRUE,
+                              missing = TRUE
+                            )
+print(uc_descr)
+
+
+```
+
+## Correlation Plots - Raw Data
+
+Visualize the covariance matrix to understand correlation between break length and employee productivity
+
+
+```{r correlation_plots_raw}
+
+# We look at correlations for the centered data for ease of interpretation (and because it's the same for cent and 
+# uncent)
+
+# Centered correlations.
+cent_subset <- raw_dat[ cent_names ]
+corr_cent   <- stats::cor( cent_subset )
+corrplot( corr_cent,
+          method="color",
+          type = "full",
+          addCoef.col = "black",
+          col = rb_colmap,
+          tl.col = font_color )
+
+# Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
+# 1 for tables, but oh well)
+corr_cent_tab <- jmv::corrMatrix(cent_subset, flag = TRUE)
+print( corr_cent_tab )
+
+```
+
+## Scatterplots of Variables
+
+```{r scatter_plots}
+
+# We have the following simple relationships in Model 1:
+#   js ~ ja
+#   js ~ jv
+#   js ~ wp
+
+# In addition to those, we have the following relationships in Model 2:
+#   ti ~ js
+#   wp ~ jv
+#   wp ~ js
+
+# Finally, we have the following covariance relationship which we'll just include for giggles:
+#  jv ~~ ja
+
+# Supplemental Scatterplots - Covariance
+
+# Scatterplot 1: Job Variety vs Job Autonomy
+scatter_01 <- ggplot(raw_dat, aes(ja, jv) )
+
+scatter_01 +
+    geom_point() +
+    geom_smooth(method = "lm", colour = "Red") +
+    ggtitle("Covariates - Job Variety as a Function of Job Autonomy") +
+    labs(y = "Job Variety (1-7)", x = "Job Autonomy (1-7)") +
+    my_gg_theme
+
+
+# Model 1 Scatterplots - Moderation Only
+
+# Scatterplot 2: Job Satisfaction vs. Job Autonomy
+scatter_02 <- ggplot(raw_dat, aes(ja, js) )
+
+scatter_02 +
+    geom_point() +
+    geom_smooth(method = "lm", colour = "Red") +
+    ggtitle("Job Satisfaction as a Function of Job Autonomy") +
+    labs(y = "Job Satisfaction (1-7)", x = "Job Autonomy (1-7)") +
+    my_gg_theme
+
+# Scatterplot 3: Job Satisfaction vs. Job Variety
+scatter_03 <- ggplot(raw_dat, aes(jv, js) )
+
+scatter_03 +
+    geom_point() +
+    geom_smooth(method = "lm", colour = "Red") +
+    ggtitle("Job Satisfaction as a Function of Job Variety") +
+    labs(y = "Job Satisfaction (1-7)", x = "Job Variety (1-7)") +
+    my_gg_theme
+
+# Scatterplot 4: Job Satisfaction vs. Work Passion
+scatter_04 <- ggplot(raw_dat, aes(wp, js) )
+
+scatter_04 +
+    geom_point() +
+    geom_smooth(method = "lm", colour = "Red") +
+    ggtitle("Job Satisfaction as a Function of Work Passion") +
+    labs(y = "Job Satisfaction (1-7)", x = "Work Passion (1-7)") +
+    my_gg_theme
+
+# Model 2 Scatterplots - Mediation and Turnover Intent
+
+# Scatterplot 5: Job Satisfaction vs. Job Autonomy
+scatter_05 <- ggplot(raw_dat, aes(js, ti) )
+
+scatter_05 +
+    geom_point() +
+    geom_smooth(method = "lm", colour = "Red") +
+    ggtitle("Turnover Intent as a Function of Job Satisfaction") +
+    labs(y = "Turnover Intent (1-7)", x = "Job Satisfaction (1-7)") +
+    my_gg_theme
+
+# Scatterplot 6: Job Satisfaction vs. Job Autonomy
+scatter_06 <- ggplot(raw_dat, aes(ja, wp) )
+
+scatter_06 +
+    geom_point() +
+    geom_smooth(method = "lm", colour = "Red") +
+    ggtitle("Work Passion as a Function of Job Autonomy") +
+    labs(y = "Work Passion (1-7)", x = "Job Autonomy (1-7)") +
+    my_gg_theme
+
+# Scatterplot 7: Job Satisfaction vs. Job Autonomy
+scatter_07 <- ggplot(raw_dat, aes(jv, wp) )
+
+scatter_07 +
+    geom_point() +
+    geom_smooth(method = "lm", colour = "Red") +
+    ggtitle("Work Passion as a Function of Job Autonomy") +
+    labs(y = "Work Passion (1-7)", x = "Job Autonomy (1-7)") +
+    my_gg_theme
+
+```
+
+## Build Simple Linear Models (lm)
+
+```{r linear_model_definition}
+
+# Model 1
+# Build simple linear models, one with and one without moderation based off of centered data
+me_simp_model_1 <- lm(js_cent ~ wp_cent + jv_cent + ja_cent, data = raw_dat)
+me_mod_model_1  <- lm(js_cent ~ wp_cent + jv_cent + pxv_cent + ja_cent + pxa_cent, data = raw_dat)
+
+# Model 2 simple linear models
+# Since model 2 relies on mediation instead of moderation, and ultimately predicts turnover intent, we can evaluate 
+# Homoscedasticty and Multivariate normality purely from a fully saturated turnover intent model
+me_sat_model_2 <- lm(ti_cent ~ js_cent + wp_cent + jv_cent + ja_cent, data = raw_dat)
+
+```
+
+
+## Residuals Plots - Model 1
+```{r residuals_figures}
+
+# Check Residuals plot (Heteroscedasticity)
+# Fitted values vs. residuals to examine homoscedasticity
+# NOTE use of .resid to plot residuals
+
+
+# Main Effects: js ~ wp + jv + ja
+resid_me_1_fig = ggplot( me_simp_model_1, aes(.fitted, .resid) )
+
+resid_me_1_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Job Satisfaction Levels (1-7)") +
+    ylab("Job Satisfaction Residuals (1-7)") +
+    ggtitle("Main Effects Job Satisfaction Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+resid_me_1_sd_fig = ggplot( me_simp_model_1,
+                              aes(.fitted , .resid / my_descr$descriptives$asDF$`js_cent[sd]` )
+                            )
+
+resid_me_1_sd_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Job Satisfaction Levels (1-7)") +
+    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+    ggtitle("Standardized Main Effects Job Satisfaction Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# Create Residuals plot for Fitted values with Moderation Accounted for
+
+# Moderation Effects: js ~ wp + jv + pxv + ja + pxa
+resid_mod_1_fig = ggplot( me_mod_model_1, aes(.fitted, .resid) )
+
+resid_mod_1_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Job Satisfaction Levels (1-7)") +
+    ylab("Job Satisfaction Residuals (1-7)") +
+    ggtitle("Main + Moderation Effects Job Satisfaction Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+resid_mod_1_sd_fig = ggplot( me_mod_model_1,
+                              aes(.fitted , .resid / my_descr$descriptives$asDF$`js_cent[sd]` )
+                            )
+
+resid_mod_1_sd_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Job Satisfaction Levels (1-7)") +
+    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+    ggtitle("Main + Moderation Job Satisfaction Residual vs. Fitted Plot") +
+    my_gg_theme
+
+```
+
+## Residuals Plots - Model 2
+```{r residuals_figures_m2}
+
+# Check Residuals plot (Heteroscedasticity)
+# Fitted values vs. residuals to examine homoscedasticity
+# NOTE use of .resid to plot residuals
+
+# Main Effects: ti ~ wp + js + jv + ja
+resid_me_2_fig = ggplot( me_sat_model_2, aes(.fitted, .resid) )
+
+resid_me_2_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Turnover Intent Levels (1-7)") +
+    ylab("Turnover Intent Residuals (1-7)") +
+    ggtitle("Main Effects Turnover Intent Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+resid_me_2_sd_fig = ggplot( me_sat_model_2,
+                              aes(.fitted , .resid / my_descr$descriptives$asDF$`ti_cent[sd]` )
+                            )
+
+resid_me_2_sd_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Turnover Intent Levels (1-7)") +
+    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+    ggtitle("Standardized Main Effects Turnover Intent vs. Fitted Plot") +
+    my_gg_theme
+
+
+```
+
+
+## Homoscedasticity Checks
+
+```{r homoscedasticity_checks}
+
+# Run a Breusch Pagan Test of homoscedasticity for both moderation models, main effects and w/ moderation
+
+cat( paste("  ", "---- Model 1: Breusch-Pagan Main Effects ----", " ", sep = "\n") )
+car::ncvTest(me_simp_model_1)
+
+cat( paste("  ", "---- Model 1: Breusch-Pagan Main + Moderation Effects ----", " ", sep = "\n") )
+car::ncvTest(me_mod_model_1)
+
+cat( paste("  ", "---- Model 2: Breusch-Pagan Main Effects ----", " ", sep = "\n") )
+car::ncvTest(me_sat_model_2)
+
+
+```
+
+
+## Multi-Variate Normality
+
+```{r multivar_norm}
+
+
+# Code below manually produces QQ Plot for better alignment with general plot styles
+ggplot(me_mod_model_1,
+         aes(
+               qqnorm( .stdresid,
+                       xlab = "", ylab = "",
+                       conf.level = 0.95,
+                       conf.args = list(col = "lightgrey", exact = TRUE)
+                      )[[1]],
+               .stdresid )
+       ) +
+    geom_point(na.rm = TRUE) +
+    xlab("Theoretical Quantiles") +
+    ylab("Standardized Residuals") +
+    ggtitle("Normal Q-Q of Main Effects - Model 1") +
+    my_gg_theme
+
+# Code below manually produces QQ Plot for better alignment with general plot styles
+ggplot(me_simp_model_1,
+         aes(
+               qqnorm( .stdresid,
+                       xlab = "", ylab = "",
+                       conf.level = 0.95,
+                       conf.args = list(col = "lightgrey", exact = TRUE)
+                      )[[1]],
+               .stdresid )
+       ) +
+    geom_point(na.rm = TRUE) +
+    xlab("Theoretical Quantiles") +
+    ylab("Standardized Residuals") +
+    ggtitle("Normal Q-Q of Main Effects w/ Moderation - Model 1") +
+    my_gg_theme
+
+# Code below manually produces QQ Plot for better alignment with general plot styles
+ggplot(me_sat_model_2,
+         aes(
+               qqnorm( .stdresid,
+                       xlab = "", ylab = "",
+                       conf.level = 0.95,
+                       conf.args = list(col = "lightgrey", exact = TRUE)
+                      )[[1]],
+               .stdresid )
+       ) +
+    geom_point(na.rm = TRUE) +
+    xlab("Theoretical Quantiles") +
+    ylab("Standardized Residuals") +
+    ggtitle("Normal Q-Q of Main Effects - Model 2") +
+    my_gg_theme
+
+
+# Henze-Zirkler test of multivariate normality
+# Since this include all variables to be used in both Model 1 and Model 2 it tests the assumption for both
+# Columns 2-6 are ja, ti, wp, js and jv
+HZ.test(raw_dat[2:6])
+
+
+```
+
+## Data Cleaning - OPTIONAL
+If there are data issues that need to be adjusted, clean the data here.
+
+``` {r data_cleaning_raw}
+
+```
+
+## Construct Path Models
+
+We need to perform multiple path analyse. Our first model, Model 1, uses work passion as a moderator for both job   
+autonomy and job variety to predict job satisfaction.
+
+Out second mode, Model 2,  uses...
+
+### Model 1: Homework Model
+
+Here we define and evaluate the model as discussed in the homework assignment
+
+
+```{r path_model_1}
+# # USING CENTERED VARS
+# model1_def <- '
+#               # Primary regression paths (equiv of b and c-prime)
+#               # names followed by * are path names
+#               js_cent ~ p_s*wp_cent + v_s*jv_cent + pxv_s*pxv_cent + a_s*ja_cent + pxa_s*pxa_cent
+#               
+#               # Covariances: NOTE: Dr. Diaz reviewed this on 4/10 and noted that we can either declare variety to   
+#               #                    covary with autonomy, as shown here. Or we can fix it to the correlation 
+#               #                    coefficient to get a degree of freedom back which may improve fit. Model fit 
+#               #                    w/o fixing the covariance to the correlation coefficient was:
+#               #                                                       df = 6, X2 = 88.24, CFI = .606, 
+#               #                                                       TLI = .211,  RMSEA = 0.214, SRMR = 0.139
+#               #                    model fit w/ the correlation fixed was: 
+#               #                                                       df = 7, X2 = 88.36, CFI = .610, 
+#               #                                                       TLI = .331,  RMSEA = 0.197, SRMR = 0.138
+#               #                    ...given how small the differences are, I am just going to let lavaan covary
+#               jv_cent ~~ ja_cent
+#               # jv_cent ~~ .314*ja_cent
+#               
+#               # Main Effects Only - No Moderation
+#               # js_cent ~ p_s*wp_cent + v_s*jv_cent + a_s*ja_cent
+#               
+#               # Moderated Effects Only - No Main Effects
+#               # js_cent ~ pxv_s*pxv_cent + pxa_s*pxa_cent
+#               
+#               # Work Passion Isolated
+#               me_pw := p_s
+#               
+#               # Variety Isolated
+#               me_vs   := v_s
+#               vs_comb := v_s + p_s + pxv_s
+#               
+#               # Autonomy Isolated
+#               me_as   := a_s
+#               as_comb := a_s + a_s + pxa_s
+#               
+#               # Total Effects - Combination of All Vars
+#               te := p_s + a_s + pxa_s + v_s + pxv_s
+#               
+#               
+#               # Simple Slopes for Variety to Satisfaction
+#               pxv_low_slp :=  (v_s + pxv_s * -1)
+#               pxv_avg_slp :=  (v_s)
+#               pxv_high_slp := (v_s + pxv_s * 1)
+#               
+#               # Simple Slopes for Autonomy to Satisfaction
+#               pxa_low_slp :=  (a_s + pxa_s * -1)
+#               pxa_avg_slp :=  (a_s)
+#               pxa_high_slp := (a_s + pxa_s * 1)
+#               
+#               # Indirect Paths (Mediation) -> None
+#               # Total Indirect Paths - EndV Regressed onto Mediation Bridges -> None
+#               '
+
+# Using STANDARDIZED vars
+model1_def <- '
+              # Primary regression paths (equiv of b and c-prime)
+              # names followed by * are path names
+              js_std ~ p_s*wp_std + v_s*jv_std + pxv_s*pxv_std + a_s*ja_std + pxa_s*pxa_std
+              
+              # Covariances: NOTE: Dr. Diaz reviewed this on 4/10 and noted that we can either declare variety to   
+              #                    covary with autonomy, as shown here. Or we can fix it to the correlation 
+              #                    coefficient to get a degree of freedom back which may improve fit. Model fit 
+              #                    w/o fixing the covariance to the correlation coefficient was:
+              #                                                       df = 6, X2 = 88.24, CFI = .606, 
+              #                                                       TLI = .211,  RMSEA = 0.214, SRMR = 0.139
+              #                    model fit w/ the correlation fixed was: 
+              #                                                       df = 7, X2 = 88.36, CFI = .610, 
+              #                                                       TLI = .331,  RMSEA = 0.197, SRMR = 0.138
+              #                    ...given how small the differences are, I am just going to let lavaan covary
+              jv_std ~~ ja_std
+              # jv_std ~~ .314*ja_std
+              
+              # Main Effects Only - No Moderation
+              # js_std ~ p_s*wp_std + v_s*jv_std + a_s*ja_std
+              
+              # Moderated Effects Only - No Main Effects
+              # js_std ~ pxv_s*pxv_std + pxa_s*pxa_std
+              
+              # Work Passion Isolated
+              me_pw := p_s
+              
+              # Variety Isolated
+              me_vs   := v_s
+              vs_comb := v_s + p_s + pxv_s
+              
+              # Autonomy Isolated
+              me_as   := a_s
+              as_comb := a_s + a_s + pxa_s
+              
+              # Total Effects - Combination of All Vars
+              te := p_s + a_s + pxa_s + v_s + pxv_s
+              
+              
+              # Simple Slopes for Variety to Satisfaction
+              pxv_low_slp :=  (v_s + pxv_s * -1)
+              pxv_avg_slp :=  (v_s)
+              pxv_high_slp := (v_s + pxv_s * 1)
+              
+              # Simple Slopes for Autonomy to Satisfaction
+              pxa_low_slp :=  (a_s + pxa_s * -1)
+              pxa_avg_slp :=  (a_s)
+              pxa_high_slp := (a_s + pxa_s * 1)
+              
+              # Indirect Paths (Mediation) -> None
+              # Total Indirect Paths - EndV Regressed onto Mediation Bridges -> None
+              '
+
+# Must use ML since we have no categorical variables and we're using bootstrap (maximum likelihood)
+# Use MLR if data is relatively normal and we're not bootstrapping.
+# Must use WLS if we do have ordered vars.
+model1_fit <- lavaan::sem( model1_def, 
+                           data = raw_dat, 
+                           se = "bootstrap",
+                           estimator = "ML", 
+                           bootstrap = 10000, 
+                           parallel ="snow", 
+                           ncpus = use_cores
+                         )
+
+```
+
+### Model 1: Fit Reporting
+
+Separate model fit reporting from model construction so we don't have to rerun bootstrap a bunch
+
+```{r mod1_reporting}
+
+# Decent text output of model fit and coefficients
+summary( model1_fit, 
+         fit.measures=TRUE, 
+         standardized=TRUE, 
+         rsquare=TRUE
+       )
+
+
+# Scrollable table in HTML output
+standardizedSolution(model1_fit, type = "std.all")
+
+# Additional modelfit output with CIs that's a bit more user friendly to text editors
+parameterEstimates(model1_fit, standardized = TRUE, boot.ci.type = "perc", level=0.95)
+
+
+```
+
+
+### Model 2: My  Model w/ Modifications
+
+Here we define and evaluate the model as modified by me
+
+
+```{r path_model_2}
+
+# # Using CENTERED Vars
+# model2_def <- '
+#               # Primary regression paths (equiv of b and c-prime)
+#               # names followed by * are path names
+#               js_cent ~ p_s*wp_cent + v_s*jv_cent + a_s*ja_cent
+#               wp_cent ~ v_p*jv_cent
+#               wp_cent ~ a_p*ja_cent
+#               ti_cent ~ s_t*js_cent
+#               
+#               # Covariances
+#               jv_cent ~~ ja_cent
+#               
+#               # Indirect Paths (Mediation) -> sat via var and pass, sat via auto and pass
+#               # To Job Satisfaction
+#               v_p_s := v_p*p_s 
+#               a_p_s := a_p*p_s
+#               
+#               # To Turnover Intent
+#               v_s_t   := v_s*s_t
+#               a_s_t   := v_s*s_t
+#               v_p_s_t := v_p_s*s_t 
+#               a_p_s_t := a_p_s*s_t 
+#               
+#               
+#               # Total Indirect Paths - Total Effects of All Bridges (instead of roads)
+#               in_te_s := v_p_s + a_p_s
+#               
+#               # Total Effects
+#               te_s := in_te_s + v_s + a_s
+#               te_t := te_s + s_t
+#               '
+
+# Using STANDARDIZED Vars
+model2_def <- '
+              # Primary regression paths (equiv of b and c-prime)
+              # names followed by * are path names
+              js_std ~ p_s*wp_std + v_s*jv_std + a_s*ja_std
+              wp_std ~ v_p*jv_std + a_p*ja_std
+              #wp_std ~ v_p*jv_std
+              #wp_std ~ a_p*ja_std
+              ti_std ~ s_t*js_std
+              
+              # Covariances
+              jv_std ~~ ja_std
+              
+              # Indirect Paths (Mediation) -> sat via var and pass, sat via auto and pass
+              # To Job Satisfaction
+              v_p_s := v_p*p_s 
+              a_p_s := a_p*p_s
+              
+              # To Turnover Intent
+              v_s_t   := v_s*s_t
+              a_s_t   := a_s*s_t
+              v_p_s_t := v_p_s*s_t 
+              a_p_s_t := a_p_s*s_t 
+                            
+              # Combined Indirect Paths - Total Effects of All Bridges (instead of roads)
+              # To Job Satisfaction
+              in_te_s  := v_p_s + a_p_s
+              in_te_t1 := v_s_t + a_s_t
+              in_te_t2 := v_p_s_t + a_p_s_t
+                            
+              # Total Effects
+              te_s := in_te_s + v_s + a_s
+              te_t  := in_te_t1 + in_te_t2
+              #te_t := te_s + s_t
+              '
+
+# Must use ML since we have no categorical variables and we're using bootstrap (maximum likelihood)
+# Use MLR if data is relatively normal and we're not bootstrapping.
+# Must use WLS if we do have ordered vars.
+model2_fit <- lavaan::sem( model2_def, 
+                           data = raw_dat, 
+                           se = "bootstrap",
+                           estimator = "ML", 
+                           bootstrap = 10000, 
+                           parallel ="snow", 
+                           ncpus = use_cores
+                         )
+
+
+```
+
+### Model 2: Fit Reporting
+
+Separate model fit reporting from model construction so we don't have to rerun bootstrap a bunch
+
+```{r mod2_reporting}
+
+# Decent text output of model fit and coefficients
+summary( model2_fit, 
+         fit.measures=TRUE, 
+         standardized=TRUE, 
+         rsquare=TRUE
+       )
+
+
+# Scrollable table in HTML output
+standardizedSolution(model2_fit, type = "std.all")
+
+# Additional modelfit output with CIs that's a bit more user friendly to text editors
+parameterEstimates(model2_fit, standardized = TRUE, boot.ci.type = "perc", level=0.95)
+
+
+```
