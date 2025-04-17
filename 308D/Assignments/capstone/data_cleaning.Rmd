@@ -1,0 +1,360 @@
+---
+title: "PSYCH308D - Capstone Data Cleaning"
+author: "Brady C. Jackson"
+date: "2025/04/16"
+
+# Write document output to HTML, Word, and PDF output types with a Table of
+# contents included.
+output: 
+  html_document:
+    toc: true
+  word_document:
+    toc: true
+#  pdf_document:
+#    toc: true
+#    latex_engine: xelatex
+
+# This option here enables output to both HTML and PDF formats
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding,
+  output_format = "all") })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---ONLY WRITE CODE BELOW THIS LINE---
+
+# Library Loading
+
+Load all requisite libraries here.
+
+```{r package_loading, message=FALSE, warning=FALSE}
+# Load packages. Set messages and warnings to FALSE so I don't have to see the
+# masking messages in the output.
+library(jmv)       # for descriptive
+library(ggplot2)
+library(dplyr)
+library(corrplot)    # For fancy covariance matrix plots
+library(apaTables)   # For Word formatted tables
+library(car)         # for ncvTest (Breusch Pagan)
+library(tidyverse)
+library(jmv)       # for descriptive
+library(ggplot2)
+library(dplyr)
+library(psych)
+library(corrplot)    # For fancy covariance matrix plots
+library(car)         # for ncvTest (Breusch Pagan)
+library(stringr)     # for sub_str operations
+library(Hmisc)       # for fun.dat substitution
+library(see)         # for outliers analysis 
+library(magrittr)
+library(foreign)
+library(broom)
+library(robmed)
+library(mediation)   # For mediation analysis
+library(multilevel)
+library(GGally)
+library(lsr)
+library(car)
+library(mvnTest)     # Multivariate Normality
+library(lm.beta)
+library(lavaan)      # Structural Equation Modeling
+library(haven)
+library(foreign)
+library(parallel)
+# library(AER)
+
+```
+
+# Metadata
+
+This section of code is to setup some general variables that we'll use throughout the code (e.g. figure colors, etc)
+
+```{r metadata}
+# First we'll defines some meta-data to use in all of our plots so they're nice and clean
+font_color = "#4F81BD"
+grid_color_major = "#9BB7D9"
+grid_color_minor = "#C8D7EA"
+back_color = "gray95"
+rb_colmap = colorRampPalette( c("firebrick", "grey86", "dodgerblue3") )(200)
+
+# I'm going to try to save off my preferred ggplot theme combinations as a unqiue theme object that I can just reference
+# later in the code....totally unclear if ggplot works this way....
+my_gg_theme = theme_minimal() +
+              theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+                     axis.title.x = element_text(color = font_color),
+                     axis.title.y = element_text(color = font_color),
+                     axis.text.x = element_text(color = font_color),
+                     axis.text.y = element_text(color = font_color),
+                     legend.title = element_text(color = font_color),
+                     legend.text = element_text(color = font_color),
+                     panel.grid.minor = element_line(color = grid_color_minor),
+                     panel.grid.major = element_line(color = grid_color_major),
+                     panel.background = element_rect(fill = back_color, color = font_color)
+                   )
+
+# Setup filepath metadata
+working_dir = fullpath(c(here, "Assignments", "capstone"))
+
+```
+
+# Load Uncleaned Data
+
+Here we load the dataframe from the CSV file from the excel edited downloaded data.
+
+
+```{r load_raw_data}
+
+# Filename and location of raw data.
+raw_dat_filename <- "final_database_copy_for_cleaning.csv"
+raw_dat_file <-fullpath(c(working_dir, raw_dat_filename))
+
+# Load the assignment data from CSV
+raw_dat = read.csv(raw_dat_file)
+
+# Rename columns to lower because why not
+colnames(raw_dat) <- tolower( colnames(raw_dat) )
+
+# Ensure that the numbers of each subject in the study are unique to prevent any duplicate data
+# if the size of the unique-entries only is the same as the whole vector then there are no duplicate subjects
+# NOTE: This fails if the colname of the subject ID is input wrong (e.g. if the subject ID is not named "participant"
+#       in the dataframe. So check that the colname exists before blindly believing)
+test_unique = (length(unique(raw_dat$participant)) == length(raw_dat$participant))
+if(!test_unique){
+    print("WARNING: There are duplicate data entries in the raw data")
+}else{
+    print("No duplicate entries detected in raw data")
+}
+
+# Save off all continuous variable names
+cont_names <- c('age', colnames(raw_dat[5:21]))
+
+```
+
+
+# Descriptive Statistics - Raw Data
+
+Get an initial hack on the descriptives before we clean the data.
+
+```{r descriptive_stats_raw}
+
+# We'll need to check both univariate normality and multi-variate normality.
+#    NOTE: We need to use the vars = cont_names[] syntax with [] included to access the contents of
+#          cont_names. Otherwise jamovi recognizes it as a character array object and it craps out.
+raw_descr = jmv::descriptives( raw_dat,
+                                vars = cont_names[],
+                                hist = TRUE,
+                                dens = TRUE,
+                                sd = TRUE,
+                                variance = TRUE,
+                                se = TRUE,
+                                skew = TRUE,
+                                kurt = TRUE,
+                                missing = TRUE
+                              )
+
+# Print descriptives output to Knitted Rmd file
+print(raw_descr)
+
+# Dump raw descriptives Rmd output to a text file
+# Open the raw descriptives output file.
+raw_descr_out_filename <- "raw_dat_descriptives.txt"
+raw_descr_out_file <- fullpath( c( working_dir, raw_descr_out_filename) ) 
+raw_decr_out_stream <- file(raw_descr_out_file, open = "wt")
+
+# Dump the formated text portion of the descriptives object.
+writeLines( "RAW DATA", raw_decr_out_stream )
+writeLines( capture.output( print( raw_descr$descriptives ) ), raw_decr_out_stream )
+
+# Close the raw descriptives file stream
+close(raw_decr_out_stream)
+
+```
+
+# Clean Data
+
+We need to pare the data downloaded and edited in excel down to our minimum set of vars.   
+The biggest edit is to unskew the age data, so we'll remove all rows in the dataframe for ages above 40.    
+Next, we'll pull out some of the excess variables that we don't know how to use (e.g. the Categories)   
+
+```{r clean_raw_data}
+
+# Define the age cutoff as variable so we can tweak it later if need be.
+age_co = 30
+
+# Eliminate all rows with ages above 40. We logically index for all ages less than or equal to 40, and, just to make  
+# sure we don't have any bullshit data, we additionally subset to all ages greater than 0.
+idx_lt_co <- raw_dat$age <= 30
+idx_gt_0 <- raw_dat$age > 0
+keep_ages = idx_gt_0 & idx_lt_co
+
+# Next we subset all columns of the dataframe to keep_ages rows only.
+clean_dat <- raw_dat[keep_ages, ]
+
+# We're going to use a few regular expressions to capture columns we want to drop and then we'll just purge those from   
+# the cleaned data dataframe.  
+# We don't want, for example, the _mid, or _after measures of positive affect, negative affect, or anxiety as we're  
+# mostly focused on how age predicts anxiety pre-video viewing, and whether or not preferences for light or dark humor    
+# moderate that relationship. We also don't care if the participants have viewed videos before. And, for this research,  
+# we don't care what category they're in.
+
+# Get column names
+
+# Search column names containing: "mid" in an form, "after" in any form, and "seen" in any form, and "cat" in any form.
+#  NOTE: we use the weird syntax in the "cat" match: (?<!edu) to include a perl-style negative lookbehind regex term
+#        which matches the same as the other regexes but NOT if "edu" precedes "cat" ... the perl arg has to be 
+#        included for this to work.
+mid_cols <- grep("_*mid.*", nams, value = TRUE)
+aft_cols <- grep("_*after.*", nams, value = TRUE)
+sen_cols <- grep("_*seen.*", nams, value = TRUE)
+cat_cols <- grep("(?<!edu)_*cat.*", nams, value = TRUE, perl = TRUE)
+drop_cols <- unique( c(mid_cols, aft_cols, sen_cols, cat_cols) )
+
+# Now we diff our drop cols and our column names to get the columns to keep
+keep_cols <- setdiff(nams, drop_cols) 
+
+# Delete the drop calls by only keeping the keep_cols
+clean_dat <- clean_dat[ , keep_cols]
+
+
+# Now we want to add 4x measures to the data to try to capture general dispositon towards light humor and dark humor.
+# Per the dataset wiki write up:
+#  Light humor consists of: fun, humor, nonsense, and wit
+#  Dark  humor consists of: sarcasm, cynicism, satire, and irony.
+#
+#  We're going to compute a general light humor ranking, light_humor_avg, by averaging the four scores of
+#    fun, humor, nonsense, and wit.
+#  We're also going to compute a general light humor ranking, light_humor_norm, by taking the vector norm of those 4 
+#    scores. It's unclear if this will provide a better construct, but it generally computs the hypoteneuse in the 4D 
+#    space made up of those 4 dimensions (since they're likely non-orthogonal this may be trash but let's see)
+# we'll compute the same two constructs for dark humor as well.
+light_cols <- c("avg_fun", "avg_humor", "avg_nons", "avg_wit")
+dark_cols <- c("avg_sarc", "avg_cyn", "avg_satire", "avg_irony")
+
+clean_dat$light_humor_avg <- rowMeans( clean_dat[light_cols], na.rm = TRUE )
+clean_dat$light_humor_norm <- sqrt( rowSums ( clean_dat[light_cols]^2 ) )
+
+clean_dat$dark_humor_avg <- rowMeans( clean_dat[dark_cols], na.rm = TRUE )
+clean_dat$dark_humor_norm <- sqrt( rowSums ( clean_dat[dark_cols]^2 ) )
+
+# Define a new continuous names vector for use in numerics and correlations
+clean_conts <- c('age', colnames(clean_dat[5:19])) 
+
+```
+
+# Descriptive Statistics - Clean Data
+
+Now we'll check descriptives again for the cleaned data so we can see how they compare.
+
+```{r descriptive_stats_clean}
+
+#    NOTE: We need to use the vars = cont_names[] syntax with [] included to access the contents of
+#          cont_names. Otherwise jamovi recognizes it as a character array object and it craps out.
+clean_descr = jmv::descriptives( clean_dat,
+                                 vars = clean_conts[],
+                                 hist = TRUE,
+                                 dens = TRUE,
+                                 sd = TRUE,
+                                 variance = TRUE,
+                                 se = TRUE,
+                                 skew = TRUE,
+                                 kurt = TRUE,
+                                 missing = TRUE
+                               )
+# Print descriptives output to Knitted Rmd file
+print(clean_descr)
+
+# Dump raw descriptives Rmd output to a text file
+# Open the raw descriptives output file.
+cln_descr_out_filename <- "clean_dat_descriptives.txt"
+cln_descr_out_file <- fullpath( c( working_dir, cln_descr_out_filename) ) 
+cln_decr_out_stream <- file(cln_descr_out_file, open = "wt")
+
+# Dump the formated text portion of the descriptives object.
+writeLines( "CLEAN DATA", cln_decr_out_stream )
+writeLines( capture.output( print( clean_descr$descriptives ) ), cln_decr_out_stream )
+
+# Close the raw descriptives file stream
+close(cln_decr_out_stream)
+
+```
+# Center and Standardize Cleaned Data
+
+Create a dataframe that has centered data.
+Create a dataframe that has standardized data.
+
+```{r center_data}
+
+# We need to create two new dataframes one for centered and one for standardized data before we start looping.
+clean_cent_dat <- clean_dat
+clean_std_dat<- clean_cent_dat
+
+# We're using a for loop because I'm done copy-pasting
+for(iii in seq_along(clean_conts) ){
+
+    # Get the column name we care about
+    col = clean_conts[iii]
+
+    # We center the data in the cleaned dataframe and save the output to the same column name in our centered dataframe  
+    clean_cent_dat[[col]] <- clean_dat[[col]] - mean( clean_dat[[col]], na.rm = TRUE )
+
+    # And we standardize using the scale function
+    clean_std_dat[[col]] <- scale( clean_dat[[col]], center = TRUE, scale = TRUE )[,1]
+
+}
+
+```
+
+# Write Clean Datasets to Outfiles
+
+Now that we have a cleaned dataframe, a cleaned and centered dataframe, and a standardized and cleaned dataframe, we   
+need to save them to both RDS and CSV files.
+
+```{r write_clean_csv}
+# Clean Data
+clean_rds_file = fullpath(c(working_dir, "clean_humor_data.rds"))
+clean_csv_file = fullpath(c(working_dir, "clean_humor_data.csv"))
+
+# Save off RDS
+saveRDS(clean_dat, file = clean_rds_file)
+
+# Write to CSV
+write.csv(clean_dat, file = clean_csv_file, row.names = FALSE, fileEncoding = "UTF-8")
+
+# Cleaned and Centered Data
+cent_rds_file = fullpath(c(working_dir, "centered_and_cleaned_humor_data.rds"))
+cent_csv_file = fullpath(c(working_dir, "centered_and_cleaned_humor_data.csv"))
+
+# Save off RDS
+saveRDS(clean_cent_dat , file = cent_rds_file)
+
+# Write to CSV
+write.csv(clean_cent_dat, file = cent_csv_file, row.names = FALSE, fileEncoding = "UTF-8")
+
+# Cleaned and Standardized Data
+std_rds_file = fullpath(c(working_dir, "standardized_and_cleaned_humor_data.rds"))
+std_csv_file = fullpath(c(working_dir, "standardized_and_cleaned_humor_data.csv"))
+
+# Save off RDS
+saveRDS(clean_std_dat , file = std_rds_file)
+
+# Write to CSV
+write.csv(clean_std_dat, file = std_csv_file, row.names = FALSE, fileEncoding = "UTF-8")
+
+# Clean Data - All forms, 1 RDS
+comb_rds_file = fullpath(c(working_dir, "all_cleaned_humor_data.rds"))
+
+# Save off RDS
+saveRDS( list( "clean_dat" = clean_dat, 
+               "clean_cent_dat" = clean_cent_dat, 
+               "clean_std_dat" = clean_std_dat
+             ) , 
+         file = comb_rds_file
+       )
+
+```
+
+
+
