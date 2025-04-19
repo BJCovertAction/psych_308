@@ -1,0 +1,361 @@
+---
+title: "PSYCH308D - Capstone First Look"
+author: "Brady C. Jackson"
+date: "2025/04/14"
+
+# Write document output to HTML, Word, and PDF output types with a Table of
+# contents included.
+output: 
+  html_document:
+    toc: true
+  word_document:
+    toc: true
+#  pdf_document:
+#    toc: true
+#    latex_engine: xelatex
+
+# This option here enables output to both HTML and PDF formats
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding,
+  output_format = "all") })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+
+## Prompt
+Input Prompt Here
+
+## Variables 
+
+Input Variable Table HERE
+
+| Variable | Type | Description |
+|:-----|:---|:------------------|
+| `Var1` | numeric | Descriptive sentence 1 |
+| `Var2` | bool    | Descriptive sentence 2 |
+| `Var3` | binary  | Descriptive sentence 3 |
+
+## Assignment
+
+### Part 1
+
+Run the appropriate assumptions and analyses and report your findings in an APA format results section.   
+Include tables and figures as necessary. 
+
+### Part 2
+
+*Respond to the following questions.*
+
+1. Question 1
+2. Question 2
+
+---ONLY WRITE CODE BELOW THIS LINE---
+
+## Code
+
+Load all requisite libraries here.
+
+```{r package_loading, message=FALSE, warning=FALSE}
+# Load packages. Set messages and warnings to FALSE so I don't have to see the
+# masking messages in the output.
+library(jmv)       # for descriptive
+library(ggplot2)
+library(dplyr)
+library(corrplot)    # For fancy covariance matrix plots
+library(apaTables)   # For Word formatted tables
+library(car)         # for ncvTest (Breusch Pagan)
+library(tidyverse)
+library(jmv)       # for descriptive
+library(ggplot2)
+library(dplyr)
+library(psych)
+library(corrplot)    # For fancy covariance matrix plots
+library(car)         # for ncvTest (Breusch Pagan)
+library(stringr)     # for sub_str operations
+library(Hmisc)       # for fun.dat substitution
+library(see)         # for outliers analysis 
+library(magrittr)
+library(foreign)
+library(broom)
+library(robmed)
+library(mediation)   # For mediation analysis
+library(multilevel)
+library(GGally)
+library(lsr)
+library(car)
+library(mvnTest)     # Multivariate Normality
+library(lm.beta)
+library(lavaan)      # Structural Equation Modeling
+library(haven)
+library(foreign)
+library(parallel)
+# library(AER)
+
+```
+
+### Metadata
+
+This section of code is to setup some general variables that we'll use throughout the code (e.g. figure colors, etc)
+
+```{r metadata}
+# First we'll defines some meta-data to use in all of our plots so they're nice and clean
+font_color = "#4F81BD"
+grid_color_major = "#9BB7D9"
+grid_color_minor = "#C8D7EA"
+back_color = "gray95"
+rb_colmap = colorRampPalette( c("firebrick", "grey86", "dodgerblue3") )(200)
+
+# I'm going to try to save off my preferred ggplot theme combinations as a unqiue theme object that I can just reference
+# later in the code....totally unclear if ggplot works this way....
+my_gg_theme = theme_minimal() +
+              theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+                     axis.title.x = element_text(color = font_color),
+                     axis.title.y = element_text(color = font_color),
+                     axis.text.x = element_text(color = font_color),
+                     axis.text.y = element_text(color = font_color),
+                     legend.title = element_text(color = font_color),
+                     legend.text = element_text(color = font_color),
+                     panel.grid.minor = element_line(color = grid_color_minor),
+                     panel.grid.major = element_line(color = grid_color_major),
+                     panel.background = element_rect(fill = back_color, color = font_color)
+                   )
+
+```
+
+### Load and View data
+
+Here we load the dataframe from the CSV file provided for the assignment, and we 
+
+
+```{r load_raw_data}
+# 
+# Load the assignment data from CSV
+raw_dat = read.csv("./final_database_copy_for_cleaning.csv")
+
+# Rename columns to lower because why not
+colnames(raw_dat) <- tolower( colnames(raw_dat) )
+
+# View data
+# glimpse(breaks_raw_dat)
+
+# Ensure that the numbers of each subject in the study are unique to prevent any duplicate data
+# if the size of the unique-entries only is the same as the whole vector then there are no duplicate subjects
+# NOTE: This fails if the colname of the subject ID is input wrong (e.g. if the subject ID is not named "participant"
+#       in the dataframe. So check that the colname exists before blindly believing)
+test_unique = (length(unique(raw_dat$participant)) == length(raw_dat$participant))
+if(!test_unique){
+    print("WARNING: There are duplicate data entries in the raw data")
+}else{
+    print("No duplicate entries detected in raw data")
+}
+
+```
+
+### Add Centered and Standardized Data
+
+It is often useful to have the centered data and standardized data in addition to the uncentered data.
+So we add that here manually.
+
+For the purposes of mediation models, we need manually defined models that rely on standardized data (centered and   
+scaled by standard deviation). We could compute this manually after extracting the mean and SD from the descriptives   
+dataframe, but the "scale" function builds this capability automagically in R so we just use it here.
+
+```{r center_data}
+
+# Center all continuous data as defined by the cont_names array below
+cont_names <- c('age', colnames(raw_dat[5:21]))
+# 
+# # Pre-allocate name arrays of new vars
+# cent_names <- character( length(cont_names) )
+# std_names <- cent_names
+#     
+# # We're using a for loop because I'm done copy-pasting
+# for(iii in seq_along(cont_names) ){
+#     
+#     # Get the column name we care about
+#     col = cont_names[iii]
+#     
+#     # First we create new column names for centered and standardized data.
+#     cent_name = paste0(col, "_cent")
+#     std_name  = paste0(col, "_std")
+#     
+#     # Now we center
+#     raw_dat[[cent_name]] <- raw_dat[[col]] - mean( raw_dat[[col]], na.rm = TRUE )
+#     
+#     # And we standardize using the scale function
+#     raw_dat[[std_name]] <- scale( raw_dat[[col]], center = TRUE, scale = TRUE )[,1]
+#     
+#     # Save off new names
+#     cent_names[iii] <- cent_name
+#     std_names[iii] <- std_name
+#     
+# }
+
+```
+
+### Descriptive Statistics - Raw Data
+
+This section will look at base descriptive statistics of the raw data to help identify data anomalies and check   
+normality of predictor variables (break length - minutes)
+
+```{r descriptive_stats_raw}
+
+# We'll need to check both univariate normality and multi-variate normality.
+#    NOTE: We need to use the vars = cont_names[] syntax with [] included to access the contents of
+#          cont_names. Otherwise jamovi recognizes it as a character array object and it craps out.
+my_descr = jmv::descriptives( raw_dat,
+                              vars = cont_names[],
+                              hist = TRUE,
+                              dens = TRUE,
+                              qq = TRUE,
+                              sd = TRUE,
+                              variance = TRUE,
+                              se = TRUE,
+                              skew = TRUE,
+                              kurt = TRUE,
+                              missing = TRUE
+                            )
+print(my_descr)
+
+```
+
+### Correlation Plots - Raw Data
+
+Visualize the covariance matrix to understand correlation between break length and employee productivity
+
+
+```{r correlation_plots_raw}
+
+# We look at correlations for the centered data for ease of interpretation (and because it's the same for cent and
+# uncent)
+
+# Centered correlations.
+cent_subset <- raw_dat[ cont_names ]
+corr_cent   <- stats::cor( cent_subset )
+corrplot( corr_cent,
+          method="color",
+          type = "full",
+          addCoef.col = "black",
+          col = rb_colmap,
+          tl.col = font_color,
+          tl.cex = 0.75,          # text size for labels
+          cl.cex = 0.8,          # color legend text size
+          number.cex = 0.75,      # correlation coefficient text size
+          mar = c(1, 1, 1, 1) )
+
+# Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
+# 1 for tables, but oh well)
+corr_cent_tab <- jmv::corrMatrix(cent_subset, flag = TRUE)
+print( corr_cent_tab )
+
+```
+
+### Brute Force all 3x Var Combos as mediation models
+
+We're nuking this shit from orbit. Thanks ChatGPT
+
+```{r brute_force}
+
+# Define sim number as 100 since we want this to go fast
+nsims <- 100
+
+# All continuous varnames from dataset
+vars <- cont_names
+
+# Generate all ordered permutations of 3 distinct variables
+combos <- expand.grid(treat = vars, mediator = vars, outcome = vars, stringsAsFactors = FALSE)
+# Remove rows where any two variables are the same
+combos <- combos[combos$treat != combos$mediator & 
+                 combos$treat != combos$outcome & 
+                 combos$mediator != combos$outcome, ]
+
+# Optional: create a results list to store outputs
+results_list <- list()
+
+# # Initialize empty data.frame to store summary results
+# summary_df <- data.frame(
+#   model = character(),
+#   r_squared = numeric(),
+#   med_type = character(),
+#   stringsAsFactors = FALSE
+# )
+# 
+# # Loop over the valid combinations
+# for (i in seq_len(nrow(combos))) {
+#   treat_var <- combos$treat[i]
+#   med_var   <- combos$mediator[i]
+#   out_var   <- combos$outcome[i]
+# 
+#   # Build models dynamically
+#   mod_1 <- lm(as.formula(paste(med_var, "~", treat_var)), data = raw_dat)
+#   mod_2 <- lm(as.formula(paste(out_var, "~", treat_var, "+", med_var)), data = raw_dat)
+# 
+#   # Run mediation
+#   med_result <- mediation::mediate(
+#     model.m = mod_1,
+#     model.y = mod_2,
+#     treat = treat_var,
+#     mediator = med_var,
+#     sims = nsims,
+#     boot = TRUE,
+#     boot.ci.type = "perc",
+#     conf.level = 0.95,
+#     long = TRUE
+#   )
+# 
+#   # Name and save results
+#   model_name <- paste(treat_var, med_var, out_var, sep = "_")
+#   results_list[[model_name]] <- med_result
+# 
+#   # Get R^2 of the outcome model
+#   r_squared <- summary(mod_2)$r.squared
+# 
+#     # Summarize mediation result
+#     med_sum <- summary(med_result)
+#     
+#     # Extract CI for indirect (ACME) and direct (ADE) effects
+#     acme_ci <- med_sum$d0.ci  # Indirect effect CI
+#     ade_ci  <- med_sum$z0.ci  # Direct effect CI
+#     
+#     # Check if the CI excludes zero (i.e., significant)
+#     acme_sig <- !(acme_ci[1] < 0 & acme_ci[2] > 0)
+#     ade_sig  <- !(ade_ci[1] < 0 & ade_ci[2] > 0)
+#     
+#     # Apply your classification logic
+#     mediation_type <- if (acme_sig & ade_sig) {
+#       "Partial Mediation"
+#     } else if (acme_sig & !ade_sig) {
+#       "Full Mediation"
+#     } else {
+#       "No Mediation"
+#     }
+# 
+#   # Append to summary dataframe
+#   summary_df <- rbind(summary_df, data.frame(
+#     model = model_name,
+#     r_squared = r_squared,
+#     med_type = mediation_type,
+#     stringsAsFactors = FALSE
+#   ))
+# }
+
+summary_df <- readRDS("/home/brady/programming/r/psyd/cgu/coursework/psych_308/308D/Assignments/capstone/mediation_summary.rds")
+
+write.table(summary_df, file = "mediation_summary.txt", row.names = FALSE, sep = "\t")
+
+
+
+```
+
+```{write_csv}
+# Save / load data. CSV didn't work. Need to add path for later
+saveRDS(summary_df, file = "/home/brady/programming/r/psyd/cgu/coursework/psych_308/308D/Assignments/capstone/mediation_summary.rds")
+
+```
+
+
+
