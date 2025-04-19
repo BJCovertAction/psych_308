@@ -353,8 +353,7 @@ write.table(summary_df, file = "mediation_summary.txt", row.names = FALSE, sep =
 
 ```{write_csv}
 # Save / load data. CSV didn't work. Need to add path for later
-saveRDS(summary_df, file = "mediation_summary.rds")
-#summary_df <- readRDS("mediation_summary.rds")
+saveRDS(summary_df, file = "/home/brady/programming/r/psyd/cgu/coursework/psych_308/308D/Assignments/capstone/mediation_summary.rds")
 
 ```
 
