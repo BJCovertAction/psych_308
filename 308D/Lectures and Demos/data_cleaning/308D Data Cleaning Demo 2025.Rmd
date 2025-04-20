@@ -1,0 +1,415 @@
+---
+title: "Data Cleaning"
+author: "JD"
+date: "4/10/2025"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(magrittr)
+library(janitor)
+library(jmv)
+library(naniar)
+library(performance)
+library(tidyr)
+library(mice)
+```
+
+# Handling Missing data, Renaming vars, etc.
+
+**Read in convert all iterations of missing data to na**
+```{r}
+#read in the data and label any missing data as na
+data <- read.csv("cleaning demo data 308d_sp25.csv", na = c("", "NA", "-999"))
+
+#convert all variable names to lowercase
+colnames(data) %<>% tolower()
+
+#starting sample size - 1836
+```
+
+***Remove Duplicate IP Addressses***
+```{r}
+dup <- data[which(duplicated(data$ipaddress)), ]
+
+#remove participants with duplicate IP addresses using the distinct function from dplyr
+dat <- data %>% distinct(ipaddress, .keep_all = TRUE)
+
+#resulting sample size = 1825 (removed 11 duplicate entries)
+```
+
+**Getting Rid of Qualtrics Mess**
+```{r}
+#remove automatic qualtrics columns that are not of interest (Start, end, status, ip, progress, duration, finish, rec.date, responseid, lastname, firstname,email, ex.refernce, latitude, longitude,dischannel, language)
+
+dat2 <- dat %>% dplyr::select(c(19:83))
+
+#remove row 1 and 2 which include the variable description and the qualtrics question number
+dat2 <- dat2 %>% slice(-(1:2))
+```
+
+***Move Columns Around***
+```{r}
+#move the last engagement item before the attention check so all the engagement items are in order for renaming
+dat2 <- dat2 %>% relocate(level.of.engagement.9, .before=attention.check)
+```
+
+***Coalesce the Burnout Variables and Rearrange***
+```{r}
+#there are two sets of the burnout variable based on office location. We want them joined in a single set of burnout columns
+dat3 <- dat2 %>% mutate(burn1 = coalesce(degree.of.burnout.1, degree.of.burnout.1.1), 
+                        burn2 = coalesce(degree.of.burnout.2, degree.of.burnout.2.1),
+                        burn3 = coalesce(degree.of.burnout.3, degree.of.burnout.3.1),
+                        burn4 = coalesce(degree.of.burnout.4, degree.of.burnout.4.1),
+                        burn5 = coalesce(degree.of.burnout.5, degree.of.burnout.5.1),
+                        burn6 = coalesce(degree.of.burnout.6, degree.of.burnout.6.1),
+                        burn7 = coalesce(degree.of.burnout.7, degree.of.burnout.7.1),
+                        burn8 = coalesce(degree.of.burnout.8, degree.of.burnout.8.1),
+                        burn9 = coalesce(degree.of.burnout.9, degree.of.burnout.9.1))
+```
+
+```{r}
+#get rid of the old (now blank) burnout columns
+dat4 <- dat3[c(1:20, 40:74)]
+
+#move the demos to the end
+dat4 <- dat4 %>% relocate(c(year.born, gender, ethnicity), .after=burn9)
+```
+
+***Rename Variables***
+```{r}
+#rename a single columns using existing name
+dat4 <- dat4 %>% dplyr::rename(role1 = role.clarity.1)
+```
+
+```{r}
+#rename multiple columns using column position (helpful if the existing names are long)
+dat5 <- dat4 %>% dplyr::rename(role1 = 1, 
+                       role2 = 2,
+                       role3 = 3,
+                       role4 = 4,
+                       role5 = 5,
+                       engage1 = 6,
+                       engage2 = 7,
+                       engage3 = 8,
+                       engage4 = 9,
+                       engage5 = 10,
+                       engage6 = 11,
+                       engage7 = 12,
+                       engage8 = 13,
+                       engage9 = 14,
+                       att  = 15,
+                       ti1 = 16,
+                       ti2 = 17,
+                       ti3 = 18,
+                       ti4 = 19,
+                       ti5 = 20,
+                       wb1 = 21,
+                       wb2 = 22,
+                       wb3 = 23,
+                       wb4 = 24,
+                       wb5 = 25,
+                       wb6 = 26,
+                       wb7 = 27,
+                       wb8 = 28,
+                       sup1 = 29,
+                       sup2 = 30,
+                       sup3 = 31,
+                       sup4 = 32,
+                       sup5 = 33,
+                       sup6 = 34,
+                       sup7 = 35,
+                       sup8 = 36,
+                       sup9 = 37,
+                       sup10 = 38,
+                       mh1 = 39,
+                       mh2 = 40,
+                       mh3 = 41,
+                       mh4 = 42,
+                       mh5 = 43,
+                       born = 53,
+                       gender = 54,
+                       race = 55)
+                        
+```
+
+***Attention Check Filter***
+```{r}
+#change attention check to numeric - not needed
+dat5$att <- as.numeric(dat5$att)
+
+#filter out people whose attention check answer was not 12
+dat6 <- dat5 %>% dplyr::filter(att=='12' | att== 'twelve' | att=="Twelve")
+
+#resulting sample size = 1756 (removed 67 participants who failed the attention check)
+
+#remove the attention check column
+dat6 <- dat6 %>% dplyr::select(-c("att"))
+```
+
+***Mutate birth year into age***
+```{r}
+#change born to a number 
+dat6$born <- as.numeric(dat6$born)
+
+#convert year of birth into a continuous measure of age
+dat6$age <- (2025-dat6$born)
+```
+
+***Dummy Code Gender for Use***
+```{r}
+#dummy code gender in case we want to use it for analysis
+dat6$gen_f [dat6$gender == 'Male'] = 0
+dat6$gen_f [dat6$gender == 'Female'] = 1
+dat6$gen_f [dat6$gender == 'Non-Binary'] = 0
+
+dat6$gen_nb [dat6$gender == 'Male'] = 0
+dat6$gen_nb [dat6$gender == 'Female'] = 0
+dat6$gen_nb [dat6$gender == 'Non-Binary'] = 1
+```
+
+***Replace Choice Text***
+```{r}
+#The role clarity items are listed as choice text (e.g., "strongly agree) rather than numeric values. The best way to deal with this is to double check your data is coded correctly in qualtrics and re-dowload as numeric BUT if you get a data set from someone that looks like this, here is how to address. 
+
+# BJ_Notes:  This basically maps character scales to numeric scales. It overwrites the column names (first arg) with the  
+#            contents of the new (numeric) column. If we want to add a column just change the first arg before the = sign  
+#            (e.g. rol1_recoded = ... instead of role1 = ...)
+dat7 <- dat6 %>% mutate(
+  role1 = dplyr::recode(role1, "strongly disagree" = 1, "disagree" = 2, "slightly disagree" = 3, "neutral" = 4, "slightly agree" = 5, "agree" = 6, "strongly agree" = 7),
+  role2 = dplyr::recode(role2, "strongly disagree" = 1, "disagree" = 2, "slightly disagree" = 3, "neutral" = 4, "slightly agree" = 5, "agree" = 6, "strongly agree" = 7),
+  role3 = dplyr::recode(role3, "strongly disagree" = 1, "disagree" = 2, "slightly disagree" = 3, "neutral" = 4, "slightly agree" = 5, "agree" = 6, "strongly agree" = 7),
+  role4 = dplyr::recode(role4, "strongly disagree" = 1, "disagree" = 2, "slightly disagree" = 3, "neutral" = 4, "slightly agree" = 5, "agree" = 6, "strongly agree" = 7),
+  role5 = dplyr::recode(role5, "strongly disagree" = 1, "disagree" = 2, "slightly disagree" = 3, "neutral" = 4, "slightly agree" = 5, "agree" = 6, "strongly agree" = 7))
+```
+
+***Reverse Code Items***
+```{r}
+#reverse code the two burnout items that are positively worded
+dat7$burn3_r <- dplyr::recode(dat7$burn3, '1'=7, '2'=6, '3'=5, '4'=4, '5'=3, '6'=2, '7'=1)
+dat7$burn6_r <- dplyr::recode(dat7$burn6, '1'=7, '2'=6, '3'=5, '4'=4, '5'=3, '6'=2, '7'=1)
+
+#move those new burnout columns to their correct place
+dat7 <- dat7 %>% relocate(c(burn3_r), .after=burn2)
+dat7 <- dat7 %>% relocate(c(burn6_r), .after=burn5)
+
+#remove the old non reverse coded items
+dat8 <- dat7 %>% dplyr::select(-c("burn3", "burn6"))
+```
+
+***Delete Columns***
+```{r}
+#before we deal with missing data, let's get rid of all the columns we don't need
+dat9 <- dat8 %>% dplyr::select(-c("born","mh1","mh2","mh3","mh4","mh5"))
+```
+
+***Add ID Column***
+```{r}
+# BJ_Note: Qualtrics tags data with unique response ID so don't always need this but if you want a sequenial index then
+#          re-indexing at the end of deleting stuff, etc. is helpful. 
+#add an id column
+dat9$id <- 1:nrow(dat9)
+
+#move id column to the beginning 
+dat9 <- dat9 %>% relocate(id)
+
+#move original gender column to end
+dat9 <- dat9 %>% relocate(c(gender), .after = last_col())
+```
+
+***Make all Values Numeric***
+```{r}
+dat9 <- dat9 %>% mutate(across(2:51, as.numeric))
+```
+
+**Missing Data**
+```{r}
+# BJ_Note: Rough filter of missing more than 10% to understand how impacted our data is. 
+#          MICE package helps visualize where gaps in data were. Red v. Blue matrix
+
+#remove participants missing more than 10% of all values
+# BJ_Note: Counts number of columns across each row that have N/A. If greater than or equal to 5 (10% of total ncols)
+#           throw them out.
+missing10 <- dat9[rowSums(is.na(dat9[1:51])) >= 5, ]
+
+#remove participants whose ID is in the "missing" dataframe you made. The , after ldr tells r to keep all the other columns. YAY
+dat10 <- subset(dat9,!(id%in%missing10$id))
+
+#sample size = 1723 (removed 33 people with more than 10% missing data)
+
+#visualize remaining pattern of missing data
+mice::md.pattern(dat10)
+```
+
+```{r}
+# BJ_Note: This data filtering item just throws out rows with ANY N/A entry
+
+#additional missing data options
+#listwise deletion
+dat.nomissing1 <- na.omit(dat10)
+
+#mean imputation
+# BJ_Note: Places mean into N/A entries per column (e.g. mean of all column entries w/o n/a is put into n/a)
+dat.nomissing2 <- dat10 %>% mutate(across(2:47,
+    ~ ifelse(is.na(.), mean(., na.rm = TRUE), .)))
+
+#predictive mean matching
+# BJ_Note: Builds a predictive model from data that exists for relationship between val that's missing and ALL OTHER VALS
+#          Finds complete data rows.
+#          Generates a value for each N/A best off regression fit line based on all cols that do exist in row that is 
+#              missing data
+#          Does this many times (m = 10), then randomly picks one (in this case, picks 5)
+#   NOTE: This is probably overkill. But if you need to do this for whatever reason, try to find a way to speed it up 
+#          with parallel processing.
+#   Primary reason to do something like imputing or predictive mean matching is if sample size is small and throwing out 
+#     too many samples kills power
+#   NOTE: If you do just drop values (na.omit) then its best practice to run a t-test or other significance test to 
+#         determine if results w/ dropping data and results w/o dropping data are not highly discrepant (e.g. you might
+#         accidentally throw out all low or all high responses or something)
+pmm <- mice::mice(dat10[,c(2:47)], m = 10, method = "pmm")
+dat.nomissing3 <- complete(pmm, 5)
+```
+
+***Composite Scores***
+```{r}
+
+# BJ_Note:Calculates means across slices of particular columns,given ([2:6] or (39:47) etc.) per row. This is dimwise
+#         but with row pre-defined.
+# How do you decide if a group of items (columns) should belong together?
+#    Cronbach's alpha doesn't tell you that.
+#    If you have a validated scale, you can use Cronbach's alpha to make sure your data os coherent with previously 
+#         validated scales.
+#
+# NOTE: You need to review cronbach's alphas from previous data cleaning lecture (4/10)
+
+#creating composites, na.rm = TRUE will compute means for participants with missing data based on responses available
+dat10$role <- rowMeans(dat10[,c(2:6)], na.rm = TRUE)
+dat10$engage <- rowMeans(dat10[,c(7:15)], na.rm = TRUE)
+dat10$ti <- rowMeans(dat10[,c(21:28)], na.rm = TRUE)
+dat10$sup <- rowMeans(dat10[,c(29:38)], na.rm = TRUE)
+dat10$burn <- rowMeans(dat10[,c(39:47)], na.rm = TRUE)
+
+
+# Cronbach alphas -Rough code on how you calculate it but really need to look back at previous lecture to understand.
+#   Apparently this number sucks
+# "You should compute cronbach's alpha in your projects"
+cronbachs_alpha(dat10[2:6])
+```
+
+***Final Data Set***
+```{r}
+#create a new data set with final variables
+dat11 <- dat10[c(1,48:57)]
+
+#move demos to the end
+dat11 <- dat11 %>% relocate(c(role, engage, ti, sup, burn), .before=race)
+```
+
+# Managing things like outliers starts here
+
+***Outliers***
+```{r}
+# way to visualize outliers. Specify the model first and then view outliers
+model <- lm(ti ~ role+engage+sup+burn, data = dat11)
+outliers <- check_outliers(model)
+plot(outliers, type = "dots")
+```
+
+```{r}
+#identify multivariate outliers (alpha = 0.001)
+library(performance)
+
+# BJ_Note:Looks above 99% malaanobis distance (1 - .01). Can change to 95% w/ (1 - .05), etc.
+#         Increased percentile (e.g. 99%) finds fewer outliers. Decreased percentile (e.g. 95%) finds more
+out_multi.01 <- check_outliers(dat11[c(2:6)], method = "mahalanobis", threshold = stats::qchisq(p = 1 - 0.01, df = ncol(dat11[c(2:6)])))
+out_multi.01
+```
+
+```{r}
+#remove outliers
+dat.clean <- dat11[!out_multi.01,]
+
+#sample size = 1706 (removed 17 outliers whose mahalanobis exceeded the 99% percentile)
+```
+
+# Cleaning up R environment so you don't annihilate your poor RAM chips
+
+***Final R Clean Up***
+```{r}
+#get rid of all the extra data frames
+remove(dat, data, dat2, dat3, dat4, dat5, dat6, dat7, dat8, dat9, dat10, dat11, missing10, dat.nomissing1, dat.nomissing2, dat.nomissing3)
+
+#if we want to export clean file
+write.csv(dat.clean, file = "dat.clean.csv", row.names = FALSE)
+```
+
+Hurray, our data is clean, tidy, and ready for analysis!
+
+# Extra functions if you need a bigger toolkit
+
+**Extra Fun**
+
+***Subsetting Data***
+```{r}
+#What if I wanted to create a data set that ONLY included participants who saw female candidates?
+dat.bipoc <- dat.clean %>% filter(race != "4") %>% filter(race != "8") 
+```
+
+**Pivot Code**
+```{r}
+#create a smaller data set for instructional purposes
+dat.test <- dat.clean %>% dplyr::select(c(1:4))
+
+#pivot wide to long
+dat_long <- dat.test %>%
+  tidyr::pivot_longer(!c(id), names_to = "Variable", values_to = "Value")
+
+#pivot long to wide
+dat_wide <- dat_long %>%
+  tidyr::pivot_wider(names_from = "Variable", values_from = "Value")
+```
+
+**Extended Cursor**
+```{r}
+#option for extended cursor, option + control, control+option+shift+m
+df$score_math <- as.numeric(df$score_math)
+df$score_science <- as.numeric(df$score_science)
+df$score_history <- as.numeric(df$score_history)
+df$score_english <- as.numeric(df$score_english)
+df$score_art <- as.numeric(df$score_art)
+df$score_music <- as.numeric(df$score_music)
+df$score_pe <- as.numeric(df$score_pe)
+df$score_health <- as.numeric(df$score_health)
+df$score_computer <- as.numeric(df$score_computer)
+df$score_language <- as.numeric(df$score_language)
+
+```
+
+**Labeling R Chunks for Knitting**
+```{r, chunk-header1, eval=FALSE}
+#chunk headers - do not run (evaluate) this chunk at all when knitting
+library(knitr)
+library(markdown)
+```
+
+```{r, chunk-header2, echo=FALSE}
+#chunk headers - use this to hide code in the output (runs code and shows results but not code)
+library(knitr)
+library(markdown)
+```
+
+```{r, chunk-header3, results='hide'}
+#chunk headers - rendered (code run) but no results and no code will print when knitted
+library(knitr)
+library(markdown)
+```
+
+
+
