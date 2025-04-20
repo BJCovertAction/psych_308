@@ -108,18 +108,17 @@ my_gg_theme = theme_minimal() +
 
 ---
 
-# Part 1: Data Cleaning
+# Part 0: Data Cleaning Prep
 
-Download the dataset posted on canvas called “308A.DA3.Data.csv” and create an RMarkdown file. This DA consists of three categories of tasks for you to complete – data cleaning (complete in RStudio), data querying (complete in RStudio and respond to questions below), and a code investigation (respond below). Upload both a word document with your completed questions and your knitted RMarkdown file in either word or pdf format. 
-
-The dataset contains data regarding average grades for Exam 1 and 2 for various classes, each case is classified by school level (elem, midd, high), subject, year, and location. 
+We're going to do some basic work here so we can get into the line-by-line cleaning tasks in the assignment a bit   
+smarter
 
 ## Load the Data
 
 ```{r load_raw_data}
 
 # Load the assignment data from CSV
-raw_dat = read.csv("./308D.DA3.Data.csv")
+raw_dat = read.csv("./308D.DA3.Data.csv", na = c("", "NA", "-999", "na", "n/a", "N/A"))
 
 # Rename columns to lower because why not
 colnames(raw_dat) <- tolower( colnames(raw_dat) )
@@ -136,16 +135,190 @@ if(!test_unique){
 }else{
     print("No duplicate entries detected in raw data")
 }
+```
+
+## Name-Mapping
+
+The names of the vars as given suck. We're going to remap them all.
+
+```{r col_name_mapping}
+
+# We're going to map the column names as given in the dataframe to a set we prefer.
+raw_names <- c("x", "school", "subject", "average.exam.2.grade", "average.exam.1.grade", "school.year",
+               "location", "interpersonal")
+map_names <- c("idx", "schl_lvl", "sub", "avg_exm_2", "avg_exm_1", "schl_yr",
+               "loc", "interp_skls")
+
+# Loop through each raw name and apply the corresponding map_name
+dummy_list <- list()
+my_dat <- data.frame()
+for(iii in 1:length(raw_names) ){
+
+    # Extract paired names
+    this_map <- map_names[iii]
+    this_raw <- raw_names[iii]
+    
+    # Create a column in the new dataframe list named the name from map_names
+    # We use a list because R sucks at dynamic binding
+    dummy_list[[this_map]] <- raw_dat[[this_raw]]
+    
+}
+
+# Convert the list to a dataframe
+my_dat <- as.data.frame(dummy_list, stringsAsFactors = FALSE)
 
 ```
 
+## Descriptives
+
+```{r descriptives}
+
+# Names of numeric vars. There are only 3 of them.
+cont_names = c("avg_exm_2", "avg_exm_1", "interp_skls")
+
+# We're going to use some split descriptives to help us understand mising values quantities
+loc_descr = jmv::descriptives( my_dat,
+                               vars = cont_names[],
+                               splitBy = "loc",
+                               hist = TRUE,
+                               dens = TRUE,
+                               qq = TRUE,
+                               sd = TRUE,
+                               variance = TRUE,
+                               se = TRUE,
+                               missing = TRUE
+                            )
+print(loc_descr)
+
+print("   ")
+print("------")
+print("    ")
+
+sub_descr = jmv::descriptives( my_dat,
+                               vars = cont_names[],
+                               splitBy = "sub",
+                               hist = TRUE,
+                               dens = TRUE,
+                               qq = TRUE,
+                               sd = TRUE,
+                               variance = TRUE,
+                               se = TRUE,
+                               missing = TRUE
+                            )
+print(sub_descr)
+
+print("   ")
+print("------")
+print("    ")
+
+yr_descr = jmv::descriptives( my_dat,
+                               vars = cont_names[],
+                               splitBy = "schl_yr",
+                               hist = TRUE,
+                               dens = TRUE,
+                               qq = TRUE,
+                               sd = TRUE,
+                               variance = TRUE,
+                               se = TRUE,
+                               missing = TRUE
+                            )
+print(yr_descr)
+
+print("   ")
+print("------")
+print("    ")
+
+lvl_descr = jmv::descriptives( my_dat,
+                               vars = cont_names[],
+                               splitBy = "schl_lvl",
+                               hist = TRUE,
+                               dens = TRUE,
+                               qq = TRUE,
+                               sd = TRUE,
+                               variance = TRUE,
+                               se = TRUE,
+                               missing = TRUE
+                            )
+print(lvl_descr)
+
+print("   ")
+print("------")
+print("    ")
+
+lvl_descr = jmv::descriptives( my_dat,
+                               vars = cont_names[],
+                               hist = TRUE,
+                               dens = TRUE,
+                               qq = TRUE,
+                               sd = TRUE,
+                               variance = TRUE,
+                               se = TRUE,
+                               missing = TRUE
+                            )
+print(lvl_descr)
+
+
+```
+
+
+# Part 1: Data Cleaning Questions / Tasks
+
+Download the dataset posted on canvas called “308A.DA3.Data.csv” and create an RMarkdown file.   
+This DA consists of three categories of tasks for you to complete – data cleaning (complete in RStudio),  
+data querying (complete in RStudio and respond to questions below), and a code investigation (respond below).  
+Upload both a word document with your completed questions and your knitted RMarkdown file in either word or pdf format.   
+  
+The dataset contains data regarding average grades for Exam 1 and 2 for various classes,   
+each case is classified by school level (elem, midd, high), subject, year, and location. 
+
+
 ## Handle Missing Data for all Variables 
 
-## Detect Outliers and Handle Accordingly. 
+Question #1 of Data Cleaning Section.
+NOTE: We loaded the data with the following code snippet (above):   
+`raw_dat = read.csv("./308D.DA3.Data.csv", na = c("", "NA", "-999", "na", "n/a, "N/A"))`
+.... so all values in raw_dat (and therefore my_dat) should be na if they were missing.
 
-```{r outliers}
+We look for unique values in all non-numeric variables in our dataset, and we check for non-numeric values in our   
+numeric variables to confirm this worked as expected.
 
+```{r missing_dat}
+# We already confirmed that "x" as loaded had 1000 unique entries in it in our load data section, so we don't need to   
+# handle that column
 
+# Look for unique entries in each of the categorical columns. This will help us understand how creatively formatted  
+# data in each column is. We can spot weird missing data or poorly formatted entries this way.
+uni_lvl  <- unique(my_dat$schl_lvl)
+uni_sub <- unique(my_dat$sub)
+uni_yr   <- unique(my_dat$schl_yr)
+uni_loc  <- unique(my_dat$loc)
+
+# Print unique values to see if we have any permutations like CA, ca, and CA in loc
+print(uni_lvl)
+print(uni_sub)
+print(uni_yr)
+print(uni_loc)
+
+# Output indicates no weird duplicate formats so we don't need to mess with that. Yay!
+
+## EXPLANATION - WHY
+# Per our descriptives we have:
+#  1x datapoint in the "history" subject, so that should be removed (it's a non-useful level in subject)
+#  5 missing exam 1 scores and 1 missing exam 2 scores and no missing interpersonal skills data.
+#  The largest missing:sample_size ratio we have, if we slice the data by categories, is 2 missing scores
+#    for 99 PE samples
+#
+#  So given all that, our power shouldn't be severely damaged if we just drop all rows missing data in the dataset.
+#   (99 isn't a big sample but difference between 99 and 97 isn't much)
+my_dat_with_missing <- my_dat
+my_dat <- na.omit(my_dat)
+
+# Toss our one dumb history datapoint
+my_dat <- my_dat[my_dat$sub != "History", ]
+
+# Print data loss metric
+data_loss = 1 - ( length(my_dat$idx) / length(my_dat_with_missing$idx) )
+cat( paste("Total Percentage of data lost due to dropping missing: ", 100*data_loss, "%\n\n", sep="") )
 
 ```
 
@@ -155,15 +328,206 @@ Convert School Level, Subject, Year, and Location to categorical variables
 
 ```{r cat_vars}
 
+# We convert all categorical variables to factors and then dummy code each
 
+# We convert all 4x to factors
+my_dat$schl_lvl <- as.factor(my_dat$schl_lvl)
+my_dat$sub      <- as.factor(my_dat$sub)
+my_dat$schl_yr  <- as.factor(my_dat$schl_yr)
+my_dat$loc      <- as.factor(my_dat$loc)
 
+# ---
+# Dummy Code School Level with Elem as the reference
+my_dat$lvl_mid_refd_elem  <- as.numeric(my_dat$schl_lvl)
+my_dat$lvl_high_refd_elem <- as.numeric(my_dat$schl_lvl)
+
+# Midd
+my_dat$lvl_mid_refd_elem[my_dat$schl_lvl == "ELEM"]  <- 0
+my_dat$lvl_mid_refd_elem[my_dat$schl_lvl == "MIDD"]  <- 1
+my_dat$lvl_mid_refd_elem[my_dat$schl_lvl == "HIGH"]  <- 0
+
+# High
+my_dat$lvl_high_refd_elem[my_dat$schl_lvl == "ELEM"]  <- 0
+my_dat$lvl_high_refd_elem[my_dat$schl_lvl == "MIDD"]  <- 0
+my_dat$lvl_high_refd_elem[my_dat$schl_lvl == "HIGH"]  <- 1
+
+# Move Category to front of DCs
+my_dat <- my_dat %>% relocate(schl_lvl, .before=lvl_mid_refd_elem)
+
+# ---
+# Dummy Code subject with math as the reference - Leave history out since we dropped it
+# my_dat$sub_hist_refd_math  <- as.numeric(my_dat$sub)
+my_dat$sub_sci_refd_math   <- as.numeric(my_dat$sub)
+my_dat$sub_frnch_refd_math <- as.numeric(my_dat$sub)
+my_dat$sub_lang_refd_math  <- as.numeric(my_dat$sub)
+my_dat$sub_art_refd_math   <- as.numeric(my_dat$sub)
+my_dat$sub_span_refd_math  <- as.numeric(my_dat$sub)
+my_dat$sub_pe_refd_math    <- as.numeric(my_dat$sub)
+my_dat$sub_latn_refd_math  <- as.numeric(my_dat$sub)
+
+# # History
+# my_dat$sub_hist_refd_math[my_dat$sub == "Math"]          <- 0
+# my_dat$sub_hist_refd_math[my_dat$sub == "History"]       <- 1
+# my_dat$sub_hist_refd_math[my_dat$sub == "Science"]       <- 0
+# my_dat$sub_hist_refd_math[my_dat$sub == "French"]        <- 0
+# my_dat$sub_hist_refd_math[my_dat$sub == "Language Arts"] <- 0
+# my_dat$sub_hist_refd_math[my_dat$sub == "Art"]           <- 0
+# my_dat$sub_hist_refd_math[my_dat$sub == "Spanish"]       <- 0
+# my_dat$sub_hist_refd_math[my_dat$sub == "PE"]            <- 0
+# my_dat$sub_hist_refd_math[my_dat$sub == "Latin"]         <- 0
+# my_dat$sub_hist_refd_math[is.na(my_dat$sub)]            <- NA
+
+# Science
+my_dat$sub_sci_refd_math[my_dat$sub == "Math"]          <- 0
+my_dat$sub_sci_refd_math[my_dat$sub == "History"]       <- 0
+my_dat$sub_sci_refd_math[my_dat$sub == "Science"]       <- 1
+my_dat$sub_sci_refd_math[my_dat$sub == "French"]        <- 0
+my_dat$sub_sci_refd_math[my_dat$sub == "Language Arts"] <- 0
+my_dat$sub_sci_refd_math[my_dat$sub == "Art"]           <- 0
+my_dat$sub_sci_refd_math[my_dat$sub == "Spanish"]       <- 0
+my_dat$sub_sci_refd_math[my_dat$sub == "PE"]            <- 0
+my_dat$sub_sci_refd_math[my_dat$sub == "Latin"]         <- 0
+my_dat$sub_sci_refd_math[is.na(my_dat$sub)]            <- NA
+
+# French
+my_dat$sub_frnch_refd_math[my_dat$sub == "Math"]          <- 0
+my_dat$sub_frnch_refd_math[my_dat$sub == "History"]       <- 0
+my_dat$sub_frnch_refd_math[my_dat$sub == "Science"]       <- 0
+my_dat$sub_frnch_refd_math[my_dat$sub == "French"]        <- 1
+my_dat$sub_frnch_refd_math[my_dat$sub == "Language Arts"] <- 0
+my_dat$sub_frnch_refd_math[my_dat$sub == "Art"]           <- 0
+my_dat$sub_frnch_refd_math[my_dat$sub == "Spanish"]       <- 0
+my_dat$sub_frnch_refd_math[my_dat$sub == "PE"]            <- 0
+my_dat$sub_frnch_refd_math[my_dat$sub == "Latin"]         <- 0
+my_dat$sub_frnch_refd_math[is.na(my_dat$sub)]            <- NA
+
+# Language Arts
+my_dat$sub_lang_refd_math[my_dat$sub == "Math"]          <- 0
+my_dat$sub_lang_refd_math[my_dat$sub == "History"]       <- 0
+my_dat$sub_lang_refd_math[my_dat$sub == "Science"]       <- 0
+my_dat$sub_lang_refd_math[my_dat$sub == "French"]        <- 0
+my_dat$sub_lang_refd_math[my_dat$sub == "Language Arts"] <- 1
+my_dat$sub_lang_refd_math[my_dat$sub == "Art"]           <- 0
+my_dat$sub_lang_refd_math[my_dat$sub == "Spanish"]       <- 0
+my_dat$sub_lang_refd_math[my_dat$sub == "PE"]            <- 0
+my_dat$sub_lang_refd_math[my_dat$sub == "Latin"]         <- 0
+my_dat$sub_lang_refd_math[is.na(my_dat$sub)]            <- NA
+
+# Art
+my_dat$sub_art_refd_math[my_dat$sub == "Math"]          <- 0
+my_dat$sub_art_refd_math[my_dat$sub == "History"]       <- 0
+my_dat$sub_art_refd_math[my_dat$sub == "Science"]       <- 0
+my_dat$sub_art_refd_math[my_dat$sub == "French"]        <- 0
+my_dat$sub_art_refd_math[my_dat$sub == "Language Arts"] <- 0
+my_dat$sub_art_refd_math[my_dat$sub == "Art"]           <- 1
+my_dat$sub_art_refd_math[my_dat$sub == "Spanish"]       <- 0
+my_dat$sub_art_refd_math[my_dat$sub == "PE"]            <- 0
+my_dat$sub_art_refd_math[my_dat$sub == "Latin"]         <- 0
+my_dat$sub_art_refd_math[is.na(my_dat$sub)]            <- NA
+
+# Spanish
+my_dat$sub_span_refd_math[my_dat$sub == "Math"]          <- 0
+my_dat$sub_span_refd_math[my_dat$sub == "History"]       <- 0
+my_dat$sub_span_refd_math[my_dat$sub == "Science"]       <- 0
+my_dat$sub_span_refd_math[my_dat$sub == "French"]        <- 0
+my_dat$sub_span_refd_math[my_dat$sub == "Language Arts"] <- 0
+my_dat$sub_span_refd_math[my_dat$sub == "Art"]           <- 0
+my_dat$sub_span_refd_math[my_dat$sub == "Spanish"]       <- 1
+my_dat$sub_span_refd_math[my_dat$sub == "PE"]            <- 0
+my_dat$sub_span_refd_math[my_dat$sub == "Latin"]         <- 0
+my_dat$sub_span_refd_math[is.na(my_dat$sub)]            <- NA
+
+# PE
+my_dat$sub_pe_refd_math[my_dat$sub == "Math"]          <- 0
+my_dat$sub_pe_refd_math[my_dat$sub == "History"]       <- 0
+my_dat$sub_pe_refd_math[my_dat$sub == "Science"]       <- 0
+my_dat$sub_pe_refd_math[my_dat$sub == "French"]        <- 0
+my_dat$sub_pe_refd_math[my_dat$sub == "Language Arts"] <- 0
+my_dat$sub_pe_refd_math[my_dat$sub == "Art"]           <- 0
+my_dat$sub_pe_refd_math[my_dat$sub == "Spanish"]       <- 0
+my_dat$sub_pe_refd_math[my_dat$sub == "PE"]            <- 1
+my_dat$sub_pe_refd_math[my_dat$sub == "Latin"]         <- 0
+my_dat$sub_pe_refd_math[is.na(my_dat$sub)]            <- NA
+
+# Latin
+my_dat$sub_latn_refd_math[my_dat$sub == "Math"]          <- 0
+my_dat$sub_latn_refd_math[my_dat$sub == "History"]       <- 1
+my_dat$sub_latn_refd_math[my_dat$sub == "Science"]       <- 0
+my_dat$sub_latn_refd_math[my_dat$sub == "French"]        <- 0
+my_dat$sub_latn_refd_math[my_dat$sub == "Language Arts"] <- 0
+my_dat$sub_latn_refd_math[my_dat$sub == "Art"]           <- 0
+my_dat$sub_latn_refd_math[my_dat$sub == "Spanish"]       <- 0
+my_dat$sub_latn_refd_math[my_dat$sub == "PE"]            <- 0
+my_dat$sub_latn_refd_math[my_dat$sub == "Latin"]         <- 1
+my_dat$sub_latn_refd_math[is.na(my_dat$sub)]            <- NA
+
+# Move Category to front of DCs
+# my_dat <- my_dat %>% relocate(sub, .before=sub_hist_refd_math)
+my_dat <- my_dat %>% relocate(sub, .before=sub_sci_refd_math )
+
+# ---
+# Dummy Code yr with (shouldn't be a categorical) with 2012 as the reference
+my_dat$yr_2013_refd_2012 <- as.numeric(my_dat$schl_yr)
+my_dat$yr_2014_refd_2012 <- as.numeric(my_dat$schl_yr)
+my_dat$yr_2015_refd_2012 <- as.numeric(my_dat$schl_yr)
+my_dat$yr_2016_refd_2012 <- as.numeric(my_dat$schl_yr)
+
+# 2013
+my_dat$yr_2013_refd_2012[my_dat$schl_yr == "2012"] <- 0
+my_dat$yr_2013_refd_2012[my_dat$schl_yr == "2013"] <- 1
+my_dat$yr_2013_refd_2012[my_dat$schl_yr == "2014"] <- 0
+my_dat$yr_2013_refd_2012[my_dat$schl_yr == "2015"] <- 0
+my_dat$yr_2013_refd_2012[my_dat$schl_yr == "2016"] <- 0
+my_dat$yr_2013_refd_2012[is.na(my_dat$schl_yr)]   <- NA
+
+# 2014
+my_dat$yr_2014_refd_2012[my_dat$schl_yr == "2012"] <- 0
+my_dat$yr_2014_refd_2012[my_dat$schl_yr == "2013"] <- 0
+my_dat$yr_2014_refd_2012[my_dat$schl_yr == "2014"] <- 1
+my_dat$yr_2014_refd_2012[my_dat$schl_yr == "2015"] <- 0
+my_dat$yr_2014_refd_2012[my_dat$schl_yr == "2016"] <- 0
+my_dat$yr_2014_refd_2012[is.na(my_dat$schl_yr)]   <- NA
+
+# 2015 
+my_dat$yr_2015_refd_2012[my_dat$schl_yr == "2012"] <- 0
+my_dat$yr_2015_refd_2012[my_dat$schl_yr == "2013"] <- 0
+my_dat$yr_2015_refd_2012[my_dat$schl_yr == "2014"] <- 0
+my_dat$yr_2015_refd_2012[my_dat$schl_yr == "2015"] <- 1
+my_dat$yr_2015_refd_2012[my_dat$schl_yr == "2016"] <- 0
+my_dat$yr_2015_refd_2012[is.na(my_dat$schl_yr)]   <- NA
+
+# 2016
+my_dat$yr_2016_refd_2012[my_dat$schl_yr == "2012"] <- 0
+my_dat$yr_2016_refd_2012[my_dat$schl_yr == "2013"] <- 0
+my_dat$yr_2016_refd_2012[my_dat$schl_yr == "2014"] <- 0
+my_dat$yr_2016_refd_2012[my_dat$schl_yr == "2015"] <- 0
+my_dat$yr_2016_refd_2012[my_dat$schl_yr == "2016"] <- 1
+my_dat$yr_2016_refd_2012[is.na(my_dat$schl_yr)]   <- NA
+
+# Move Category to front of DCs
+my_dat <- my_dat %>% relocate(schl_yr, .before=yr_2013_refd_2012)
+
+# ---
+# Dummy Code Location with California as the reference.
+my_dat$loc_ny_refd_ca  <- as.numeric(my_dat$loc)
+
+# NY - Handle NA cases
+my_dat$loc_ny_refd_ca[my_dat$loc == "CA"] <- 0
+my_dat$loc_ny_refd_ca[my_dat$loc == "NY"] <- 1
+my_dat$loc_ny_refd_ca[is.na(my_dat$loc)] <- NA
+
+# Move Category to front of DCs
+my_dat <- my_dat %>% relocate(loc, .before=loc_ny_refd_ca)
 ```
+
 
 ## Rename the Variables “exam1” and “exam2”  
 
 ```{r rename_exams}
 
-
+# I like my names better
+my_dat <- my_dat %>% dplyr::rename(exam1 = avg_exm_1)
+my_dat <- my_dat %>% dplyr::rename(exam2 = avg_exm_2)
 
 ```
 
@@ -173,7 +537,8 @@ Check the Alpha for “exam1” and “exam2” to see if we can make a composit
 
 ```{r alphas}
 
-
+# Using column names slice so I don't have to pay attention to what order columns are in
+cronbachs_alpha( my_dat[c("exam1", "exam2")] )
 
 ```
 
@@ -183,6 +548,10 @@ Create 1 variable for exam grade for each class (average of the two)
 
 ```{r avg_exam_score}
 
+# I'm assuming this means to create a column, exam_mean, which just row-wise means exam1 and exam2. (i.e. each row has
+#  a unique exam_mean value). But this could also be interpreted as meaning across both exams for each category of class  
+#  (i.e. every "math" exam_mean would be equal). I don't see how the latter is helpful so I'm going to do the former.
+my_dat$exam_mean <- rowMeans(my_dat[ , c("exam1", "exam2")])
 
 
 ```
@@ -194,7 +563,11 @@ followed by Interpersonal, Exam 1, Exam 2, and average Exam
 
 ```{r reorder_cols}
 
-
+# First we move Interpersonal to the back, then all the exams
+my_dat <- my_dat %>% relocate(interp_skls, .after=last_col())
+my_dat <- my_dat %>% relocate(exam1, .after=last_col())
+my_dat <- my_dat %>% relocate(exam2, .after=last_col())
+my_dat <- my_dat %>% relocate(exam_mean, .after=last_col())
 
 ```
  
@@ -205,7 +578,9 @@ reverse coding. Reverse code the Interpersonal scores using R.
 
 ```{r rev_code}
 
-
+# Per our descriptives, interp skills runs 1 to 7, so we need to map 1 to 7, 7 to 1, and etc. in the appropriate order
+my_dat_rev_code <- my_dat
+my_dat$interp_skls <- dplyr::recode(my_dat$interp_skls, '1'=7, '2'=6, '3'=5, '4'=4, '5'=3, '6'=2, '7'=1)
 
 ```
 
@@ -215,25 +590,241 @@ Standardize the Exam and Interpersonal Scores for ease of comparison.
 
 ```{r std_scores}
 
+# Save unstandardized data for reference
+my_dat_unstd <- my_dat
 
+# Scale the 4x numeric vars we have
+my_dat$interp_skls <- scale( my_dat$interp_skls, center = TRUE, scale = TRUE )[,1]
+my_dat$exam1 <- scale( my_dat$exam1, center = TRUE, scale = TRUE )[,1]
+my_dat$exam2 <- scale( my_dat$exam2, center = TRUE, scale = TRUE )[,1]
+my_dat$exam_mean <- scale( my_dat$exam_mean, center = TRUE, scale = TRUE )[,1]
 
 ```
 
 ## Dummy Code Location
 
-Dummy Code the location variable with CA as the reference group. 
+I already did this in the "create categorical variables" section above.
 
-```{r dummy_code}
+## Detect Outliers and Handle Accordingly. 
+
+```{r outliers}
+
+# Specify the fully saturated model for each of the 4x numeric outcome variables (exam scores and interpersonal skills)
+mod_interp    <- lm( interp_skls ~ lvl_mid_refd_elem  + 
+                                   lvl_high_refd_elem  +
+                                   sub_sci_refd_math   +
+                                   sub_frnch_refd_math +
+                                   sub_lang_refd_math  +
+                                   sub_art_refd_math   +
+                                   sub_span_refd_math  +
+                                   sub_pe_refd_math    +
+                                   sub_latn_refd_math  +   
+                                   yr_2013_refd_2012   +
+                                   yr_2014_refd_2012   +
+                                   yr_2015_refd_2012   +
+                                   yr_2016_refd_2012   +   
+                                   loc_ny_refd_ca, 
+                     data = my_dat 
+                   )
+mod_exam1     <- lm( exam1 ~ lvl_mid_refd_elem  + 
+                             lvl_high_refd_elem  +
+                             sub_sci_refd_math   +
+                             sub_frnch_refd_math +
+                             sub_lang_refd_math  +
+                             sub_art_refd_math   +
+                             sub_span_refd_math  +
+                             sub_pe_refd_math    +
+                             sub_latn_refd_math  +   
+                             yr_2013_refd_2012   +
+                             yr_2014_refd_2012   +
+                             yr_2015_refd_2012   +
+                             yr_2016_refd_2012   +   
+                             loc_ny_refd_ca, 
+                     data = my_dat 
+                   )
+mod_exam2     <- lm( exam2 ~ lvl_mid_refd_elem  + 
+                             lvl_high_refd_elem  +
+                             sub_sci_refd_math   +
+                             sub_frnch_refd_math +
+                             sub_lang_refd_math  +
+                             sub_art_refd_math   +
+                             sub_span_refd_math  +
+                             sub_pe_refd_math    +
+                             sub_latn_refd_math  +   
+                             yr_2013_refd_2012   +
+                             yr_2014_refd_2012   +
+                             yr_2015_refd_2012   +
+                             yr_2016_refd_2012   +   
+                             loc_ny_refd_ca, 
+                     data = my_dat 
+                   )
+mod_exam_mean <- lm( exam_mean ~ lvl_mid_refd_elem  + 
+                                 lvl_high_refd_elem  +
+                                 sub_sci_refd_math   +
+                                 sub_frnch_refd_math +
+                                 sub_lang_refd_math  +
+                                 sub_art_refd_math   +
+                                 sub_span_refd_math  +
+                                 sub_pe_refd_math    +
+                                 sub_latn_refd_math  +   
+                                 yr_2013_refd_2012   +
+                                 yr_2014_refd_2012   +
+                                 yr_2015_refd_2012   +
+                                 yr_2016_refd_2012   +   
+                                 loc_ny_refd_ca, 
+                     data = my_dat 
+                   )
+#----
+# Brady way of Plotting outliers because I'm a bit extra
+
+# Interp Skills per Category
+# Since we're using standardized data units will be in Standard Deviations
+interp_skls_sd_fig = ggplot( mod_interp,
+                             aes(.fitted , .resid )
+                            )
+
+interp_skls_sd_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab(expression( "Fitted Interpersonal Skill Levels - Standardized (Multiples of " * sigma * ")" ) ) +
+    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")" ) )  +
+    ggtitle("Interpersonal Skills Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# Exam 1 Skills per Category
+# Since we're using standardized data units will be in Standard Deviations
+exam1_sd_fig = ggplot( mod_exam1,
+                       aes(.fitted , .resid )
+                            )
+
+exam1_sd_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab(expression( "Fitted Exam 1 Scores - Standardized (Multiples of " * sigma * ")" ) ) +
+    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")" ) )  +
+    ggtitle("Exam 1 Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# Exam 2 Skills per Category
+# Since we're using standardized data units will be in Standard Deviations
+exam2_sd_fig = ggplot( mod_exam2,
+                             aes(.fitted , .resid )
+                            )
+
+exam2_sd_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab(expression( "Fitted Exam 2 Scores - Standardized (Multiples of " * sigma * ")" ) ) +
+    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")" ) )  +
+    ggtitle("Exam 2 Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# Exam Mean Skills per Category
+# Since we're using standardized data units will be in Standard Deviations
+exam_m_sd_fig = ggplot( mod_exam_mean,
+                             aes(.fitted , .resid )
+                            )
+
+exam_m_sd_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab(expression( "Fitted Mean Exam Scores - Standardized (Multiples of " * sigma * ")" ) ) +
+    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")" ) )  +
+    ggtitle("Exam Mean Residual vs. Fitted Plot") +
+    my_gg_theme
+
+# ----
+# Dr. Diaz method of plotting outliers:
+
+# Outlier plots for all 4x vars
+interp_outliers <- check_outliers(mod_interp)
+plot(interp_outliers, type = "dots")
+
+exam1_outliers <- check_outliers(mod_exam1)
+plot(exam1_outliers, type = "dots")
+
+exam2_outliers <- check_outliers(mod_exam2)
+plot(exam2_outliers, type = "dots")
+
+exam_mean_outliers <- check_outliers(mod_exam_mean)
+plot(exam_mean_outliers, type = "dots")
+
+#----
+#identify multivariate outliers (alpha = 0.001)
+# library(performance)
+
+# BJ_Note:Looks above 99% malaanobis distance (1 - .01). Can change to 95% w/ (1 - .05), etc.
+#         Increased percentile (e.g. 99%) finds fewer outliers. Decreased percentile (e.g. 95%) finds more
+# We look for outliers in all 3 unadjusted numeric variables space (exam 1, exam 2, and interp). We don't include
+#  exam_mean as that's a composite of 1 and 2.
+# Used 95% threshold
+cont_names <- c("interp_skls", "exam1", "exam2")
+out_multi.05 <- check_outliers( my_dat[cont_names], 
+                                method = "mahalanobis", 
+                                threshold = stats::qchisq( p = 1 - 0.05, df = ncol( my_dat[cont_names] ) )
+                                
+                                
+                              )
+out_multi.05
+
+# Unstandardized outliers, just to see if its different at all
+out_multi.05_unst <- check_outliers( my_dat_unstd[cont_names], 
+                                     method = "mahalanobis", 
+                                    threshold = stats::qchisq( p = 1 - 0.05, df = ncol( my_dat_unstd[cont_names] ) )
+                                
+                                
+                              )
+out_multi.05_unst
 
 
+# remove outliers
+my_dat_with_outliers <- my_dat
+my_clean_dat         <- my_dat[!out_multi.05,]
+
+# Remove outliers from unstandardized data too
+my_dat_unstd_with_outliers <- my_dat_unstd
+my_clean_dat_unstd         <- my_dat_unstd[!out_multi.05,]
+
+# my_dat_unstd_2 <- my_dat_unstd[!out_multi.05_unst,]
+
+# Sample size = 938 (removed 36 outliers whose mahalanobis exceeded the 95% percentile)
 
 ```
+
+## Check the Alpha for “exam1” and “exam2” Without Outliers
+
+Check the Alpha for “exam1” and “exam2” a second time with the outliers removed to see if they're any better...
+
+```{r alphas_no_outties}
+
+# Using column names slice so I don't have to pay attention to what order columns are in
+cronbachs_alpha( my_clean_dat[c("exam1", "exam2")] )
+cronbachs_alpha( my_clean_dat_unstd[c("exam1", "exam2")] )
+# cronbachs_alpha( my_dat_unstd_2[c("exam1", "exam2")] )
+
+```
+
+
 
 # Part 2: Queries
 
 ## What is the average overall grade for each level of school? 
 
 ```{r q1}
+
+# NOTE: I'm assuming I'm supposed to use my cleaned data for these
+
+# For Elem
+elem_avg_grade <- mean( my_clean_dat_unstd$exam_mean[my_clean_dat_unstd$schl_lvl == "ELEM"] )
+cat( paste("Average Elementary School Grade: ", elem_avg_grade, "\n\n", sep="") )
+
+# For Middle
+mid_avg_grade <- mean( my_clean_dat_unstd$exam_mean[my_clean_dat_unstd$schl_lvl == "MIDD"] )
+cat( paste("Average Middle School Grade: ", mid_avg_grade, "\n\n", sep="") )
+
+# For High
+high_avg_grade <- mean( my_clean_dat_unstd$exam_mean[my_clean_dat_unstd$schl_lvl == "HIGH"] )
+cat( paste("Average High School Grade: ", high_avg_grade, "\n\n", sep="") )
 
 
 
@@ -243,7 +834,10 @@ Dummy Code the location variable with CA as the reference group.
 
 ```{r q2}
 
+# NOTE: I'm assuming I'm supposed to use my cleaned data for these
 
+math_avg_exam2 <- mean( my_clean_dat_unstd$exam2[my_clean_dat_unstd$sub == "Math"] )
+cat( paste("Average Math Exam 2 Grade: ", math_avg_exam2, "\n\n", sep="") )
 
 ```
 
@@ -251,7 +845,10 @@ Dummy Code the location variable with CA as the reference group.
 
 ```{r q3}
 
+# NOTE: I'm assuming I'm supposed to use my cleaned data for these
 
+overall_avg_exam <- mean( my_clean_dat_unstd$exam_mean )
+cat( paste("Average Overall Exam Grade: ", overall_avg_exam, "\n\n", sep="") )
 
 ```
 
@@ -261,7 +858,10 @@ What is the average exam 1 score?
 
 ```{r q4}
 
-
+# NOTE: I'm assuming I'm supposed to use my cleaned data for these
+cali_clean_da_unstd <- my_clean_dat_unstd[my_clean_dat_unstd$loc == "CA", ]
+cali_avg_exam1 <- mean( cali_clean_da_unstd$exam1 )
+cat( paste("Average Cali Exam 1: ", cali_avg_exam1, "\n\n", sep="") )
 
 ```
 
