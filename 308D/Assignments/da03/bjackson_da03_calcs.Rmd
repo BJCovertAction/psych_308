@@ -1,0 +1,267 @@
+---
+title: "PSYCH308D - Data Analysis (DA03)"
+author: "Brady C. Jackson"
+date: "2025/04/19"
+
+# Write document output to HTML, Word, and PDF output types with a Table of
+# contents included.
+output: 
+  html_document:
+    toc: true
+    number_sections: true
+  word_document:
+    toc: true
+    number_sections: true
+  pdf_document:
+    toc: true
+    latex_engine: xelatex
+    number_sections: true
+
+# This option here enables output to both HTML and PDF formats
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding,
+  output_format = "all") })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+
+# Libraries
+
+Load all requisite libraries here.
+
+```{r package_loading, message=FALSE, warning=FALSE}
+# Load packages. Set messages and warnings to FALSE so I don't have to see the
+# masking messages in the output.
+library(jmv)       # for descriptive
+library(ggplot2)
+library(dplyr)
+library(corrplot)    # For fancy covariance matrix plots
+library(apaTables)   # For Word formatted tables
+library(car)         # for ncvTest (Breusch Pagan)
+library(tidyverse)
+library(jmv)         # for descriptives
+library(ggplot2)
+library(dplyr)
+library(psych)
+library(corrplot)    # For fancy covariance matrix plots
+library(car)         # for ncvTest (Breusch Pagan)
+library(stringr)     # for sub_str operations
+library(Hmisc)       # for fun.dat substitution
+library(see)         # for outliers analysis 
+library(magrittr)
+library(foreign)
+library(broom)
+library(robmed)
+library(mediation)   # For mediation analysis
+library(multilevel)
+library(GGally)
+library(lsr)
+library(car)
+library(mvnTest)     # Multivariate Normality
+library(lm.beta)
+library(lavaan)      # Structural Equation Modeling
+library(haven)
+library(foreign)
+library(parallel)
+# library(AER)
+library(janitor)      # Data cleaning
+library(naniar)       # Data cleaning
+library(performance)  # Data cleaning
+library(mice)         # Data cleaning
+
+```
+
+
+
+# Metadata
+
+This section of code is to setup some general variables that we'll use throughout the code (e.g. figure colors, etc)
+
+```{r metadata}
+# First we'll defines some meta-data to use in all of our plots so they're nice and clean
+font_color = "#4F81BD"
+grid_color_major = "#9BB7D9"
+grid_color_minor = "#C8D7EA"
+back_color = "gray95"
+rb_colmap = colorRampPalette( c("firebrick", "grey86", "dodgerblue3") )(200)
+
+# I'm going to try to save off my preferred ggplot theme combinations as a unqiue theme object that I can just reference
+# later in the code....totally unclear if ggplot works this way....
+my_gg_theme = theme_minimal() +
+              theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+                     axis.title.x = element_text(color = font_color),
+                     axis.title.y = element_text(color = font_color),
+                     axis.text.x = element_text(color = font_color),
+                     axis.text.y = element_text(color = font_color),
+                     legend.title = element_text(color = font_color),
+                     legend.text = element_text(color = font_color),
+                     panel.grid.minor = element_line(color = grid_color_minor),
+                     panel.grid.major = element_line(color = grid_color_major),
+                     panel.background = element_rect(fill = back_color, color = font_color)
+                   )
+
+```
+
+---
+
+# Part 1: Data Cleaning
+
+Download the dataset posted on canvas called “308A.DA3.Data.csv” and create an RMarkdown file. This DA consists of three categories of tasks for you to complete – data cleaning (complete in RStudio), data querying (complete in RStudio and respond to questions below), and a code investigation (respond below). Upload both a word document with your completed questions and your knitted RMarkdown file in either word or pdf format. 
+
+The dataset contains data regarding average grades for Exam 1 and 2 for various classes, each case is classified by school level (elem, midd, high), subject, year, and location. 
+
+## Load the Data
+
+```{r load_raw_data}
+
+# Load the assignment data from CSV
+raw_dat = read.csv("./308D.DA3.Data.csv")
+
+# Rename columns to lower because why not
+colnames(raw_dat) <- tolower( colnames(raw_dat) )
+
+# Ensure that the numbers of each subject in the study are unique to prevent any duplicate data
+# if the size of the unique-entries only is the same as the whole vector then there are no duplicate subjects
+# NOTE: This fails if the colname of the subject ID is input wrong. So make sure you UPDATE the "test_col" 
+#       entry below
+test_colname = "x"
+
+test_unique = ( length( unique( raw_dat[test_colname] ) ) == length(raw_dat[test_colname]))
+if(!test_unique){
+    print("WARNING: There are duplicate data entries in the raw data")
+}else{
+    print("No duplicate entries detected in raw data")
+}
+
+```
+
+## Handle Missing Data for all Variables 
+
+## Detect Outliers and Handle Accordingly. 
+
+```{r outliers}
+
+
+
+```
+
+## Convert Categorical Variables 
+
+Convert School Level, Subject, Year, and Location to categorical variables  
+
+```{r cat_vars}
+
+
+
+```
+
+## Rename the Variables “exam1” and “exam2”  
+
+```{r rename_exams}
+
+
+
+```
+
+## Check the Alpha for “exam1” and “exam2” 
+
+Check the Alpha for “exam1” and “exam2” to see if we can make a composite score. 
+
+```{r alphas}
+
+
+
+```
+
+## Combine Exam Grades for Each Classes
+
+Create 1 variable for exam grade for each class (average of the two) 
+
+```{r avg_exam_score}
+
+
+
+```
+
+## Reorder the Columns
+
+Reorder the Columns so all categories (level, subject, year, location) are listed first,   
+followed by Interpersonal, Exam 1, Exam 2, and average Exam    
+
+```{r reorder_cols}
+
+
+
+```
+ 
+## Construct Reverse Codes 
+
+There was an error in qualtrics and the scores for Interpersonal skills were not set up with   
+reverse coding. Reverse code the Interpersonal scores using R. 
+
+```{r rev_code}
+
+
+
+```
+
+## Standardize the Exam and Interpersonal Scores
+
+Standardize the Exam and Interpersonal Scores for ease of comparison. 
+
+```{r std_scores}
+
+
+
+```
+
+## Dummy Code Location
+
+Dummy Code the location variable with CA as the reference group. 
+
+```{r dummy_code}
+
+
+
+```
+
+# Part 2: Queries
+
+## What is the average overall grade for each level of school? 
+
+```{r q1}
+
+
+
+```
+
+## What is the average exam 2 grade for math classes? 
+
+```{r q2}
+
+
+
+```
+
+## Calculate the overall average exam grade for all classes.
+
+```{r q3}
+
+
+
+```
+
+## Create a new data frame with only classes from CA. 
+
+What is the average exam 1 score? 
+
+```{r q4}
+
+
+
+```
+
