@@ -108,7 +108,7 @@ Here we load the dataframe from the CSV file from the excel edited downloaded da
 ```{r load_raw_data}
 
 # Filename and location of raw data.
-raw_dat_filename <- "final_database_copy_for_cleaning.csv"
+raw_dat_filename <- "final database - to upload2_copy_for_excel.csv"
 raw_dat_file <-fullpath(c(working_dir, raw_dat_filename))
 
 # Load the assignment data from CSV
@@ -201,6 +201,7 @@ clean_dat <- raw_dat[keep_ages, ]
 # we don't care what category they're in.
 
 # Get column names
+nams = colnames(raw_dat)
 
 # Search column names containing: "mid" in an form, "after" in any form, and "seen" in any form, and "cat" in any form.
 #  NOTE: we use the weird syntax in the "cat" match: (?<!edu) to include a perl-style negative lookbehind regex term
@@ -208,7 +209,7 @@ clean_dat <- raw_dat[keep_ages, ]
 #        included for this to work.
 mid_cols <- grep("_*mid.*", nams, value = TRUE)
 aft_cols <- grep("_*after.*", nams, value = TRUE)
-sen_cols <- grep("_*seen.*", nams, value = TRUE)
+sen_cols <- grep("(?<!first)_*seen.*", nams, value = TRUE, perl = TRUE)  # excludes "firstseen" so we keep order
 cat_cols <- grep("(?<!edu)_*cat.*", nams, value = TRUE, perl = TRUE)
 drop_cols <- unique( c(mid_cols, aft_cols, sen_cols, cat_cols) )
 
@@ -240,7 +241,7 @@ clean_dat$dark_humor_avg <- rowMeans( clean_dat[dark_cols], na.rm = TRUE )
 clean_dat$dark_humor_norm <- sqrt( rowSums ( clean_dat[dark_cols]^2 ) )
 
 # Define a new continuous names vector for use in numerics and correlations
-clean_conts <- c('age', colnames(clean_dat[5:19])) 
+clean_conts <- c('age', colnames(clean_dat[6:20])) 
 
 ```
 
