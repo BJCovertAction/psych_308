@@ -64,6 +64,7 @@ library(lavaan)      # Structural Equation Modeling
 library(haven)
 library(foreign)
 library(parallel)
+library(performance)
 # library(AER)
 
 ```
@@ -244,6 +245,78 @@ clean_dat$dark_humor_norm <- sqrt( rowSums ( clean_dat[dark_cols]^2 ) )
 clean_conts <- c('age', colnames(clean_dat[6:20])) 
 
 ```
+
+# Cronbach's Alpha
+
+```{r alpha}
+
+# Check and print cronbach's alpha for the two compositve variables we created. This isn't sufficient, but it's a start
+light_cronbach = cronbachs_alpha(clean_dat[light_cols])
+cat( paste( c("Light Humor Cronbach's Alpha: ", light_cronbach, "") ), sep = "" )
+
+dark_cronbach = cronbachs_alpha(clean_dat[dark_cols])
+cat( paste( c("Dark Humor Cronbach's Alpha: ", dark_cronbach, "") ), sep = "" )
+
+# Dump Cronbach's Alphas output to a text file
+
+# Open the Cronbach output file.
+alpha_out_filename <- "cronbach_alphas.txt"
+alpha_out_file <- fullpath( c( working_dir, alpha_out_filename) ) 
+alpha_out_stream <- file(alpha_out_file, open = "wt")
+
+# Dump the formated text portion of the Cronbach Alphas
+writeLines( paste( "Light Humor Cronbach's Alpha: ", light_cronbach, "\n", sep = ""), alpha_out_stream )
+writeLines( paste( "Dark Humor Cronbach's Alpha: ", dark_cronbach, "\n", sep = "" ), alpha_out_stream )
+
+# Close the raw descriptives file stream
+close(alpha_out_stream)
+
+
+```
+
+# Handle Categorical Variables
+
+We're going to convert all categorical variables to factors AFTER dummy coding them. We'll group all cat vars  
+with their dummy codes at the end of the dataset.
+
+```{r cat_vars}
+
+# Put all categorical variables in an array for automatic handling later
+cat_vars <- c("firstseen", "gender", "nationality", "education")
+
+# Print unique variable levels so we can see if there's weird capitalization issues, etc.
+for( vvv in cat_vars ) {
+    cat( paste("Levels of: ", vvv, " variable:", "\n"), sep = "")
+    print( unique( clean_dat[[vvv]] ) )
+    cat("\n")
+    
+    
+}
+
+# Create light/dark categories
+
+# Create light-preference humor style truth (light humor > dark humor)
+
+# Create dark-preference humor style truth (dark humor > light humor)
+
+# Categories:
+# A:  Light first + Light preference  | Reference dummy code | 0, 0, 0, 0
+# B:  Dark first + Light preference   |                      | 0, 1, 0, 0
+# A:  Light first + Dark preference   |                      | 0, 0, 1, 0
+# B:  Dark first + Dark preference    |                      | 0, 0, 0, 1
+
+# Dummy code gender
+# Reference: Female
+#            Male -> 1, 0
+#            Undisclosed -> 0, 1
+
+# Dummy code education
+# Reference: High school
+#            Bachelors -> 1, 0
+#            Undiscolsed -> 0, 1
+
+```
+
 
 # Descriptive Statistics - Clean Data
 
