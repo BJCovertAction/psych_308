@@ -204,15 +204,16 @@ clean_dat <- raw_dat[keep_ages, ]
 # Get column names
 nams = colnames(raw_dat)
 
-# Search column names containing: "mid" in an form, "after" in any form, and "seen" in any form, and "cat" in any form.
+# Search column names containing: "mid" in any form, "after" in any form, and "seen" in any form, and "cat" in any form.
 #  NOTE: we use the weird syntax in the "cat" match: (?<!edu) to include a perl-style negative lookbehind regex term
 #        which matches the same as the other regexes but NOT if "edu" precedes "cat" ... the perl arg has to be 
 #        included for this to work.
 mid_cols <- grep("_*mid.*", nams, value = TRUE)
-aft_cols <- grep("_*after.*", nams, value = TRUE)
+# aft_cols <- grep("_*after.*", nams, value = TRUE)
 sen_cols <- grep("(?<!first)_*seen.*", nams, value = TRUE, perl = TRUE)  # excludes "firstseen" so we keep order
 cat_cols <- grep("(?<!edu)_*cat.*", nams, value = TRUE, perl = TRUE)
-drop_cols <- unique( c(mid_cols, aft_cols, sen_cols, cat_cols) )
+# drop_cols <- unique( c(mid_cols, aft_cols, sen_cols, cat_cols) )
+drop_cols <- unique( c(mid_cols, sen_cols, cat_cols) )
 
 # Now we diff our drop cols and our column names to get the columns to keep
 keep_cols <- setdiff(nams, drop_cols) 
@@ -293,29 +294,77 @@ for( vvv in cat_vars ) {
     
 }
 
-# Create light/dark categories
+# Dummy Code "FirstSeen"
+# Categories are "light" or "dark"
+# Reference level is "light
+#  So "dark" is dummy coded as 0, 1
+#     "light" is just 0, 0
+augment_dat <- clean_dat
+augment_dat$seen_dark_dc <- augment_dat$firstseen
+augment_dat$seen_dark_dc[augment_dat$firstseen == "light"] <- 0
+augment_dat$seen_dark_dc[augment_dat$firstseen == "dark"] <- 1
+augment_dat <- augment_dat %>% relocate(c("seen_dark_dc"), .after=firstseen)
 
-# Create light-preference humor style truth (light humor > dark humor)
+# Create light/dark categories. There are three levels to the humor preference column:
+#  humor_pref == 1 -> (light_avg >= 4) & (dark_avg < 4)
+#  humor_pref == 2 -> (dark_avg >= 4) & (light_avg < 4)
+#  humor_pref == 3 -> All else
 
-# Create dark-preference humor style truth (dark humor > light humor)
+# This primes the humor preferred category with all zeroes
+augment_dat$humor_pref <- 0
 
-# Categories:
-# A:  Light first + Light preference  | Reference dummy code | 0, 0, 0, 0
-# B:  Dark first + Light preference   |                      | 0, 1, 0, 0
-# A:  Light first + Dark preference   |                      | 0, 0, 1, 0
-# B:  Dark first + Dark preference    |                      | 0, 0, 0, 1
+# Create Truth arrays for light preference and dark preferences then create an inverted logic array for all remaining   
+# rows which don't fit the definition of either of those (not( a or b))
+light_avg_truth_ary <- (augment_dat$light_humor_avg >= 4) & (augment_dat$dark_humor_avg < 4)
+dark_avg_truth_ary  <- (augment_dat$dark_humor_avg >= 4) & (augment_dat$light_humor_avg < 4)
+neither_truth_ary   <- !( (light_avg_truth_ary) | (dark_avg_truth_ary) )   # NOT( LIGHT or DARK )
 
-# Dummy code gender
+augment_dat$humor_pref[light_avg_truth_ary] <- 1
+augment_dat$humor_pref[dark_avg_truth_ary]  <- 2
+augment_dat$humor_pref[neither_truth_ary]   <- 3
+
+# Rearrange for readibility in R viewer.
+augment_dat <- augment_dat %>% relocate(c("humor_pref", "light_humor_avg", "dark_humor_avg"), .after=education)
+
+# Dummy Code Humor Preference Style. Reference level will be 3 (neither preference) = 0, 0, 0
+# Light preference, level 1, will be 0, 1, 0
+# Dark preference,  level 2, will be 0, 0, 1
+augment_dat$pref_light_dc <- 0    # Initialize to 0
+augment_dat$pref_dark_dc  <- 0    # Initialize to 0
+
+augment_dat$pref_light_dc[light_avg_truth_ary] <- 1    # Set light preference dummy code to 1 for appropriate indices
+augment_dat$pref_dark_dc[dark_avg_truth_ary] <- 1    # Set light preference dummy code to 1 for appropriate indices
+
+# Rearrange for readibility in R viewer.
+augment_dat <- augment_dat %>% relocate(c("pref_light_dc", "pref_dark_dc"), .after=dark_humor_avg)
+
+# Dummy code gender - TBD
 # Reference: Female
 #            Male -> 1, 0
 #            Undisclosed -> 0, 1
 
-# Dummy code education
+# Dummy code education - TBD
 # Reference: High school
 #            Bachelors -> 1, 0
 #            Undiscolsed -> 0, 1
 
 ```
+
+# Compute Change in Anxiety (After - Before)
+
+We want to study how much anxiety increased or decreased after viewing the videos compared to before.  
+So we add delta_anxiety as our primary outcome variable here.
+
+```{r add_outvars}
+#   Do a simple order-maintaining delta of after minus before on anxiety and relocate those three measures to the    
+#  front of the dataframe. NOTE: By this convention, a decrease in anxiety will be negative, and an increas will be +
+augment_dat$delta_anx <- augment_dat$avg_stai_after - augment_dat$avg_stai_before
+
+
+augment_dat <- augment_dat %>% relocate(c("delta_anx", "avg_stai_after", "avg_stai_before"), .after=pref_dark_dc)
+
+```
+
 
 
 # Descriptive Statistics - Clean Data
@@ -324,9 +373,20 @@ Now we'll check descriptives again for the cleaned data so we can see how they c
 
 ```{r descriptive_stats_clean}
 
+# We need to redefine our continuous vars as a list of known numeric variables since we've moved columns around.
+clean_conts <- c('age', 
+                 'light_humor_avg', 'dark_humor_avg',
+                 'light_humor_norm', 'dark_humor_norm', 
+                 'delta_anx', 'avg_stai_after', 'avg_stai_before',
+                 'pa_before', 'pa_after',
+                 'na_before', 'na_after', 
+                 'avg_wit', 'avg_fun', 'avg_humor', 'avg_nons',
+                 'avg_cyn', 'avg_irony', 'avg_satire', 'avg_sarc'
+                 ) 
+
 #    NOTE: We need to use the vars = cont_names[] syntax with [] included to access the contents of
 #          cont_names. Otherwise jamovi recognizes it as a character array object and it craps out.
-clean_descr = jmv::descriptives( clean_dat,
+clean_descr = jmv::descriptives( augment_dat,
                                  vars = clean_conts[],
                                  hist = TRUE,
                                  dens = TRUE,
@@ -342,7 +402,7 @@ print(clean_descr)
 
 # Dump raw descriptives Rmd output to a text file
 # Open the raw descriptives output file.
-cln_descr_out_filename <- "clean_dat_descriptives.txt"
+cln_descr_out_filename <- "clean_and_augmented_dat_descriptives.txt"
 cln_descr_out_file <- fullpath( c( working_dir, cln_descr_out_filename) ) 
 cln_decr_out_stream <- file(cln_descr_out_file, open = "wt")
 
@@ -362,7 +422,7 @@ Create a dataframe that has standardized data.
 ```{r center_data}
 
 # We need to create two new dataframes one for centered and one for standardized data before we start looping.
-clean_cent_dat <- clean_dat
+clean_cent_dat <- augment_dat
 clean_std_dat<- clean_cent_dat
 
 # We're using a for loop because I'm done copy-pasting
@@ -372,10 +432,10 @@ for(iii in seq_along(clean_conts) ){
     col = clean_conts[iii]
 
     # We center the data in the cleaned dataframe and save the output to the same column name in our centered dataframe  
-    clean_cent_dat[[col]] <- clean_dat[[col]] - mean( clean_dat[[col]], na.rm = TRUE )
+    clean_cent_dat[[col]] <- augment_dat[[col]] - mean( augment_dat[[col]], na.rm = TRUE )
 
     # And we standardize using the scale function
-    clean_std_dat[[col]] <- scale( clean_dat[[col]], center = TRUE, scale = TRUE )[,1]
+    clean_std_dat[[col]] <- scale( augment_dat[[col]], center = TRUE, scale = TRUE )[,1]
 
 }
 
@@ -388,14 +448,14 @@ need to save them to both RDS and CSV files.
 
 ```{r write_clean_csv}
 # Clean Data
-clean_rds_file = fullpath(c(working_dir, "clean_humor_data.rds"))
-clean_csv_file = fullpath(c(working_dir, "clean_humor_data.csv"))
+clean_rds_file = fullpath(c(working_dir, "clean_and_augmented_humor_data.rds"))
+clean_csv_file = fullpath(c(working_dir, "clean_and_augmented_humor_data.csv"))
 
 # Save off RDS
-saveRDS(clean_dat, file = clean_rds_file)
+saveRDS(augment_dat, file = clean_rds_file)
 
 # Write to CSV
-write.csv(clean_dat, file = clean_csv_file, row.names = FALSE, fileEncoding = "UTF-8")
+write.csv(augment_dat, file = clean_csv_file, row.names = FALSE, fileEncoding = "UTF-8")
 
 # Cleaned and Centered Data
 cent_rds_file = fullpath(c(working_dir, "centered_and_cleaned_humor_data.rds"))
@@ -421,7 +481,7 @@ write.csv(clean_std_dat, file = std_csv_file, row.names = FALSE, fileEncoding = 
 comb_rds_file = fullpath(c(working_dir, "all_cleaned_humor_data.rds"))
 
 # Save off RDS
-saveRDS( list( "clean_dat" = clean_dat, 
+saveRDS( list( "augment_dat" = augment_dat, 
                "clean_cent_dat" = clean_cent_dat, 
                "clean_std_dat" = clean_std_dat
              ) , 
