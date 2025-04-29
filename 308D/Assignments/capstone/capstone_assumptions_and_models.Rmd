@@ -1,0 +1,451 @@
+---
+title: "PSYCH308D - Capstone Data Analysis"
+author: "Brady C. Jackson"
+date: "2025/04/28"
+
+# Write document output to HTML, Word, and PDF output types with a Table of
+# contents included.
+output: 
+  html_document:
+    toc: true
+  word_document:
+    toc: true
+  pdf_document:
+    toc: true
+    latex_engine: xelatex
+
+# This option here enables output to both HTML and PDF formats
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding,
+  output_format = "all") })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+
+# Libraries
+
+Load all requisite libraries here.
+
+```{r package_loading, message=FALSE, warning=FALSE}
+# Load packages. Set messages and warnings to FALSE so I don't have to see the
+# masking messages in the output.
+library(jmv)       # for descriptive
+library(ggplot2)
+library(dplyr)
+library(corrplot)    # For fancy covariance matrix plots
+library(apaTables)   # For Word formatted tables
+library(car)         # for ncvTest (Breusch Pagan)
+library(tidyverse)
+library(jmv)       # for descriptive
+library(ggplot2)
+library(dplyr)
+library(psych)
+library(corrplot)    # For fancy covariance matrix plots
+library(car)         # for ncvTest (Breusch Pagan)
+library(stringr)     # for sub_str operations
+library(Hmisc)       # for fun.dat substitution
+library(see)         # for outliers analysis 
+library(magrittr)
+library(foreign)
+library(broom)
+library(robmed)
+library(mediation)   # For mediation analysis
+library(multilevel)
+library(GGally)
+library(lsr)
+library(car)
+library(mvnTest)     # Multivariate Normality
+library(lm.beta)
+library(lavaan)      # Structural Equation Modeling
+library(haven)
+library(foreign)
+library(parallel)
+# library(AER)
+
+```
+
+# Metadata
+
+This section of code is to setup some general variables that we'll use throughout the code (e.g. figure colors, etc)
+
+```{r metadata}
+# First we'll defines some meta-data to use in all of our plots so they're nice and clean
+font_color = "#4F81BD"
+grid_color_major = "#9BB7D9"
+grid_color_minor = "#C8D7EA"
+back_color = "gray95"
+rb_colmap = colorRampPalette( c("firebrick", "grey86", "dodgerblue3") )(200)
+
+# I'm going to try to save off my preferred ggplot theme combinations as a unqiue theme object that I can just reference
+# later in the code....totally unclear if ggplot works this way....
+my_gg_theme = theme_minimal() +
+              theme( plot.title = element_text(size = 12, face = "italic", color = font_color),
+                     axis.title.x = element_text(color = font_color),
+                     axis.title.y = element_text(color = font_color),
+                     axis.text.x = element_text(color = font_color),
+                     axis.text.y = element_text(color = font_color),
+                     legend.title = element_text(color = font_color),
+                     legend.text = element_text(color = font_color),
+                     panel.grid.minor = element_line(color = grid_color_minor),
+                     panel.grid.major = element_line(color = grid_color_major),
+                     panel.background = element_rect(fill = back_color, color = font_color)
+                   )
+
+```
+
+# Load and View data
+
+Here we load the dataframes with our project data from the previously saved RDS file.
+
+
+```{r load_data}
+
+# Load the assignment data from CSV
+my_dfs <- readRDS("./all_cleaned_humor_data.rds")
+
+augment_dat <- my_dfs$augment_dat
+clean_cent_dat <- my_dfs$clean_cent_dat
+clean_std_dat <- my_dfs$clean_std_dat
+
+# Force correct datatypes
+clean_cent_dat$seen_dark_dc <- as.numeric(clean_cent_dat$seen_dark_dc)
+
+```
+
+# Assumption Checks
+
+## Descriptive Statistics - Centered Data
+
+We reprint statistics of all relevant continuous variables here for assumption checking
+
+```{r descriptive_stats_raw}
+
+# We need to redefine our continuous vars as a list of known numeric variables since we've moved columns around.
+clean_conts <- c('age', 
+                 'light_humor_avg', 'dark_humor_avg',
+                 'light_humor_norm', 'dark_humor_norm', 
+                 'delta_anx', 'avg_stai_after', 'avg_stai_before',
+                 'pa_before', 'pa_after',
+                 'na_before', 'na_after', 
+                 'avg_wit', 'avg_fun', 'avg_humor', 'avg_nons',
+                 'avg_cyn', 'avg_irony', 'avg_satire', 'avg_sarc'
+                 ) 
+
+# We'll need to check both univariate normality and multi-variate normality.
+#    NOTE: We need to use the vars = cont_names[] syntax with [] included to access the contents of
+#          cont_names. Otherwise jamovi recognizes it as a character array object and it craps out.
+my_descr = jmv::descriptives( clean_cent_dat,
+                              vars = clean_conts[],
+                              hist = TRUE,
+                              dens = TRUE,
+                              qq = TRUE,
+                              sd = TRUE,
+                              variance = TRUE,
+                              se = TRUE,
+                              skew = TRUE,
+                              kurt = TRUE,
+                              missing = TRUE
+                            )
+print(my_descr)
+
+```
+
+## Correlation Plots - Centered Data
+
+Visualize the covariance matrix to understand correlation between break length and employee productivity
+
+
+```{r correlation_plots_raw}
+
+# # We look at correlations for the centered data for ease of interpretation (and because it's the same for cent and 
+# # uncent)
+# 
+# # Centered correlations.
+# cent_subset <- raw_dat[ cent_names ]
+# corr_cent   <- stats::cor( cent_subset )
+# corrplot( corr_cent,
+#           method="color",
+#           type = "full",
+#           addCoef.col = "black",
+#           col = rb_colmap,
+#           tl.col = font_color )
+# 
+# # Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
+# # 1 for tables, but oh well)
+# corr_cent_tab <- jmv::corrMatrix(cent_subset, flag = TRUE)
+# print( corr_cent_tab )
+
+```
+
+## Scatterplots of Variables
+
+```{r scatter_plots}
+# 
+# # Scatterplot 1: Aggression vs. Family Adversity  (uncentered)
+# agg_scatter_faunc <- ggplot(this_dat, aes(agg, fa) )
+# 
+# agg_scatter_faunc +
+#     geom_point() +
+#     geom_smooth(method = "lm", colour = "Red") +
+#     ggtitle("Childhood Aggression as a Function of Family Adversity") +
+#     labs(y = "Childhood Aggression (1-20)", x = "Family Adversity (1-20)") +
+#     my_gg_theme
+# 
+# 
+# # Scatterplot 2: Aggression vs. Positive Peer Support  (uncentered)
+# agg_scatter_ppruc <- ggplot(this_dat, aes(agg, ppr) )
+# 
+# agg_scatter_ppruc +
+#     geom_point() +
+#     geom_smooth(method = "lm", colour = "Red") +
+#     ggtitle("Childhood Aggression as a Function of Positve Peer Relationships") +
+#     labs(y = "Childhood Aggression (1-20)", x = "Positive Peer Relationships (1-20)") +
+#     my_gg_theme
+
+# Make sure you plot OV as fncn of both PV and Mediator.
+
+# Make sure you plot Mediator as function of PV
+
+```
+
+## Build Simple Linear Models (lm)
+
+```{r linear_model_definition}
+
+# # We create a simple linear model using the two main effect predictors (FA and PPR) w/o accounting for moderation
+# # to aid in simple data assumption checks later on (homoscedasticity and multi-variate normality.)
+#  
+# # Aggression regressed onto family adversity and positive peer support as main effect predictors.
+# agg_simp_mod_uc <- lm( agg ~ fa + ppr, data = this_dat)
+# 
+# # Model performance checks for all models
+# performance::check_model(agg_simp_mod_uc)
+# 
+# # We'll create a simple model that includes the moderation term as well
+# # NOTE: We're using uncentered data here:
+# agg_me_w_mod_model_uc <- lm(agg ~ fa + ppr + p_mod_f, data = this_dat)
+# # Notice funny grouping when we define model as above. Spot checked these alternative models and it's not clear which is  
+# # better.
+# # agg_me_w_mod_model_uc <- lm(agg ~ p_mod_f, data = this_dat)
+# # agg_me_w_mod_model_uc <- lm(agg ~ fa_cent + ppr_cent + p_mod_f_cent, data = this_dat)
+
+# Unstandardized linear model definition
+
+# Unstandardized Path a
+
+# Unstandardized Paths b + c'
+
+
+# Standardized linear model definition
+
+# Standardized Path a
+
+# Standardized Path b + c'
+
+
+```
+
+
+## Residuals Plots
+```{r residuals_figures}
+
+# # Check Residuals plot (Heteroscedasticity)
+# # Fitted values vs. residuals to examine homoscedasticity
+# # NOTE use of .resid to plot residuals
+# 
+# 
+# # Main Effects: agg ~ fa + ppr
+# agg_resid_me_fig = ggplot( agg_simp_mod_uc, aes(.fitted, .resid) )
+# 
+# agg_resid_me_fig +
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Childhood Aggression Levels (1-20)") +
+#     ylab("Aggression Residuals (1 - 20)") +
+#     ggtitle("Main Effects Childhood Aggression Residual vs. Fitted Plot") +
+#     my_gg_theme
+# 
+# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+# agg_resid_me_sd_fig = ggplot( agg_simp_mod_uc,
+#                               aes(.fitted , .resid / my_descr$descriptives$asDF$`agg[sd]` )
+#                             )
+# 
+# agg_resid_me_sd_fig +
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Childhood Aggression Levels (1-20)") +
+#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+#     ggtitle("Main Effects Childhood Aggression Residual vs. Fitted Plot") +
+#     my_gg_theme
+# 
+# # Create Residuals plot for Fitted values with Moderation Accounted for
+# 
+# # Moderation Effects: agg ~ fa + ppr + p_mod_f
+# agg_resid_mod_fig = ggplot( agg_me_w_mod_model_uc, aes(.fitted, .resid) )
+# 
+# agg_resid_mod_fig +
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Childhood Aggression Levels (1-20)") +
+#     ylab("Aggression Residuals (1 - 20)") +
+#     ggtitle("Main + Moderation Effects Childhood Aggression Residual vs. Fitted Plot") +
+#     my_gg_theme
+# 
+# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
+# agg_resid_mod_sd_fig = ggplot( agg_me_w_mod_model_uc,
+#                               aes(.fitted , .resid / my_descr$descriptives$asDF$`agg[sd]` )
+#                             )
+# 
+# agg_resid_mod_sd_fig +
+#     geom_point(col = font_color) +
+#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
+#     xlab("Fitted Childhood Aggression Levels (1-20)") +
+#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
+#     ggtitle("Main + Moderation Childhood Aggression Residual vs. Fitted Plot") +
+#     my_gg_theme
+
+```
+
+
+## Homoscedasticity Checks
+```{r homoscedasticity_checks}
+
+# # Run a Breusch Pagan Test of homoscedasticity for both models, for both reference grad values
+# 
+# cat( paste("  ", "---- Breusch-Pagan Main Effects ----", " ", sep = "\n") )
+# car::ncvTest(agg_simp_mod_uc)
+# 
+# cat( paste("  ", "---- Breusch-Pagan Main + Moderation Effects ----", " ", sep = "\n") )
+# car::ncvTest(agg_me_w_mod_model_uc)
+
+
+```
+
+
+## Multi-Variate Normality
+
+```{r multivar_norm}
+
+
+# # Code below manually produces QQ Plot for better alignment with general plot styles
+# ggplot(agg_simp_mod_uc, 
+#          aes( 
+#                qqnorm( .stdresid,
+#                        xlab = "", ylab = "", 
+#                        conf.level = 0.945, 
+#                        conf.args = list(col = "lightgrey", exact = TRUE) 
+#                       )[[1]],
+#                .stdresid ) 
+#        ) + 
+#     geom_point(na.rm = TRUE) +
+#     xlab("Theoretical Quantiles") + 
+#     ylab("Standardized Residuals") +
+#     ggtitle("Normal Q-Q of Main Effects Model") + 
+#     my_gg_theme
+# 
+# # Henze-Zirkler test of multivariate normality
+# # Columns 2-4 are Aggression, Family Adversity, and Positive Peer Support respectively.
+# HZ.test(this_dat[2:4])
+
+
+```
+
+# Model Building
+
+We're going to build two models. The first will use light_humor_avg and dark_humor_avg as predictor   
+variables for change in anxiety, and those will both be moderated by order of humor seen (refernce level is light  
+first seen). Age will be our control. ... This model will be called Giggles.
+
+Our second model will use the light/dark preference categories as predictors (referenced to no preference). Those  
+will also be moderated by order of video seen.... this model will be called GutBuster
+
+
+## Construct Moderation Variables
+
+### Moderation Vars for Model Codename Giggles
+
+```{r giggles_mod_vars}
+
+# For our giggles model, we need to multiply each of our order of videos seen dummy vars (seen_dark_dc) times each of  
+# our moderated PVs, light_humor_avg and fark_humor_avg
+
+# We must use centered values.
+clean_cent_dat$drk_sn_x_lh_avg <- clean_cent_dat$seen_dark_dc * clean_cent_dat$light_humor_avg  # Moderated Light Hum
+clean_cent_dat$drk_sn_x_dh_avg <- clean_cent_dat$seen_dark_dc * clean_cent_dat$dark_humor_avg   # Moderated Dark Hum
+
+# Relocate new vars for readability
+clean_cent_dat <- clean_cent_dat %>% relocate(c("drk_sn_x_lh_avg", "drk_sn_x_dh_avg"), .after=seen_dark_dc)
+
+```
+
+
+### Moderation Vars for Model Codename GutBuster
+
+```{r gutbuster_mod_vars}
+
+# For our GutBuster model, we need to multiply each of our order of videos seen dummy vars (seen_dark_dc) times each of  
+# our humor preference dc vars (light_pref_dc + dark_pref_dc)
+clean_cent_dat$drk_sn_x_lpdc <- clean_cent_dat$seen_dark_dc * clean_cent_dat$pref_light_dc  # Moderated Light Hum
+clean_cent_dat$drk_sn_x_dpdc <- clean_cent_dat$seen_dark_dc * clean_cent_dat$pref_dark_dc   # Moderated Dark Hum
+
+# Relocate new vars for readability
+clean_cent_dat <- clean_cent_dat %>% relocate(c("drk_sn_x_lpdc", "drk_sn_x_dpdc"), .after=drk_sn_x_dh_avg)
+
+```
+
+## Build Regression Models
+
+### Giggles Regression
+
+```{r giggles_model}
+
+# SAMPLE CODE - Moderated Regression
+giggles_regr <- linReg( clean_cent_dat,
+                        dep = 'delta_anx',
+                        covs = c( 'age', 'seen_dark_dc', 
+                                  'light_humor_avg', 'dark_humor_avg', 
+                                  'drk_sn_x_lh_avg', 'drk_sn_x_dh_avg'
+                                 ),
+                        blocks = list(
+                                       list( 'age' ),
+                                       list( 'seen_dark_dc', 'light_humor_avg', 'dark_humor_avg' ),
+                                       list( 'drk_sn_x_lh_avg', 'drk_sn_x_dh_avg' )
+                                     ),
+                        modelTest = TRUE,
+                        stdEst = TRUE,
+                        r2Adj = TRUE,
+                        collin = TRUE,
+                        ci = TRUE)
+giggles_regr
+
+
+```
+
+### GutBuster Regression
+
+```{r gutbuster_model}
+
+# SAMPLE CODE - Moderated Regression
+gutbust_regr <- linReg( clean_cent_dat,
+                        dep = 'delta_anx',
+                        covs = c( 'age', 'seen_dark_dc',
+                                  'pref_light_dc', 'pref_dark_dc', 
+                                  'drk_sn_x_lpdc', 'drk_sn_x_dpdc'),
+                        blocks = list(
+                                       list( 'age' ),
+                                       list( 'seen_dark_dc', 'pref_light_dc', 'pref_dark_dc' ),
+                                       list( 'drk_sn_x_lpdc', 'drk_sn_x_dpdc' )
+                                     ),
+                        modelTest = TRUE,
+                        stdEst = TRUE,
+                        r2Adj = TRUE,
+                        collin = TRUE,
+                        ci = TRUE)
+gutbust_regr
+
+
+```
