@@ -67,6 +67,8 @@ library(parallel)
 library(performance)
 # library(AER)
 
+source("~/.Rprofile")
+
 ```
 
 # Metadata
@@ -98,6 +100,7 @@ my_gg_theme = theme_minimal() +
 
 # Setup filepath metadata
 working_dir = fullpath(c(here, "Assignments", "capstone"))
+working_dir = here
 
 ```
 
@@ -182,17 +185,20 @@ Next, we'll pull out some of the excess variables that we don't know how to use 
 
 ```{r clean_raw_data}
 
-# Define the age cutoff as variable so we can tweak it later if need be.
-age_co = 30
-
-# Eliminate all rows with ages above 40. We logically index for all ages less than or equal to 40, and, just to make  
-# sure we don't have any bullshit data, we additionally subset to all ages greater than 0.
-idx_lt_co <- raw_dat$age <= 30
-idx_gt_0 <- raw_dat$age > 0
-keep_ages = idx_gt_0 & idx_lt_co
-
-# Next we subset all columns of the dataframe to keep_ages rows only.
-clean_dat <- raw_dat[keep_ages, ]
+# DEPRECATED
+# # Define the age cutoff as variable so we can tweak it later if need be.
+# age_co = 30
+# 
+# # Eliminate all rows with ages above 40. We logically index for all ages less than or equal to 40, and, just to make  
+# # sure we don't have any bullshit data, we additionally subset to all ages greater than 0.
+# idx_lt_co <- raw_dat$age <= 30
+# idx_gt_0 <- raw_dat$age > 0
+# keep_ages = idx_gt_0 & idx_lt_co
+# 
+# # Next we subset all columns of the dataframe to keep_ages rows only.
+# clean_dat <- raw_dat[keep_ages, ]
+# END DEPRECATED
+clean_dat <- raw_dat
 
 # We're going to use a few regular expressions to capture columns we want to drop and then we'll just purge those from   
 # the cleaned data dataframe.  
@@ -208,12 +214,12 @@ nams = colnames(raw_dat)
 #  NOTE: we use the weird syntax in the "cat" match: (?<!edu) to include a perl-style negative lookbehind regex term
 #        which matches the same as the other regexes but NOT if "edu" precedes "cat" ... the perl arg has to be 
 #        included for this to work.
-mid_cols <- grep("_*mid.*", nams, value = TRUE)
+# mid_cols <- grep("_*mid.*", nams, value = TRUE)
 # aft_cols <- grep("_*after.*", nams, value = TRUE)
 sen_cols <- grep("(?<!first)_*seen.*", nams, value = TRUE, perl = TRUE)  # excludes "firstseen" so we keep order
 cat_cols <- grep("(?<!edu)_*cat.*", nams, value = TRUE, perl = TRUE)
 # drop_cols <- unique( c(mid_cols, aft_cols, sen_cols, cat_cols) )
-drop_cols <- unique( c(mid_cols, sen_cols, cat_cols) )
+drop_cols <- unique( c(sen_cols, cat_cols) )
 
 # Now we diff our drop cols and our column names to get the columns to keep
 keep_cols <- setdiff(nams, drop_cols) 
@@ -242,8 +248,35 @@ clean_dat$light_humor_norm <- sqrt( rowSums ( clean_dat[light_cols]^2 ) )
 clean_dat$dark_humor_avg <- rowMeans( clean_dat[dark_cols], na.rm = TRUE )
 clean_dat$dark_humor_norm <- sqrt( rowSums ( clean_dat[dark_cols]^2 ) )
 
+# Now we're going to build a composite humor continuum called humor_pref_cont which is 
+# Average light humor enjoyment minus average dark humor enjoyment with signage preferred.
+# This gives us a scale between +- 10 such that those with a strong preference towards dark end up with a 
+# high magnitude negative value and those with a strong humor towards light end up with a high magnitude positive 
+# value. Those with equal enjoyment of light and dark end up near 0.
+clean_dat$humor_pref_cont <- clean_dat$light_humor_avg - clean_dat$dark_humor_avg
+
+# Ran the centering code below to see if creating the +- continuum produced different N-counts on either side of 0 if 
+# we created it using Zero. Turns out it does not. humor_pref_cont <0 == 51, humor_pref_cont > 0 == 183.
+# This code is commented out because we center the whole dataset later
+# clean_dat$light_humor_avg_c <- clean_dat$light_humor_avg - mean(clean_dat$light_humor_avg, na.rm = TRUE)
+# clean_dat$dark_humor_avg_c <- clean_dat$dark_humor_avg - mean(clean_dat$dark_humor_avg, na.rm = TRUE)
+# 
+# clean_dat$humor_pref_cont2 <- clean_dat$light_humor_avg_c - clean_dat$dark_humor_avg_c
+# clean_dat$humor_pref_cont_c <- clean_dat$humor_pref_cont - mean(clean_dat$humor_pref_cont, na.rm = TRUE)
+
 # Define a new continuous names vector for use in numerics and correlations
-clean_conts <- c('age', colnames(clean_dat[6:20])) 
+clean_conts <- c( "age", 
+                  "avg_cyn", "avg_wit", "avg_irony", "avg_satire", 
+                  "avg_sarc", "avg_fun", "avg_humor", "avg_nons", 
+                  "avg_stai_before", "avg_stai_mid", "avg_stai_after", 
+                  "pa_before", "pa_middle", "pa_after", 
+                  "na_before", "na_middle", "na_after", 
+                  "light_humor_avg", "light_humor_norm", 
+                  "dark_humor_avg", "dark_humor_norm", 
+                  "humor_pref_cont" 
+                  # "humor_pref_cont", 
+                  # "light_humor_avg_c", "dark_humor_avg_c", "humor_pref_cont2", "humor_pref_cont_c"
+                )
 
 ```
 
@@ -294,12 +327,83 @@ for( vvv in cat_vars ) {
     
 }
 
+# Save off clean_dat
+augment_dat <- clean_dat
+
+# For humor preference, we need to define a range around 0 for which we create a humor preference category of "neither"
+# Humor preferences will be defined as:
+#   humor_pref_cont >= cutoff = "light"
+#   humor_pref_cont <= -1 * cutoff = "dark"
+#   -1 * cutoff < humor_pref_cont < cutoff = "neither"
+# We're going to define cutoff based on mean and std of humor_pref_cont < 0 (-0.4771242)  and humor_pref_cont > 0 (1.042805)
+#   Given these, and that we only have 51 samples of dark preference, we're going to set the cutoff value at +- 0.05
+# NOTE: Recall that since this scale is avg_light - avg_dark, a score of 0 is truly equal light and dark preference.
+#       The distribution of humor_pref_cont is skewed slightly towards the light side, indicating that subjects generally 
+#       rank light humor enjoyement types a but higher than dark humor (mean(light)) > mean(dark)
+#       But we don't "unskew" this distribution by subtracting the mean of humor_pref_cont because that would make it 
+#       so 0 no longer means equal light and equal dark.
+#       If this becomes a real problem then we should define humor_pref_cont as rss(light) - rss(dark) which would 
+#         estimate something like a hypotenuese across the 4x dimensions of each. But since those dimensions are 
+#         definitively non-orthogonal this would be an invalid construct. We really should start running matrix 
+#         decomposition...
+cutoff = 0.05
+augment_dat$humor_pref_type <- ""
+augment_dat$humor_pref_type[augment_dat$humor_pref_cont >= cutoff] <- "light"
+augment_dat$humor_pref_type[augment_dat$humor_pref_cont <= (-1 *cutoff) ] <- "dark"
+augment_dat$humor_pref_type[augment_dat$humor_pref_type == ""] <- "neither"
+augment_dat$humor_pref_type <- as.factor(augment_dat$humor_pref_type)
+
+# Dummy Code humor preference type:
+#  Reference: humor_pref = "neither" = 0, 0, 0 
+#             humor_pref = "light"   = 0, 1, 0
+#             humor_pref = "dark" = 0, 0, 1
+augment_dat$pref_light_dc <- 0
+augment_dat$pref_light_dc[augment_dat$humor_pref_type == "light"] <- 1
+augment_dat$pref_dark_dc <- 0
+augment_dat$pref_dark_dc[augment_dat$humor_pref_type == "dark"] <- 1
+
+# Now we define out humor "congruence" construct as "congruent" or "incongruent"
+
+#  humor_cong = congruent if  (firstseen = light & humor_pref_type = light) | (firstseen = dark & humor_pref_type = dark)
+#  humor_cong = incongruent if (firstseen = light & humor_pref_type = dark) | (firstseen = dark & humor_pref_type = light)
+#  humor_cong = none        otherwise
+augment_dat$humor_congruence <- "none"
+firstseen_is_humor_pref_truth <-  (
+                                     ( augment_dat$firstseen == "light" & augment_dat$humor_pref_type == "light") |
+                                     ( augment_dat$firstseen == "dark" & augment_dat$humor_pref_type == "dark") 
+                                  )
+firstseen_not_humor_pref_truth <-  (
+                                      ( augment_dat$firstseen == "light" & augment_dat$humor_pref_type == "dark") |
+                                      ( augment_dat$firstseen == "dark" & augment_dat$humor_pref_type == "light") 
+                                   )
+augment_dat$humor_congruence[firstseen_is_humor_pref_truth] <- "congruent"
+augment_dat$humor_congruence[firstseen_not_humor_pref_truth] <- "incongruent"
+augment_dat$humor_congruence <- as.factor(augment_dat$humor_congruence)
+
+# Dummy Code "Congruence"
+#  Reference: humor_congruence = "none" = 0, 0, 0 
+#             humor_congruence = "congruent"   = 0, 1, 0
+#             humor_congruence = "incongruent" = 0, 0, 1
+augment_dat$cong_dc <- 0
+augment_dat$cong_dc[augment_dat$humor_congruence  == "congruent"] <- 1
+augment_dat$incong_dc <- 0
+augment_dat$incong_dc[augment_dat$humor_congruence == "incongruent"] <- 1
+
+# Reolocate new columns for readability
+augment_dat <- augment_dat %>% relocate( c( 
+                                            "humor_congruence", "cong_dc", "incong_dc",
+                                            "humor_pref_type", "pref_light_dc", "pref_dark_dc", 
+                                            "light_humor_avg", "dark_humor_avg", "humor_pref_cont"
+                                          ), 
+                                         .after=firstseen 
+                                       )
+
+
 # Dummy Code "FirstSeen"
 # Categories are "light" or "dark"
 # Reference level is "light
 #  So "dark" is dummy coded as 0, 1
 #     "light" is just 0, 0
-augment_dat <- clean_dat
 augment_dat$seen_dark_dc <- augment_dat$firstseen
 augment_dat$seen_dark_dc[augment_dat$firstseen == "light"] <- 0
 augment_dat$seen_dark_dc[augment_dat$firstseen == "dark"] <- 1
@@ -311,32 +415,36 @@ augment_dat <- augment_dat %>% relocate(c("seen_dark_dc"), .after=firstseen)
 #  humor_pref == 3 -> All else
 
 # This primes the humor preferred category with all zeroes
-augment_dat$humor_pref <- 0
+# augment_dat$humor_pref <- 0
 
-# Create Truth arrays for light preference and dark preferences then create an inverted logic array for all remaining   
-# rows which don't fit the definition of either of those (not( a or b))
-light_avg_truth_ary <- (augment_dat$light_humor_avg >= 4) & (augment_dat$dark_humor_avg < 4)
-dark_avg_truth_ary  <- (augment_dat$dark_humor_avg >= 4) & (augment_dat$light_humor_avg < 4)
-neither_truth_ary   <- !( (light_avg_truth_ary) | (dark_avg_truth_ary) )   # NOT( LIGHT or DARK )
 
-augment_dat$humor_pref[light_avg_truth_ary] <- 1
-augment_dat$humor_pref[dark_avg_truth_ary]  <- 2
-augment_dat$humor_pref[neither_truth_ary]   <- 3
+## ---- DEPRECATED, OLD, WRONG WAY OF DEFINING HUMOR PREFERENCE ---- 
+# # Create Truth arrays for light preference and dark preferences then create an inverted logic array for all remaining   
+# # rows which don't fit the definition of either of those (not( a or b))
+# light_avg_truth_ary <- (augment_dat$light_humor_avg >= 4) & (augment_dat$dark_humor_avg < 4)
+# dark_avg_truth_ary  <- (augment_dat$dark_humor_avg >= 4) & (augment_dat$light_humor_avg < 4)
+# neither_truth_ary   <- !( (light_avg_truth_ary) | (dark_avg_truth_ary) )   # NOT( LIGHT or DARK )
+
+# augment_dat$humor_pref[light_avg_truth_ary] <- 1
+# augment_dat$humor_pref[dark_avg_truth_ary]  <- 2
+# augment_dat$humor_pref[neither_truth_ary]   <- 3
 
 # Rearrange for readibility in R viewer.
-augment_dat <- augment_dat %>% relocate(c("humor_pref", "light_humor_avg", "dark_humor_avg"), .after=education)
+# augment_dat <- augment_dat %>% relocate(c("humor_pref", "light_humor_avg", "dark_humor_avg"), .after=education)
 
 # Dummy Code Humor Preference Style. Reference level will be 3 (neither preference) = 0, 0, 0
 # Light preference, level 1, will be 0, 1, 0
 # Dark preference,  level 2, will be 0, 0, 1
-augment_dat$pref_light_dc <- 0    # Initialize to 0
-augment_dat$pref_dark_dc  <- 0    # Initialize to 0
+# augment_dat$pref_light_dc <- 0    # Initialize to 0
+# augment_dat$pref_dark_dc  <- 0    # Initialize to 0
 
-augment_dat$pref_light_dc[light_avg_truth_ary] <- 1    # Set light preference dummy code to 1 for appropriate indices
-augment_dat$pref_dark_dc[dark_avg_truth_ary] <- 1    # Set light preference dummy code to 1 for appropriate indices
+# augment_dat$pref_light_dc[light_avg_truth_ary] <- 1    # Set light preference dummy code to 1 for appropriate indices
+# augment_dat$pref_dark_dc[dark_avg_truth_ary] <- 1    # Set light preference dummy code to 1 for appropriate indices
 
 # Rearrange for readibility in R viewer.
-augment_dat <- augment_dat %>% relocate(c("pref_light_dc", "pref_dark_dc"), .after=dark_humor_avg)
+# augment_dat <- augment_dat %>% relocate(c("pref_light_dc", "pref_dark_dc"), .after=dark_humor_avg)
+### --- END DEPRECATION ---
+
 
 # Dummy code gender - TBD
 # Reference: Female
@@ -353,15 +461,21 @@ augment_dat <- augment_dat %>% relocate(c("pref_light_dc", "pref_dark_dc"), .aft
 # Compute Change in Anxiety (After - Before)
 
 We want to study how much anxiety increased or decreased after viewing the videos compared to before.  
-So we add delta_anxiety as our primary outcome variable here.
+So we add delta_anxiety as our primary outcome variable here. Our delta is between the mid and before measurements 
+Since we're just looking at effects across first video viewing.
 
 ```{r add_outvars}
 #   Do a simple order-maintaining delta of after minus before on anxiety and relocate those three measures to the    
 #  front of the dataframe. NOTE: By this convention, a decrease in anxiety will be negative, and an increas will be +
-augment_dat$delta_anx <- augment_dat$avg_stai_after - augment_dat$avg_stai_before
+augment_dat$delta_anx <- augment_dat$avg_stai_mid - augment_dat$avg_stai_before
+augment_dat$total_delta_anx <- augment_dat$avg_stai_after - augment_dat$avg_stai_before
 
 
-augment_dat <- augment_dat %>% relocate(c("delta_anx", "avg_stai_after", "avg_stai_before"), .after=pref_dark_dc)
+augment_dat <- augment_dat %>% relocate( c( "delta_anx", 
+                                            "avg_stai_before","avg_stai_mid", "avg_stai_after", 
+                                            "total_delta_anx" 
+                                          ), .after=pref_dark_dc
+                                        )
 
 ```
 
@@ -374,15 +488,7 @@ Now we'll check descriptives again for the cleaned data so we can see how they c
 ```{r descriptive_stats_clean}
 
 # We need to redefine our continuous vars as a list of known numeric variables since we've moved columns around.
-clean_conts <- c('age', 
-                 'light_humor_avg', 'dark_humor_avg',
-                 'light_humor_norm', 'dark_humor_norm', 
-                 'delta_anx', 'avg_stai_after', 'avg_stai_before',
-                 'pa_before', 'pa_after',
-                 'na_before', 'na_after', 
-                 'avg_wit', 'avg_fun', 'avg_humor', 'avg_nons',
-                 'avg_cyn', 'avg_irony', 'avg_satire', 'avg_sarc'
-                 ) 
+clean_conts <- c(clean_conts, "delta_anx", "total_delta_anx")
 
 #    NOTE: We need to use the vars = cont_names[] syntax with [] included to access the contents of
 #          cont_names. Otherwise jamovi recognizes it as a character array object and it craps out.
@@ -483,7 +589,8 @@ comb_rds_file = fullpath(c(working_dir, "all_cleaned_humor_data.rds"))
 # Save off RDS
 saveRDS( list( "augment_dat" = augment_dat, 
                "clean_cent_dat" = clean_cent_dat, 
-               "clean_std_dat" = clean_std_dat
+               "clean_std_dat" = clean_std_dat,
+               "cont_vars"     = clean_conts
              ) , 
          file = comb_rds_file
        )
