@@ -494,35 +494,58 @@ car::ncvTest(slapstick_lm)
 cat( paste("  ", "---- Breusch-Pagan GlitterBomb ----", " ", sep = "\n") )
 car::ncvTest(glitterbomb_lm)
 
-
 ```
 
 
-## Multi-Variate Normality
+## Multi-Variate Normality - Slapstick
 
-```{r multivar_norm}
+```{r multivar_norm_ss}
 
+# Code below manually produces QQ Plot for better alignment with general plot styles
+ggplot(slapstick_lm,
+         aes(
+               qqnorm( .stdresid,
+                       xlab = "", ylab = "",
+                       conf.level = 0.945,
+                       conf.args = list(col = "lightgrey", exact = TRUE)
+                      )[[1]],
+               .stdresid )
+       ) +
+    geom_point(na.rm = TRUE) +
+    xlab("Theoretical Quantiles") +
+    ylab("Standardized Residuals") +
+    ggtitle("Slapstick Normal Q-Q of Main Effects Model") +
+    my_gg_theme
 
-# # Code below manually produces QQ Plot for better alignment with general plot styles
-# ggplot(agg_simp_mod_uc, 
-#          aes( 
-#                qqnorm( .stdresid,
-#                        xlab = "", ylab = "", 
-#                        conf.level = 0.945, 
-#                        conf.args = list(col = "lightgrey", exact = TRUE) 
-#                       )[[1]],
-#                .stdresid ) 
-#        ) + 
-#     geom_point(na.rm = TRUE) +
-#     xlab("Theoretical Quantiles") + 
-#     ylab("Standardized Residuals") +
-#     ggtitle("Normal Q-Q of Main Effects Model") + 
-#     my_gg_theme
-# 
-# # Henze-Zirkler test of multivariate normality
-# # Columns 2-4 are Aggression, Family Adversity, and Positive Peer Support respectively.
-# HZ.test(this_dat[2:4])
+# Henze-Zirkler test of multivariate normality
+# Slapstick model uses non-reduced data. Need to test our analysis variables only (continuous)
+HZ.test(clean_cent_dat[analysis_cont_vars] )
 
+```
+
+## Multi-Variate Normality - Glitterbomb
+
+```{r multivar_norm_gb}
+
+# Code below manually produces QQ Plot for better alignment with general plot styles
+ggplot(glitterbomb_lm,
+         aes(
+               qqnorm( .stdresid,
+                       xlab = "", ylab = "",
+                       conf.level = 0.945,
+                       conf.args = list(col = "lightgrey", exact = TRUE)
+                      )[[1]],
+               .stdresid )
+       ) +
+    geom_point(na.rm = TRUE) +
+    xlab("Theoretical Quantiles") +
+    ylab("Standardized Residuals") +
+    ggtitle("Slapstick Normal Q-Q of Main Effects Model") +
+    my_gg_theme
+
+# Henze-Zirkler test of multivariate normality
+# Glitterbomb model uses reduced data. Need to test our analysis variables only (continuous)
+HZ.test(clean_cent_dat_red[analysis_cont_vars] )
 
 ```
 
