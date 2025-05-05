@@ -288,34 +288,81 @@ print( corr_cent_an_tab )
 ```
 
 
-## Scatterplots of Variables
+## Scatterplots of Variables - Uncentered
+
+We need to check avg_stai_mid as a function of both avg_stai_before and humor_pref_cont to evaluate linearity.  
+Notice these scatterplots are not split by humor type but if we need to do that we can.  
 
 ```{r scatter_plots}
-# 
-# # Scatterplot 1: Aggression vs. Family Adversity  (uncentered)
-# agg_scatter_faunc <- ggplot(this_dat, aes(agg, fa) )
-# 
-# agg_scatter_faunc +
-#     geom_point() +
-#     geom_smooth(method = "lm", colour = "Red") +
-#     ggtitle("Childhood Aggression as a Function of Family Adversity") +
-#     labs(y = "Childhood Aggression (1-20)", x = "Family Adversity (1-20)") +
-#     my_gg_theme
-# 
-# 
-# # Scatterplot 2: Aggression vs. Positive Peer Support  (uncentered)
-# agg_scatter_ppruc <- ggplot(this_dat, aes(agg, ppr) )
-# 
-# agg_scatter_ppruc +
-#     geom_point() +
-#     geom_smooth(method = "lm", colour = "Red") +
-#     ggtitle("Childhood Aggression as a Function of Positve Peer Relationships") +
-#     labs(y = "Childhood Aggression (1-20)", x = "Positive Peer Relationships (1-20)") +
-#     my_gg_theme
 
-# Make sure you plot OV as fncn of both PV and Mediator.
+# Scatterplot 1: T2 anxiety vs. T1 Anxiety  (uncentered)
+anx_scatter_func <- ggplot(augment_dat, aes(x = avg_stai_before, y = avg_stai_mid) )
 
-# Make sure you plot Mediator as function of PV
+anx_scatter_func +
+geom_point() +
+     geom_smooth(method = "lm", colour = "Red") +
+     ggtitle("Anxiety at Time 2 vs. Anxiety at Time 1") +
+     labs(y = "Anxiety at T2 (1-10)", x = "Anxiety at T1 (1-10)") +
+     my_gg_theme
+
+
+# Scatterplot 2: T2 Anxiety vs. Humor Preference Continuum  (uncentered)
+anx_v_hp_scatter_ppruc <- ggplot(augment_dat, aes(x = humor_pref_cont, y = avg_stai_mid) )
+
+anx_v_hp_scatter_ppruc +
+     geom_point() +
+     geom_smooth(method = "lm", colour = "Red") +
+     ggtitle("Anxiety at Time 2 vs. Humor Preference") +
+     labs(y = "Anxiety at T2 (1-10)", x = "Humor Preference (-10 -> 10) (< 0 = Dark)") +
+     my_gg_theme
+
+```
+
+## Scatterplots of Variables - Uncentered - Split by Humor Type
+
+Here we split the Humor Preference scatterplot by humor type for further inspection   
+
+```{r scatter_plots}
+
+# We'll use the indices defined below to subset our scatterplot data
+lt_ids <- (augment_dat$humor_pref_type == "light")
+dk_ids <- (augment_dat$humor_pref_type == "dark")
+no_ids <- (augment_dat$humor_pref_type == "neither")
+
+# Subset our dataframe 3 times to get the pieces we need
+lt_dat <- augment_dat[lt_ids, ]
+dk_dat <- augment_dat[dk_ids, ]
+no_dat <- augment_dat[no_ids, ]
+
+# Scatterplot 3a: T2 Anxiety vs. Humor Preference Continuum - Light (uncentered)
+anx_v_hp_scatter_lt_pp <- ggplot(lt_dat, aes(x = humor_pref_cont, y = avg_stai_mid) )
+
+anx_v_hp_scatter_lt_pp +
+     geom_point() +
+     geom_smooth(method = "lm", colour = "Red") +
+     ggtitle("Anxiety at Time 2 vs. Light Humor Preference") +
+     labs(y = "Anxiety at T2 (1-10)", x = "Humor Preference (0.05 - 10)") +
+     my_gg_theme
+
+# Scatterplot 3b: T2 Anxiety vs. Humor Preference Continuum - Dark (uncentered)
+anx_v_hp_scatter_dk_pp <- ggplot(dk_dat, aes(x = humor_pref_cont, y = avg_stai_mid) )
+
+anx_v_hp_scatter_dk_pp +
+     geom_point() +
+     geom_smooth(method = "lm", colour = "Red") +
+     ggtitle("Anxiety at Time 2 vs. Dark Humor Preference") +
+     labs(y = "Anxiety at T2 (1-10)", x = "Humor Preference (-10 -> 0.05)") +
+     my_gg_theme
+
+# Scatterplot 3c: T2 Anxiety vs. Humor Preference Continuum - No Preference (uncentered)
+anx_v_hp_scatter_no_pp <- ggplot(no_dat, aes(x = humor_pref_cont, y = avg_stai_mid) )
+
+anx_v_hp_scatter_no_pp +
+     geom_point() +
+     geom_smooth(method = "lm", colour = "Red") +
+     ggtitle("Anxiety at Time 2 vs. No Humor Preference") +
+     labs(y = "Anxiety at T2 (1-10)", x = "Humor Preference (-0.05 -> 0.05)") +
+     my_gg_theme
 
 ```
 
@@ -323,35 +370,14 @@ print( corr_cent_an_tab )
 
 ```{r linear_model_definition}
 
-# # We create a simple linear model using the two main effect predictors (FA and PPR) w/o accounting for moderation
-# # to aid in simple data assumption checks later on (homoscedasticity and multi-variate normality.)
-#  
-# # Aggression regressed onto family adversity and positive peer support as main effect predictors.
-# agg_simp_mod_uc <- lm( agg ~ fa + ppr, data = this_dat)
-# 
-# # Model performance checks for all models
-# performance::check_model(agg_simp_mod_uc)
-# 
-# # We'll create a simple model that includes the moderation term as well
-# # NOTE: We're using uncentered data here:
-# agg_me_w_mod_model_uc <- lm(agg ~ fa + ppr + p_mod_f, data = this_dat)
-# # Notice funny grouping when we define model as above. Spot checked these alternative models and it's not clear which is  
-# # better.
-# # agg_me_w_mod_model_uc <- lm(agg ~ p_mod_f, data = this_dat)
-# # agg_me_w_mod_model_uc <- lm(agg ~ fa_cent + ppr_cent + p_mod_f_cent, data = this_dat)
+# We have two basic models we look at, Slapstick and GlitterBomb
+#  Slapstick includes humor_pref_cont, avg_stai_before, and moderation terms cong_x_hp and incong_x_hp
+#  Glitterbomb includes humor_pref_cont, avg_stai_before, and cong_dc (cat PV), and cong_x_hp on the dataset with
+#   no-preference entries removed. We'll create both here so we can evaluate residuals of the models for reviewing
+#   heteroscedasticity 
 
-# Unstandardized linear model definition
-
-# Unstandardized Path a
-
-# Unstandardized Paths b + c'
-
-
-# Standardized linear model definition
-
-# Standardized Path a
-
-# Standardized Path b + c'
+# slapstick_lm   <- lm(agg ~ p_mod_f, data = this_dat)
+# glitterbomb_lm <- lm(agg ~ fa_cent + ppr_cent + p_mod_f_cent, data = this_dat)
 
 
 ```
