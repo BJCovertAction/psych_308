@@ -385,6 +385,10 @@ will also be moderated by order of video seen.... this model will be called GutB
 clean_cent_dat$cong_x_hp   <- clean_cent_dat$cong_dc * clean_cent_dat$humor_pref_cont  # Moderated by Congurent Piece
 clean_cent_dat$incong_x_hp <- clean_cent_dat$incong_dc * clean_cent_dat$humor_pref_cont   # Moderated by Incongruent Piece
 
+# We must use centered values.
+clean_cent_dat$cong_x_anx   <- clean_cent_dat$cong_dc * clean_cent_dat$avg_stai_before  # Moderated by Congurent Piece
+clean_cent_dat$incong_x_anx <- clean_cent_dat$incong_dc * clean_cent_dat$avg_stai_before   # Moderated by Incongruent Piece
+
 # Relocate new vars for readability
 clean_cent_dat <- clean_cent_dat %>% relocate(c("cong_x_hp", "incong_x_hp"), .after=incong_dc)
 
@@ -439,6 +443,8 @@ Moderator is categorical variable humor_congruence, which is a categorical varia
 # clean_cent_dat$cong_dc <- as.factor(clean_cent_dat$cong_dc)
 # clean_cent_dat$incong_dc <- as.factor(clean_cent_dat$incong_dc)
 
+# Full model we dicsussed is defined below. It CANNOT converge, so we had to settle for partial models as defined in the 
+# on-commented models
 # There's some multicollinearity bug preventing linReg from converging. Let's see if bootstrapping works instead...
 # slapstick_regr <- linReg( clean_cent_dat,
 #                           dep = 'avg_stai_mid',
@@ -488,7 +494,8 @@ slapstick_regr <- linReg( clean_cent_dat,
 slapstick_regr
 
 
-# Using CENTERED vars
+# Using CENTERED vars -Bootstrapping because N=12 for neither congruent nor incongruent piece of dataset
+#                      so we need a non-parametric method
 slapstick_def <- '
                   ### F**** This model fails too... this categorical moderation doesnt seem to be working ***
                   # Primary regression path names followed by * are path names
@@ -548,12 +555,14 @@ standardizedSolution(slapstick_fit, type = "std.all")
 parameterEstimates(slapstick_fit, standardized = TRUE, boot.ci.type = "perc", level=0.95)
 
 
-
 ```
 
 ### Glitter Bomb
 
-Drop the neutrals
+Drop the neutrals.
+Since we couldn't get convergence with both congruence and incongruence subsets referenced against no-preference humor    
+types (N=12), we're looking for congruence as referenced to incongruence (i.e. are those who experience congruent videos) 
+Likely to see a bigger change in anxeity than those who experience incongruent videos?
 
 ```{r glitterbomb_model}
 
@@ -562,16 +571,23 @@ clean_cent_dat_red <- clean_cent_dat[clean_cent_dat$humor_pref_type != "neither"
 
 # See if dropping the neutrals (no preference), and evaluating congruence as ref'd from incongruence fixes the  
 #  multicollinearity issues
+#
+# NOTE: The commented code looked at if congruence moderated the relationship directly between before and mid anxiety
+#       Spolier alert, it did not. So we're left with congruence being no more significant than incongruence, and 
+#       a very small, and questionable significance of humor preference and congruence influencing anxiety change above 
+#       or beyond those with no humor preference (slapstick results)
 glitterbomb_regr <- linReg( clean_cent_dat_red,
                           dep = 'avg_stai_mid',
                           covs = c( 'avg_stai_before', 'humor_pref_cont',
                                     'cong_dc', 'incong_dc',
+                                    'cong_x_anx', 'incong_x_anx',
                                     'cong_x_hp', 'incong_x_hp'
                                    ),
                           blocks = list(
                                          list( 'avg_stai_before' ),
                                          list( 'humor_pref_cont'),
                                          list( 'cong_dc', 'cong_x_hp')
+                                         # list( 'cong_dc', 'cong_x_anx')
                                        ),
                           modelTest = TRUE,
                           stdEst = TRUE,
@@ -584,32 +600,8 @@ glitterbomb_regr <- linReg( clean_cent_dat_red,
 
 glitterbomb_regr
 
-# # We can run this model without the catvars as predictors of anxiety. That sheds the linearly dependent problem
-# slapstick_regr <- linReg( clean_cent_dat,
-#                           dep = 'avg_stai_mid',
-#                           covs = c( 'avg_stai_before', 'humor_pref_cont',
-#                                     'cong_dc', 'incong_dc',
-#                                     'cong_x_hp', 'incong_x_hp'
-#                                    ),
-#                           blocks = list(
-#                                          list( 'avg_stai_before' ),
-#                                          list( 'humor_pref_cont'),
-#                                          # list( 'cong_dc', 'incong_dc'),
-#                                          list( 'cong_x_hp', 'incong_x_hp' )
-#                                        ),
-#                           modelTest = TRUE,
-#                           stdEst = TRUE,
-#                           r2Adj = TRUE,
-#                           collin = TRUE,
-#                           ci = TRUE
-#                         )
-# 
-# 
-# 
-# slapstick_regr
-# 
-# 
-# # Using CENTERED vars
+
+# # Using CENTERED vars - Might be worth bootstrapping glitterbomb eventually, but not done yet.
 # slapstick_def <- '
 #                   ### F**** This model fails too... this categorical moderation doesnt seem to be working ***
 #                   # Primary regression path names followed by * are path names
