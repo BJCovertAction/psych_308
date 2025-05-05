@@ -368,6 +368,9 @@ anx_v_hp_scatter_no_pp +
 
 ## Construct Moderation Variables
 
+Before we define our linear models for the purpose of inspecting homoscedasticity, we need to define our moderation  
+variables
+
 ### Moderation Vars for Model Codename Slapstick
 
 ```{r slapstick_mod_vars}
@@ -425,60 +428,57 @@ glitterbomb_lm <- lm(avg_stai_mid ~ avg_stai_before +
 ## Residuals Plots
 ```{r residuals_figures}
 
-# # Check Residuals plot (Heteroscedasticity)
-# # Fitted values vs. residuals to examine homoscedasticity
-# # NOTE use of .resid to plot residuals
-# 
-# 
-# # Main Effects: agg ~ fa + ppr
-# agg_resid_me_fig = ggplot( agg_simp_mod_uc, aes(.fitted, .resid) )
-# 
-# agg_resid_me_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Childhood Aggression Levels (1-20)") +
-#     ylab("Aggression Residuals (1 - 20)") +
-#     ggtitle("Main Effects Childhood Aggression Residual vs. Fitted Plot") +
-#     my_gg_theme
-# 
-# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-# agg_resid_me_sd_fig = ggplot( agg_simp_mod_uc,
-#                               aes(.fitted , .resid / my_descr$descriptives$asDF$`agg[sd]` )
-#                             )
-# 
-# agg_resid_me_sd_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Childhood Aggression Levels (1-20)") +
-#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
-#     ggtitle("Main Effects Childhood Aggression Residual vs. Fitted Plot") +
-#     my_gg_theme
-# 
-# # Create Residuals plot for Fitted values with Moderation Accounted for
-# 
-# # Moderation Effects: agg ~ fa + ppr + p_mod_f
-# agg_resid_mod_fig = ggplot( agg_me_w_mod_model_uc, aes(.fitted, .resid) )
-# 
-# agg_resid_mod_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Childhood Aggression Levels (1-20)") +
-#     ylab("Aggression Residuals (1 - 20)") +
-#     ggtitle("Main + Moderation Effects Childhood Aggression Residual vs. Fitted Plot") +
-#     my_gg_theme
-# 
-# # I also want to see a residuals plot in multiples of SD of productivity to help spot outliers
-# agg_resid_mod_sd_fig = ggplot( agg_me_w_mod_model_uc,
-#                               aes(.fitted , .resid / my_descr$descriptives$asDF$`agg[sd]` )
-#                             )
-# 
-# agg_resid_mod_sd_fig +
-#     geom_point(col = font_color) +
-#     geom_hline(yintercept=0, col="green3", linetype="dashed") +
-#     xlab("Fitted Childhood Aggression Levels (1-20)") +
-#     ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") )  +
-#     ggtitle("Main + Moderation Childhood Aggression Residual vs. Fitted Plot") +
-#     my_gg_theme
+# Check Residuals plot (Heteroscedasticity)
+# Fitted values vs. residuals to examine homoscedasticity
+# NOTE use of .resid to plot residuals
+
+# Create Residuals plot for Slapstick Model
+# Includes moderation but no categorical predictors references to no-preference
+sck_resid_mod_fig = ggplot( slapstick_lm, aes(.fitted, .resid) )
+
+sck_resid_mod_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Time 2 Anxiety Levels (1 - 10") +
+    ylab("Time 2 Anxiety Residuals (1 - 10)") +
+    ggtitle("Slapstick: Main + Moderation Effects T2 Anxiety Residual vs. Fitted Plot - Ref'd to No-Preference") +
+    my_gg_theme
+
+# Slapstick Residuals Scaled by SD
+sck_resid_mod_sd_fig = ggplot( slapstick_lm, aes(.fitted, (.resid / sd(clean_cent_dat$avg_stai_mid) )  ) )
+
+sck_resid_mod_sd_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Time 2 Anxiety Levels (1 - 10") +
+    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") ) +
+    ggtitle("Slapstick STD: Main + Moderation Effects T2 Anxiety Residual vs. Fitted Plot - Ref'd to No-Preference") +
+    my_gg_theme
+
+
+# Create Residuals plot for GlitterBomb Model
+# Includes moderation AND categorical predictors referenced to Incongruent Humor Experience
+gbm_resid_mod_fig = ggplot( glitterbomb_lm, aes(.fitted, .resid) )
+
+gbm_resid_mod_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Time 2 Anxiety Levels (1 - 10") +
+    ylab("Time 2 Anxiety Residuals (1 - 10)") +
+    ggtitle("Glitterbomb: Main + Moderation Effects T2 Anxiety Residual vs. Fitted Plot - Ref'd to Incongruent") +
+    my_gg_theme
+
+# Glitterbomb Residuals Scaled by SD
+gbm_resid_mod_fig = ggplot( glitterbomb_lm, aes(.fitted, (.resid / sd(clean_cent_dat_red$avg_stai_mid)) ) )
+
+gbm_resid_mod_fig +
+    geom_point(col = font_color) +
+    geom_hline(yintercept=0, col="green3", linetype="dashed") +
+    xlab("Fitted Time 2 Anxiety Levels (1 - 10") +
+    ylab(expression( "Residuals - Standardized (Multiples of " * sigma * ")") ) +
+    ggtitle("Glitterbomb STD: Main + Moderation Effects T2 Anxiety Residual vs. Fitted Plot - Ref'd to Incongruent") +
+    my_gg_theme 
+
 
 ```
 
