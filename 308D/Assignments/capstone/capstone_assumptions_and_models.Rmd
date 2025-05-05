@@ -486,13 +486,13 @@ gbm_resid_mod_fig +
 ## Homoscedasticity Checks
 ```{r homoscedasticity_checks}
 
-# # Run a Breusch Pagan Test of homoscedasticity for both models, for both reference grad values
-# 
-# cat( paste("  ", "---- Breusch-Pagan Main Effects ----", " ", sep = "\n") )
-# car::ncvTest(agg_simp_mod_uc)
-# 
-# cat( paste("  ", "---- Breusch-Pagan Main + Moderation Effects ----", " ", sep = "\n") )
-# car::ncvTest(agg_me_w_mod_model_uc)
+# Run a Breusch Pagan Test of homoscedasticity for both models, for both reference grad values
+
+cat( paste("  ", "---- Breusch-Pagan Slapstick ----", " ", sep = "\n") )
+car::ncvTest(slapstick_lm)
+
+cat( paste("  ", "---- Breusch-Pagan GlitterBomb ----", " ", sep = "\n") )
+car::ncvTest(glitterbomb_lm)
 
 
 ```
