@@ -638,7 +638,7 @@ slapstick_def <- '
                   #                cong_mid*cong_dc + incong_mid*incong_dc +
                   #                mod_cng_hum*cong_x_hp + mod_incng_hum*incong_x_hp
                   
-                  # Covariances: NONE for NOW
+                  # Covariances: 
                   avg_stai_before ~~ humor_pref_cont
                   
                   # Control Vars ONLY - No Other Predictors
@@ -732,64 +732,43 @@ glitterbomb_regr <- linReg( clean_cent_dat_red,
 glitterbomb_regr
 
 
-# # Using CENTERED vars - Might be worth bootstrapping glitterbomb eventually, but not done yet.
-# slapstick_def <- '
-#                   ### F**** This model fails too... this categorical moderation doesnt seem to be working ***
-#                   # Primary regression path names followed by * are path names
-#                   # avg_stai_mid ~ bef_mid*avg_stai_before + 
-#                   #                hum_mid*humor_pref_cont +
-#                   #                cong_mid*cong_dc + incong_mid*incong_dc +
-#                   #                mod_cng_hum*cong_x_hp + mod_incng_hum*incong_x_hp
-#                   
-#                   # Covariances: NONE for NOW
-#                   avg_stai_before ~~ humor_pref_cont
-#                   
-#                   # Control Vars ONLY - No Other Predictors
-#                   # avg_stai_mid ~  bef_mid*avg_stai_before
-#                   
-#                   # Main Effects Only - Humor Only, no Cats
-#                   # avg_stai_mid ~ bef_mid*avg_stai_before + hum_mid*humor_pref_cont
-#                   
-#                   # Main Effects Only - Humor w/ Cats 
-#                   # avg_stai_mid ~ bef_mid*avg_stai_before + hum_mid*humor_pref_cont + cong_mid*cong_dc + incong_mid*incong_dc
-#                   
-#                   # Main Effects + Moderation Only - Humor w/ Moderation, no Cats
-#                   avg_stai_mid ~ bef_mid*avg_stai_before + hum_mid*humor_pref_cont + mod_cng_hum*cong_x_hp + mod_incng_hum*incong_x_hp
-#                   
-#                   # Moderated Effects Only - No Main Effects
-#                   # avg_stai_mid ~ mod_cng_hum*cong_x_hp + mod_incg_hum*incong_x_hp
-#                   
-#                   # Simple Slopes for Humor Relationship to Anxiety
-#                   hum_cong_slp :=  (hum_mid + mod_cng_hum)
-#                   hum_avg_slp :=  (hum_mid)
-#                   hum_incong_slp := (hum_mid + mod_incng_hum)
-#                   '
-# 
-# # Bootstrap!
-# # Must use WLS if we do have ordered vars.
-# slapstick_fit <- lavaan::sem( slapstick_def, 
-#                               data = clean_cent_dat, 
-#                               se = "bootstrap",
-#                               estimator = "ML", 
-#                               bootstrap = 10000, 
-#                               parallel ="snow", 
-#                               ncpus = use_cores
-#                             )
-# 
-# 
-# # Decent text output of model fit and coefficients
-# summary( slapstick_fit, 
-#          fit.measures=TRUE, 
-#          standardized=TRUE, 
-#          rsquare=TRUE
-#        )
-# 
-# 
-# # Scrollable table in HTML output
-# standardizedSolution(slapstick_fit, type = "std.all")
-# 
-# # Additional modelfit output with CIs that's a bit more user friendly to text editors
-# parameterEstimates(slapstick_fit, standardized = TRUE, boot.ci.type = "perc", level=0.95)
+# Using CENTERED vars - Might be worth bootstrapping glitterbomb eventually, but not done yet.
+glitterbomb_def <- '
+                     # Covariances: 
+                     avg_stai_before ~~ humor_pref_cont
+   
+                      # Main Effects + Moderation + Cats for Congruence Refd to incongruence
+                     avg_stai_mid ~ bef_mid*avg_stai_before + hum_mid*humor_pref_cont + cong_mid*cong_dc + mod_cng_hum*cong_x_hp 
+
+                     # Simple Slopes for Humor Relationship to Anxiety
+                     hum_cong_slp :=  (hum_mid + mod_cng_hum)
+                     hum_avg_slp  :=  (hum_mid)
+                  '
+
+# Bootstrap!
+# Must use WLS if we do have ordered vars.
+glitterbomb_fit <- lavaan::sem(  glitterbomb_def,
+                                 data = clean_cent_dat_red,
+                                 se = "bootstrap",
+                                 estimator = "ML",
+                                 bootstrap = 10000,
+                                 parallel ="snow",
+                                 ncpus = use_cores
+                               )
+
+
+# Decent text output of model fit and coefficients
+summary( glitterbomb_fit,
+         fit.measures=TRUE,
+         standardized=TRUE,
+         rsquare=TRUE
+       )
+
+# Scrollable table in HTML output
+standardizedSolution(glitterbomb_fit, type = "std.all")
+
+# Additional modelfit output with CIs that's a bit more user friendly to text editors
+parameterEstimates(glitterbomb_fit, standardized = TRUE, boot.ci.type = "perc", level=0.95)
 
 
 
