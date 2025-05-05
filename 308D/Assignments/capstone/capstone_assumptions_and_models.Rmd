@@ -322,7 +322,7 @@ anx_v_hp_scatter_ppruc +
 
 Here we split the Humor Preference scatterplot by humor type for further inspection   
 
-```{r scatter_plots}
+```{r scatter_plots_split}
 
 # We'll use the indices defined below to subset our scatterplot data
 lt_ids <- (augment_dat$humor_pref_type == "light")
@@ -366,6 +366,30 @@ anx_v_hp_scatter_no_pp +
 
 ```
 
+## Construct Moderation Variables
+
+### Moderation Vars for Model Codename Slapstick
+
+```{r slapstick_mod_vars}
+
+# For our slapstick model, we need to multiply each of our congruence dummy vars (cong_dc, incong_dc) times 
+# our moderated PV  humor_pref_cont
+
+# We must use centered values. This has congruence categories moderating the relationship between
+# humor preference and mid anxiety
+clean_cent_dat$cong_x_hp   <- clean_cent_dat$cong_dc * clean_cent_dat$humor_pref_cont  # Moderated by Congurent Piece
+clean_cent_dat$incong_x_hp <- clean_cent_dat$incong_dc * clean_cent_dat$humor_pref_cont   # Moderated by Incongruent Piece
+
+# We must use centered values.  This has congruence categories moderating the relationship between
+# initial anxiety and mid anxiety
+clean_cent_dat$cong_x_anx   <- clean_cent_dat$cong_dc * clean_cent_dat$avg_stai_before  # Moderated by Congurent Piece
+clean_cent_dat$incong_x_anx <- clean_cent_dat$incong_dc * clean_cent_dat$avg_stai_before   # Moderated by Incongruent Piece
+
+# Relocate new vars for readability
+clean_cent_dat <- clean_cent_dat %>% relocate(c("cong_x_hp", "incong_x_hp"), .after=incong_dc)
+
+```
+
 ## Build Simple Linear Models (lm)
 
 ```{r linear_model_definition}
@@ -374,14 +398,29 @@ anx_v_hp_scatter_no_pp +
 #  Slapstick includes humor_pref_cont, avg_stai_before, and moderation terms cong_x_hp and incong_x_hp
 #  Glitterbomb includes humor_pref_cont, avg_stai_before, and cong_dc (cat PV), and cong_x_hp on the dataset with
 #   no-preference entries removed. We'll create both here so we can evaluate residuals of the models for reviewing
-#   heteroscedasticity 
+#   heteroscedasticity
 
-# slapstick_lm   <- lm(agg ~ p_mod_f, data = this_dat)
-# glitterbomb_lm <- lm(agg ~ fa_cent + ppr_cent + p_mod_f_cent, data = this_dat)
+
+# Reduce the cleaned and centered dataset down to one without any no-preference types
+clean_cent_dat_red <- clean_cent_dat[clean_cent_dat$humor_pref_type != "neither", ]
+
+# Build the linear models
+slapstick_lm   <- lm(avg_stai_mid ~ avg_stai_before + 
+                                    humor_pref_cont + 
+                                    cong_x_hp + incong_x_hp,
+                     
+                     data = clean_cent_dat
+                    )
+glitterbomb_lm <- lm(avg_stai_mid ~ avg_stai_before + 
+                                    humor_pref_cont +
+                                    cong_dc + 
+                                    cong_x_hp,
+                     
+                     data = clean_cent_dat_red
+                    )
 
 
 ```
-
 
 ## Residuals Plots
 ```{r residuals_figures}
@@ -690,9 +729,6 @@ types (N=12), we're looking for congruence as referenced to incongruence (i.e. a
 Likely to see a bigger change in anxeity than those who experience incongruent videos?
 
 ```{r glitterbomb_model}
-
-# Ensure cong and incong are factors
-clean_cent_dat_red <- clean_cent_dat[clean_cent_dat$humor_pref_type != "neither", ]
 
 # See if dropping the neutrals (no preference), and evaluating congruence as ref'd from incongruence fixes the  
 #  multicollinearity issues
