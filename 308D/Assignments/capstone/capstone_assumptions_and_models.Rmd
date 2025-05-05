@@ -126,22 +126,27 @@ clean_cent_dat$seen_dark_dc <- as.numeric(clean_cent_dat$seen_dark_dc)
 
 # Assumption Checks
 
-## Descriptive Statistics - Centered Data
+## Define Vars to Check Assumptions On
+
+We don't need to evaluate descriptives and assumptions for everything in our dataset. We only need to focus on
+ avg_stai_before   
+ avg_stai_mid   
+ humor_preference   
+ 
+... so we define them as a subset for assumption checksing
+
+```{r def_analysis_vars}
+analysis_cont_vars <- c("avg_stai_before", "avg_stai_mid", "humor_pref_cont")
+analysis_cat_vars  <- c("humor_congruence", "cong_dc", "incong_dc")
+ 
+```
+
+
+## Descriptive Statistics - All - Centered Data
 
 We reprint statistics of all relevant continuous variables here for assumption checking
 
-```{r descriptive_stats_raw}
-
-# We need to redefine our continuous vars as a list of known numeric variables since we've moved columns around.
-# clean_conts <- c('age', 
-#                  'light_humor_avg', 'dark_humor_avg',
-#                  'light_humor_norm', 'dark_humor_norm', 
-#                  'delta_anx', 'avg_stai_after', 'avg_stai_before',
-#                  'pa_before', 'pa_after',
-#                  'na_before', 'na_after', 
-#                  'avg_wit', 'avg_fun', 'avg_humor', 'avg_nons',
-#                  'avg_cyn', 'avg_irony', 'avg_satire', 'avg_sarc'
-#                  ) 
+```{r descriptive_stats_cent}
 
 # We'll need to check both univariate normality and multi-variate normality.
 #    NOTE: We need to use the vars = cont_names[] syntax with [] included to access the contents of
@@ -162,32 +167,126 @@ print(my_descr)
 
 ```
 
-## Correlation Plots - Centered Data
+## Descriptive Statistic - All -  Uncentered
 
-Visualize the covariance matrix to understand correlation between break length and employee productivity
+All continuous variables, uncentered so we can see means
 
-
-```{r correlation_plots_raw}
-
-# # We look at correlations for the centered data for ease of interpretation (and because it's the same for cent and 
-# # uncent)
-# 
-# # Centered correlations.
-# cent_subset <- raw_dat[ cent_names ]
-# corr_cent   <- stats::cor( cent_subset )
-# corrplot( corr_cent,
-#           method="color",
-#           type = "full",
-#           addCoef.col = "black",
-#           col = rb_colmap,
-#           tl.col = font_color )
-# 
-# # Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
-# # 1 for tables, but oh well)
-# corr_cent_tab <- jmv::corrMatrix(cent_subset, flag = TRUE)
-# print( corr_cent_tab )
+```{r descriptives_uncent_all}
+uc_descr = jmv::descriptives( augment_dat,
+                              vars = cont_vars[],
+                              hist = TRUE,
+                              dens = TRUE,
+                              qq = TRUE,
+                              sd = TRUE,
+                              variance = TRUE,
+                              se = TRUE,
+                              skew = TRUE,
+                              kurt = TRUE,
+                              missing = TRUE
+                            )
+print(uc_descr)
 
 ```
+
+## Descriptive Statistic - Analysis Only -  Uncentered - w/ No Preference Included
+
+Analysis variables only, uncentered, unsplit
+
+```{r descriptives_uncent_an}
+an_uc_descr = jmv::descriptives( augment_dat,
+                                 vars = analysis_cont_vars[],
+                                 hist = TRUE,
+                                 dens = TRUE,
+                                 qq = TRUE,
+                                 sd = TRUE,
+                                 variance = TRUE,
+                                 se = TRUE,
+                                 skew = TRUE,
+                                 kurt = TRUE,
+                                 missing = TRUE
+                            )
+print(an_uc_descr)
+
+```
+
+
+## Descriptive Statistic - Analysis Only -  Uncentered - Split by Pref
+
+Analysis variables only, split by humor type, uncentered
+
+```{r descriptives_uncent_an_split}
+an_sp_uc_descr = jmv::descriptives( augment_dat,
+                                    vars = analysis_cont_vars[],
+                                    splitBy = "humor_pref_type",
+                                    hist = TRUE,
+                                    dens = TRUE,
+                                    qq = TRUE,
+                                    sd = TRUE,
+                                    variance = TRUE,
+                                    se = TRUE,
+                                    skew = TRUE,
+                                    kurt = TRUE,
+                                    missing = TRUE
+                                 )
+print(an_sp_uc_descr)
+
+```
+
+## Correlation Plots - Centered Data - All
+
+Visualize the covariance matrix to understand correlation between continuous vars in dataset
+
+
+```{r correlation_plots_all}
+
+# We look at correlations for the centered data for ease of interpretation (and because it's the same for cent and
+# uncent)
+
+# Centered correlations.
+cent_subset <- clean_cent_dat[ cont_vars ]
+corr_cent   <- stats::cor( cent_subset )
+corrplot( corr_cent,
+          method="color",
+          type = "full",
+          addCoef.col = "black",
+          col = rb_colmap,
+          tl.col = font_color )
+
+# Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
+# 1 for tables, but oh well)
+corr_cent_tab <- jmv::corrMatrix(cent_subset, flag = TRUE)
+print( corr_cent_tab )
+
+```
+
+
+## Correlation Plots - Centered Data - Analysis Vars Only
+
+Visualize the covariance matrix of continuous variables were analyzing to understand correlations between continuous  
+vars in models.  
+
+```{r correlation_plots_an}
+
+# We look at correlations for the centered data for ease of interpretation (and because it's the same for cent and
+# uncent)
+
+# Centered correlations.
+cent_subset_an <- clean_cent_dat[ analysis_cont_vars ]
+corr_cent_an   <- stats::cor( cent_subset_an )
+corrplot( corr_cent_an,
+          method="color",
+          type = "full",
+          addCoef.col = "black",
+          col = rb_colmap,
+          tl.col = font_color )
+
+# Print correlation tables (annoying that we have to use two different correlation functions, 1 for plotting and
+# 1 for tables, but oh well)
+corr_cent_an_tab <- jmv::corrMatrix(cent_subset_an, flag = TRUE)
+print( corr_cent_an_tab )
+
+```
+
 
 ## Scatterplots of Variables
 
