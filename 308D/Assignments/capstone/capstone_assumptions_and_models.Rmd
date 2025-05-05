@@ -536,59 +536,6 @@ Our second model will use the light/dark preference categories as predictors (re
 will also be moderated by order of video seen.... this model will be called GutBuster
 
 
-## Construct Moderation Variables
-
-### Moderation Vars for Model Codename Slapstick
-
-```{r slapstick_mod_vars}
-
-# For our slapstick model, we need to multiply each of our congruence dummy vars (cong_dc, incong_dc) times 
-# our moderated PV  humor_pref_cont
-
-# We must use centered values.
-clean_cent_dat$cong_x_hp   <- clean_cent_dat$cong_dc * clean_cent_dat$humor_pref_cont  # Moderated by Congurent Piece
-clean_cent_dat$incong_x_hp <- clean_cent_dat$incong_dc * clean_cent_dat$humor_pref_cont   # Moderated by Incongruent Piece
-
-# We must use centered values.
-clean_cent_dat$cong_x_anx   <- clean_cent_dat$cong_dc * clean_cent_dat$avg_stai_before  # Moderated by Congurent Piece
-clean_cent_dat$incong_x_anx <- clean_cent_dat$incong_dc * clean_cent_dat$avg_stai_before   # Moderated by Incongruent Piece
-
-# Relocate new vars for readability
-clean_cent_dat <- clean_cent_dat %>% relocate(c("cong_x_hp", "incong_x_hp"), .after=incong_dc)
-
-```
-
-### Moderation Vars for Model Codename Giggles
-
-```{r giggles_mod_vars}
-
-# For our giggles model, we need to multiply each of our order of videos seen dummy vars (seen_dark_dc) times each of  
-# our moderated PVs, light_humor_avg and fark_humor_avg
-
-# We must use centered values.
-clean_cent_dat$drk_sn_x_lh_avg <- clean_cent_dat$seen_dark_dc * clean_cent_dat$light_humor_avg  # Moderated Light Hum
-clean_cent_dat$drk_sn_x_dh_avg <- clean_cent_dat$seen_dark_dc * clean_cent_dat$dark_humor_avg   # Moderated Dark Hum
-
-# Relocate new vars for readability
-clean_cent_dat <- clean_cent_dat %>% relocate(c("drk_sn_x_lh_avg", "drk_sn_x_dh_avg"), .after=seen_dark_dc)
-
-```
-
-
-### Moderation Vars for Model Codename GutBuster
-
-```{r gutbuster_mod_vars}
-
-# For our GutBuster model, we need to multiply each of our order of videos seen dummy vars (seen_dark_dc) times each of  
-# our humor preference dc vars (light_pref_dc + dark_pref_dc)
-clean_cent_dat$drk_sn_x_lpdc <- clean_cent_dat$seen_dark_dc * clean_cent_dat$pref_light_dc  # Moderated Light Hum
-clean_cent_dat$drk_sn_x_dpdc <- clean_cent_dat$seen_dark_dc * clean_cent_dat$pref_dark_dc   # Moderated Dark Hum
-
-# Relocate new vars for readability
-clean_cent_dat <- clean_cent_dat %>% relocate(c("drk_sn_x_lpdc", "drk_sn_x_dpdc"), .after=drk_sn_x_dh_avg)
-
-```
-
 ## Build Regression Models
 
 ### Slapstick Regression
@@ -721,7 +668,7 @@ parameterEstimates(slapstick_fit, standardized = TRUE, boot.ci.type = "perc", le
 
 ```
 
-### Glitter Bomb
+### Glitter Bomb - Regression
 
 Drop the neutrals.
 Since we couldn't get convergence with both congruence and incongruence subsets referenced against no-preference humor    
@@ -825,63 +772,3 @@ glitterbomb_regr
 
 ```
 
-### Giggles Regression
-
-*DEPRECATED*
-
-```{r giggles_model}
-
-# ---- DEPRECATED -----
-# Not all humor vars are here anymore.
-# 
-# # SAMPLE CODE - Moderated Regression
-# giggles_regr <- linReg( clean_cent_dat,
-#                         dep = 'delta_anx',
-#                         covs = c( 'age', 'seen_dark_dc', 
-#                                   'light_humor_avg', 'dark_humor_avg', 
-#                                   'drk_sn_x_lh_avg', 'drk_sn_x_dh_avg'
-#                                  ),
-#                         blocks = list(
-#                                        list( 'age' ),
-#                                        list( 'seen_dark_dc', 'light_humor_avg', 'dark_humor_avg' ),
-#                                        list( 'drk_sn_x_lh_avg', 'drk_sn_x_dh_avg' )
-#                                      ),
-#                         modelTest = TRUE,
-#                         stdEst = TRUE,
-#                         r2Adj = TRUE,
-#                         collin = TRUE,
-#                         ci = TRUE)
-# giggles_regr
-
-
-```
-
-### GutBuster Regression
-
-*DEPRECATED*
-
-```{r gutbuster_model}
-
-# ---- DEPRECATED -----
-# Not all humor vars are here anymore.
-# 
-# # SAMPLE CODE - Moderated Regression
-# gutbust_regr <- linReg( clean_cent_dat,
-#                         dep = 'delta_anx',
-#                         covs = c( 'age', 'seen_dark_dc',
-#                                   'pref_light_dc', 'pref_dark_dc', 
-#                                   'drk_sn_x_lpdc', 'drk_sn_x_dpdc'),
-#                         blocks = list(
-#                                        list( 'age' ),
-#                                        list( 'seen_dark_dc', 'pref_light_dc', 'pref_dark_dc' ),
-#                                        list( 'drk_sn_x_lpdc', 'drk_sn_x_dpdc' )
-#                                      ),
-#                         modelTest = TRUE,
-#                         stdEst = TRUE,
-#                         r2Adj = TRUE,
-#                         collin = TRUE,
-#                         ci = TRUE)
-# gutbust_regr
-
-
-```
